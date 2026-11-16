@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/* Identidad Tuval · Manual de marca v1 (nov 2026) */
+:root {
+  --azul-tuval: #0b2e5c;
+  --cian-flujo: #2bb3d9;
+  --azul-profundo: #071e3d;
+  --gris-acero: #5a6b7d;
+  --niebla: #f0f5fa;
+  --cian-claro: #d5f0f7;
+  --blanco: #ffffff;
+}
+
+@theme inline {
+  --color-azul: var(--azul-tuval);
+  --color-cian: var(--cian-flujo);
+  --color-profundo: var(--azul-profundo);
+  --color-acero: var(--gris-acero);
+  --color-niebla: var(--niebla);
+  --color-cianclaro: var(--cian-claro);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+}
+
+body {
+  background: var(--blanco);
+  color: var(--azul-profundo);
+  font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Regla del manual: texto sobre cian siempre en azul profundo, nunca blanco. */
