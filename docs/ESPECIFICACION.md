@@ -26,6 +26,10 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D19 | Para **confirmar** un pedido se carga la **cotización de Emmsa** (precios, disponibilidad, tiempo) y se compara contra nuestro precio, existencias y promesa; después se confirma al cliente. | nov 2026 |
 | D20 | **Nada de lo que pidan se pierde:** lo que no está en catálogo o no se consigue se registra como **demanda** para buscar proveedor o darlo de alta en catálogo. | nov 2026 |
 | D21 | El cliente puede **pedir con una lista**: escrita (se busca en catálogo renglón por renglón), o **foto/PDF** adjunta que el equipo captura. | nov 2026 |
+| D22 | El número de WhatsApp de Tuval es el **número oficial**: se piden y mandan listas/fotos por ahí y llegan al mismo sistema. Plataforma recomendada: **WhatsApp Cloud API de Meta**, integrada directo a la app (pendiente de alta). | nov 2026 |
+| D23 | Cuentas que no se pierden: acceso con **celular (código por WhatsApp) o correo** (pendiente de conectar con Supabase Auth). | nov 2026 |
+| D24 | Diseño minimalista (referencia de estilo: Apple y Rivian) sobre la identidad Tuval; **página de Internet** en `/` y tienda en `/tienda`. | nov 2026 |
+| D25 | Cotizaciones de Emmsa se suben en **PDF** y se leen automáticamente (`src/lib/emmsa.ts`), validando que la suma cuadre con el subtotal. | nov 2026 |
 | D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar
@@ -137,7 +141,6 @@ Fiscal a considerar desde el diseño: factura global para ventas con nota; compl
 
 - ¿Qué es exactamente Emmsa para Tuval (distribuidor/mayorista)? ¿Entrega lista de precios/catálogo? ¿En qué formato (Excel, PDF, API)? ¿Comparte existencias?
 - Condiciones con Emmsa: crédito, horarios de recolección, tiempo de surtido.
-- **Ejemplo real de cotización de Emmsa** (Excel o PDF) para ajustar el lector al formato real.
 - Verificación de la cuenta por código de WhatsApp para entrar desde otro dispositivo (hoy la cuenta vive en la cookie del dispositivo).
 - Captura asistida de listas en foto/PDF con IA (costo por uso; cotizar antes de activarla). Hoy la captura es manual.
 - Mover archivos (fotos, PDFs) de Postgres a Supabase Storage cuando crezca el volumen.

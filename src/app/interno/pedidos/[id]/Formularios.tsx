@@ -13,20 +13,32 @@ function Aviso({ r }: { r: Resultado }) {
 
 export function FormCotizacion({ pedidoId }: { pedidoId: string }) {
   const [r, accion, enviando] = useActionState<Resultado, FormData>(cargarCotizacion, {});
+  const [pegar, setPegar] = useState(false);
   return (
-    <form action={accion} className="space-y-2">
+    <form action={accion} className="space-y-3">
       <input type="hidden" name="pedido_id" value={pedidoId} />
-      <input name="folio" placeholder="Folio de cotización Emmsa (opcional)" className="w-full rounded-lg border border-cianclaro px-3 py-2" />
-      <textarea
-        name="texto"
-        rows={5}
-        required
-        placeholder={"Pega desde Excel. Columnas: código | descripción | cantidad | precio unitario | disponible | tiempo de entrega"}
-        className="w-full rounded-lg border border-cianclaro px-3 py-2 font-mono text-xs"
-      />
-      <button disabled={enviando} className="rounded-lg bg-azul px-4 py-2 font-semibold text-white disabled:opacity-60">
-        {enviando ? "Cargando…" : "Cargar y comparar"}
+      <label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-cian p-5 text-center font-semibold text-azul">
+        <input type="file" name="pdf" accept="application/pdf" className="text-sm" />
+      </label>
+      <button type="button" onClick={() => setPegar(!pegar)} className="text-sm text-acero underline">
+        {pegar ? "Ocultar" : "¿No tienes PDF? Pegar desde Excel"}
       </button>
+      {pegar && (
+        <>
+          <input name="folio" placeholder="Folio de cotización (opcional)" className="w-full rounded-xl border border-cianclaro px-3 py-2" />
+          <textarea
+            name="texto"
+            rows={5}
+            placeholder={"Columnas: código | descripción | cantidad | precio unitario | disponible | tiempo de entrega"}
+            className="w-full rounded-xl border border-cianclaro px-3 py-2 font-mono text-xs"
+          />
+        </>
+      )}
+      <div>
+        <button disabled={enviando} className="rounded-full bg-azul px-5 py-2.5 font-semibold text-white disabled:opacity-60">
+          {enviando ? "Leyendo…" : "Cargar y comparar"}
+        </button>
+      </div>
       <Aviso r={r} />
     </form>
   );
@@ -73,7 +85,9 @@ export function FormConfirmar({ pedidoId, renglones, confirmado }: { pedidoId: s
                   <td className="p-2">{x.cot_precio != null ? formatoMoneda(x.cot_precio) : <span className="text-acero">sin cotizar</span>}</td>
                   <td className="p-2">
                     {x.cot_disponible == null ? "—" : x.cot_disponible ? "Sí" : <span className="font-semibold text-red-700">No</span>}
-                    {x.cot_tiempo && <span className="block text-xs text-acero">{x.cot_tiempo}</span>}
+                    {x.cot_tiempo && (
+                      <span className={`block text-xs ${x.cot_dias != null && x.cot_dias > 1 ? "font-semibold text-red-700" : "text-acero"}`}>{x.cot_tiempo}</span>
+                    )}
                   </td>
                   <td className="p-2">{x.precio_lista != null ? formatoMoneda(x.precio_lista) : "—"}</td>
                   <td className="p-2">

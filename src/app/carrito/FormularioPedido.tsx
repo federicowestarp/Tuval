@@ -4,6 +4,9 @@ import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useCarrito } from "@/components/carrito/CarritoProvider";
 import { TarjetaDireccion } from "@/components/TarjetaDireccion";
+import { Segmentado } from "@/components/Segmentado";
+import { IconoCheck, IconoDocumento, IconoMas, IconoMenos } from "@/components/Iconos";
+import { BotonLiga, campo, clasesBoton, etiqueta, Pastilla } from "@/components/ui";
 import type { Direccion } from "@/lib/direcciones";
 import { crearPedido, type EstadoFormulario } from "./acciones";
 
@@ -23,13 +26,19 @@ const USOS = [
   ["I01", "I01 · Construcciones"],
 ];
 
-const campo = "w-full rounded-lg border border-cianclaro bg-white px-3 py-3 text-base outline-none focus:ring-4 focus:ring-cian";
-const etiqueta = "mb-1 block text-sm font-semibold";
-
 type Props = { direcciones: Direccion[]; haySucursal: boolean; nombre: string; telefono: string };
 
+function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-linea pt-8">
+      <h2 className="mb-5 font-display text-2xl font-bold">{titulo}</h2>
+      {children}
+    </section>
+  );
+}
+
 export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }: Props) {
-  const { lineas, adjuntos, cambiar, quitarAdjunto } = useCarrito();
+  const { lineas, adjuntos, piezas, cambiar, quitarAdjunto } = useCarrito();
   const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(crearPedido, {});
   const v = estado.campos ?? {};
   const [comprobante, setComprobante] = useState(v.comprobante ?? "nota");
@@ -38,11 +47,12 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
 
   if (lineas.length === 0 && adjuntos.length === 0) {
     return (
-      <div className="mt-6 rounded-xl bg-white p-6">
-        <p>Tu carrito está vacío.</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/" className="rounded-lg bg-azul px-5 py-3 font-semibold text-white">Ver catálogo</Link>
-          <Link href="/lista" className="rounded-lg bg-cian px-5 py-3 font-semibold text-profundo">Pedir con lista</Link>
+      <div className="py-16 text-center">
+        <p className="font-display text-2xl font-bold">Tu carrito está vacío.</p>
+        <p className="mt-2 text-acero">Busca en la tienda o pide con tu lista.</p>
+        <div className="mt-6 flex justify-center gap-2">
+          <BotonLiga href="/tienda">Ir a la tienda</BotonLiga>
+          <BotonLiga href="/lista" variante="secundario">Pedir con lista</BotonLiga>
         </div>
       </div>
     );
@@ -52,123 +62,105 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
   const especiales = lineas.filter((l) => l.especial);
 
   return (
-    <form action={accion} className="mt-6 space-y-6">
+    <form action={accion} className="space-y-8 pb-28 md:pb-8">
       <input type="hidden" name="lineas" value={JSON.stringify(catalogo.map((l) => ({ id: l.id, cantidad: l.cantidad })))} />
       <input type="hidden" name="especiales" value={JSON.stringify(especiales.map((l) => ({ descripcion: l.nombre, cantidad: l.cantidad })))} />
       <input type="hidden" name="adjuntos" value={JSON.stringify(adjuntos.map((a) => a.id))} />
 
-      <section className="rounded-xl bg-white p-4">
-        <ul className="divide-y divide-cianclaro">
-          {lineas.map((l) => (
-            <li key={l.id} className="flex items-center justify-between gap-3 py-3">
-              <div>
-                <p className="font-semibold">{l.nombre}</p>
-                <p className="text-xs text-acero">
-                  {l.especial ? <span className="rounded-full bg-cianclaro px-2 py-0.5 text-profundo">Lo buscamos por ti</span> : `SKU ${l.sku} · ${l.unidad}`}
-                </p>
+      <ul className="divide-y divide-linea">
+        {lineas.map((l) => (
+          <li key={l.id} className="flex items-center justify-between gap-4 py-4">
+            <div className="min-w-0">
+              <p className="font-semibold leading-snug">{l.nombre}</p>
+              <div className="mt-1">{l.especial ? <Pastilla tono="niebla">Lo buscamos por ti</Pastilla> : <p className="text-[13px] text-acero">{l.sku}</p>}</div>
+            </div>
+            <div className="flex h-10 shrink-0 items-center rounded-full bg-niebla">
+              <button type="button" aria-label="Quitar uno" onClick={() => cambiar(l.id, l.cantidad - 1)} className="flex h-10 w-10 items-center justify-center text-azul"><IconoMenos className="h-4 w-4" /></button>
+              <span className="min-w-6 text-center font-semibold">{l.cantidad}</span>
+              <button type="button" aria-label="Agregar uno" onClick={() => cambiar(l.id, l.cantidad + 1)} className="flex h-10 w-10 items-center justify-center text-azul"><IconoMas className="h-4 w-4" /></button>
+            </div>
+          </li>
+        ))}
+        {adjuntos.map((a) => (
+          <li key={a.id} className="flex items-center justify-between gap-4 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-niebla text-azul"><IconoDocumento className="h-5 w-5" /></span>
+              <div className="min-w-0">
+                <p className="truncate font-semibold">{a.nombre}</p>
+                <p className="text-[13px] text-acero">Lista adjunta · la capturamos</p>
               </div>
-              <div className="flex items-center gap-2">
-                <button type="button" aria-label="Menos" onClick={() => cambiar(l.id, l.cantidad - 1)} className="h-10 w-10 rounded-lg bg-niebla text-xl font-bold text-azul">−</button>
-                <span className="w-8 text-center font-semibold">{l.cantidad}</span>
-                <button type="button" aria-label="Más" onClick={() => cambiar(l.id, l.cantidad + 1)} className="h-10 w-10 rounded-lg bg-niebla text-xl font-bold text-azul">+</button>
-              </div>
-            </li>
-          ))}
-          {adjuntos.map((a) => (
-            <li key={a.id} className="flex items-center justify-between gap-3 py-3">
-              <div>
-                <p className="font-semibold">📄 {a.nombre}</p>
-                <p className="text-xs text-acero">Lista adjunta: la capturamos y te confirmamos</p>
-              </div>
-              <button type="button" onClick={() => quitarAdjunto(a.id)} className="text-sm text-acero underline">Quitar</button>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-acero">
-          Confirmamos precios, existencias y hora de entrega antes de surtir. <Link href="/lista" className="underline">Agregar con lista</Link>
-        </p>
-      </section>
+            </div>
+            <button type="button" onClick={() => quitarAdjunto(a.id)} className="text-[14px] text-acero">Quitar</button>
+          </li>
+        ))}
+      </ul>
+      <p className="-mt-4 text-[13px] text-acero">Confirmamos precios y existencias antes de surtir. <Link href="/tienda" className="text-azul underline">Seguir comprando</Link></p>
 
-      <section className="space-y-4 rounded-xl bg-white p-4">
-        <h2 className="font-display text-xl font-bold">Tus datos</h2>
+      <Seccion titulo="Tus datos">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={etiqueta} htmlFor="nombre">Nombre</label>
             <input id="nombre" name="nombre" defaultValue={v.nombre ?? nombre} className={campo} autoComplete="name" required />
           </div>
           <div>
-            <label className={etiqueta} htmlFor="telefono">Celular (WhatsApp)</label>
-            <input id="telefono" name="telefono" defaultValue={v.telefono ?? telefono} inputMode="tel" className={campo} autoComplete="tel" required />
+            <label className={etiqueta} htmlFor="telefono">Celular</label>
+            <input id="telefono" name="telefono" defaultValue={v.telefono ?? telefono} inputMode="tel" className={campo} autoComplete="tel" placeholder="10 dígitos" required />
           </div>
         </div>
-      </section>
+      </Seccion>
 
-      <section className="space-y-4 rounded-xl bg-white p-4">
-        <h2 className="font-display text-xl font-bold">Entrega</h2>
-        <div className="grid grid-cols-2 gap-2">
-          <label className={`cursor-pointer rounded-lg border-2 p-3 text-center font-semibold ${modo === "envio" ? "border-azul bg-cianclaro" : "border-cianclaro"}`}>
-            <input type="radio" name="modo" value="envio" checked={modo === "envio"} onChange={() => setModo("envio")} className="sr-only" />
-            Envío
-          </label>
-          <label className={`rounded-lg border-2 p-3 text-center font-semibold ${!haySucursal ? "cursor-not-allowed border-niebla text-acero" : modo === "recoger" ? "cursor-pointer border-azul bg-cianclaro" : "cursor-pointer border-cianclaro"}`}>
-            <input type="radio" name="modo" value="recoger" disabled={!haySucursal} checked={modo === "recoger"} onChange={() => setModo("recoger")} className="sr-only" />
-            Recoger en sucursal
-            {!haySucursal && <span className="block text-xs font-normal">Próximamente</span>}
-          </label>
-        </div>
-
+      <Seccion titulo="Entrega">
+        <Segmentado
+          name="modo"
+          valor={modo}
+          onCambio={setModo}
+          opciones={[
+            { id: "envio", texto: "Envío" },
+            { id: "recoger", texto: "Recoger", nota: haySucursal ? undefined : "Próximamente", deshabilitada: !haySucursal },
+          ]}
+        />
         {modo === "envio" && (
-          <>
+          <div className="mt-4 space-y-2">
             {direcciones.length > 0 ? (
               <fieldset className="min-w-0 space-y-2">
-                <legend className={etiqueta}>¿A cuál dirección?</legend>
+                <legend className="sr-only">Dirección de entrega</legend>
                 {direcciones.map((d) => (
-                  <label key={d.id} className={`block cursor-pointer rounded-lg border-2 p-3 ${dirId === d.id ? "border-azul bg-cianclaro" : "border-cianclaro"}`}>
+                  <label key={d.id} className={`relative block cursor-pointer rounded-3xl p-4 transition ${dirId === d.id ? "bg-white ring-2 ring-azul" : "bg-niebla ring-1 ring-transparent hover:ring-linea"}`}>
                     <input type="radio" name="direccion_id" value={d.id} checked={dirId === d.id} onChange={() => setDirId(d.id)} className="sr-only" />
                     <TarjetaDireccion d={d} />
+                    {dirId === d.id && <span className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-azul text-white"><IconoCheck className="h-4 w-4" /></span>}
                   </label>
                 ))}
               </fieldset>
             ) : (
-              <p className="rounded-lg bg-niebla p-3 text-sm">Aún no tienes direcciones guardadas.</p>
+              <p className="rounded-3xl bg-niebla p-5 text-[15px] text-acero">Agrega la dirección de tu obra o de tu casa. Se guarda para tus siguientes pedidos.</p>
             )}
-            <Link href="/cuenta/direcciones?volver=/carrito" className="inline-block rounded-lg border-2 border-azul px-4 py-2 text-sm font-semibold text-azul">
-              + Agregar dirección
-            </Link>
-            <p className="text-xs text-acero">
-              Puebla: pedidos antes de las 12:00 llegan hoy (sábado antes de las 10:00). Atlixco y Tlaxcala: pedidos antes de las 17:00 llegan al día siguiente por la mañana.
-            </p>
-          </>
+            <BotonLiga href="/cuenta/direcciones?volver=/carrito" variante="secundario" ancho>
+              <IconoMas className="h-5 w-5" /> Agregar dirección
+            </BotonLiga>
+          </div>
         )}
-        <div>
-          <label className={etiqueta} htmlFor="notas">Notas del pedido (opcional)</label>
-          <input id="notas" name="notas" defaultValue={v.notas} className={campo} placeholder="Ej. número de orden de compra" />
+        <div className="mt-4">
+          <label className={etiqueta} htmlFor="notas">Notas (opcional)</label>
+          <input id="notas" name="notas" defaultValue={v.notas} className={campo} placeholder="Ej. orden de compra 1234" />
         </div>
-      </section>
+      </Seccion>
 
-      <section className="space-y-4 rounded-xl bg-white p-4">
-        <h2 className="font-display text-xl font-bold">Comprobante</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {[["nota", "Nota"], ["factura", "Factura"]].map(([id, n]) => (
-            <label key={id} className={`cursor-pointer rounded-lg border-2 p-3 text-center font-semibold ${comprobante === id ? "border-azul bg-cianclaro" : "border-cianclaro"}`}>
-              <input type="radio" name="comprobante" value={id} checked={comprobante === id} onChange={() => setComprobante(id)} className="sr-only" />
-              {n}
-            </label>
-          ))}
-        </div>
+      <Seccion titulo="Comprobante">
+        <Segmentado name="comprobante" valor={comprobante} onCambio={setComprobante} opciones={[{ id: "nota", texto: "Nota" }, { id: "factura", texto: "Factura" }]} />
         {comprobante === "factura" && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="aparecer mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <label className={etiqueta} htmlFor="rfc">RFC</label>
-              <input id="rfc" name="rfc" defaultValue={v.rfc} className={`${campo} uppercase`} required />
+              <input id="rfc" name="rfc" defaultValue={v.rfc} className={`${campo} uppercase`} autoCapitalize="characters" required />
             </div>
             <div>
               <label className={etiqueta} htmlFor="cp_fiscal">C.P. fiscal</label>
               <input id="cp_fiscal" name="cp_fiscal" defaultValue={v.cp_fiscal} inputMode="numeric" className={campo} required />
             </div>
             <div className="sm:col-span-2">
-              <label className={etiqueta} htmlFor="razon_social">Razón social (como en tu constancia)</label>
-              <input id="razon_social" name="razon_social" defaultValue={v.razon_social} className={campo} required />
+              <label className={etiqueta} htmlFor="razon_social">Razón social</label>
+              <input id="razon_social" name="razon_social" defaultValue={v.razon_social} className={campo} placeholder="Como aparece en tu constancia" required />
             </div>
             <div>
               <label className={etiqueta} htmlFor="regimen_fiscal">Régimen fiscal</label>
@@ -185,14 +177,19 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
             </div>
           </div>
         )}
-      </section>
+      </Seccion>
 
-      {estado.error && <p role="alert" className="rounded-lg bg-white p-3 font-semibold text-red-700 ring-2 ring-red-200">{estado.error}</p>}
+      {estado.error && <p role="alert" className="aparecer rounded-2xl bg-red-50 p-4 font-semibold text-red-700">{estado.error}</p>}
 
-      <button disabled={enviando} className="w-full rounded-xl bg-azul py-4 text-lg font-bold text-white disabled:opacity-60">
-        {enviando ? "Enviando…" : "Enviar pedido"}
-      </button>
-      <p className="text-center text-xs text-acero">Te confirmamos por WhatsApp precios, existencias, total y forma de pago.</p>
+      {/* Barra de acción fija */}
+      <div className="fixed inset-x-0 bottom-14 z-30 border-t border-linea/70 bg-white/90 p-3 backdrop-blur-xl md:static md:border-0 md:bg-transparent md:p-0">
+        <div className="mx-auto max-w-2xl">
+          <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>
+            {enviando ? "Enviando…" : `Enviar pedido · ${piezas} ${piezas === 1 ? "artículo" : "artículos"}`}
+          </button>
+          <p className="mt-2 hidden text-center text-[13px] text-acero md:block">Te confirmamos total y forma de pago por WhatsApp antes de surtir.</p>
+        </div>
+      </div>
     </form>
   );
 }

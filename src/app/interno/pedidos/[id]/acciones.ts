@@ -4,18 +4,43 @@ import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { verificarAccesoInterno } from "../../acceso";
 import { leerCotizacion, normalizar } from "@/lib/cotizacion";
+import { leerPdfEmmsa } from "@/lib/emmsa";
+import { guardarArchivo } from "@/lib/archivos";
 import { idEmmsa } from "@/lib/interno";
 import { IVA } from "@/lib/catalogo";
 
 export type Resultado = { error?: string; mensaje?: string };
 
-/** Carga la cotización de Emmsa y la empareja con las partidas del pedido. */
+type Renglon = { codigo: string; descripcion: string; cantidad: number | null; unidad?: string; precio: number; disponible: boolean | null; tiempo: string; dias?: number | null };
+
+/** Carga la cotización de Emmsa (PDF o pegada desde Excel) y la empareja con las partidas del pedido. */
 export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<Resultado> {
   verificarAccesoInterno();
   const pedidoId = String(fd.get("pedido_id"));
-  const texto = String(fd.get("texto") ?? "");
-  const renglones = leerCotizacion(texto);
-  if (renglones.length === 0) return { error: "No encontré renglones con precio. Revisa el orden de columnas." };
+  const archivo = fd.get("pdf");
+  let renglones: Renglon[] = [];
+  let meta: { folio: string | null; fecha: string | null; vigencia: string | null; condiciones: string | null; subtotal: number | null; total: number | null; cuadra: boolean | null } =
+    { folio: null, fecha: null, vigencia: null, condiciones: null, subtotal: null, total: null, cuadra: null };
+  let archivoId: string | null = null;
+  let texto = "";
+
+  if (archivo && typeof archivo !== "string" && archivo.size > 0) {
+    if (archivo.type !== "application/pdf") return { error: "Sube el PDF de la cotización de Emmsa." };
+    const c = await leerPdfEmmsa(new Uint8Array(await archivo.arrayBuffer()));
+    if (c.renglones.length === 0) return { error: "No reconocí partidas en el PDF. ¿Es una cotización de Emmsa?" };
+    renglones = c.renglones.map((r) => ({
+      codigo: r.codigo, descripcion: r.descripcion, cantidad: r.cantidad, unidad: r.unidad,
+      precio: r.precio, disponible: null, tiempo: r.tiempo, dias: r.dias,
+    }));
+    meta = { folio: c.folio, fecha: c.fecha, vigencia: c.vigencia, condiciones: c.condiciones, subtotal: c.subtotal, total: c.total, cuadra: c.cuadra };
+    archivoId = await guardarArchivo(archivo, ["application/pdf"]);
+    texto = c.renglones.map((r) => `${r.partida}\t${r.codigo}\t${r.descripcion}\t${r.cantidad}\t${r.unidad}\t${r.precio}\t${r.tiempo}`).join("\n");
+  } else {
+    texto = String(fd.get("texto") ?? "");
+    renglones = leerCotizacion(texto);
+    if (renglones.length === 0) return { error: "Sube el PDF o pega renglones con precio." };
+    meta.folio = String(fd.get("folio") ?? "").trim() || null;
+  }
 
   const proveedorId = await idEmmsa();
   const partidas = await sql<{ id: string; producto_id: string; nombre: string; sku: string; sku_proveedor: string | null }[]>`
@@ -39,27 +64,74 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
   let emparejados = 0;
   await sql.begin(async (tx) => {
     const [cot] = await tx<{ id: string }[]>`
-      insert into cotizaciones_proveedor (proveedor_id, pedido_id, folio_proveedor, texto_original)
-      values (${proveedorId}, ${pedidoId}, ${String(fd.get("folio") ?? "").trim() || null}, ${texto})
+      insert into cotizaciones_proveedor (proveedor_id, pedido_id, folio_proveedor, texto_original, archivo_id,
+                                          fecha_proveedor, vigencia, condiciones, subtotal, total, cuadra)
+      values (${proveedorId}, ${pedidoId}, ${meta.folio}, ${texto}, ${archivoId},
+              ${meta.fecha}, ${meta.vigencia}, ${meta.condiciones}, ${meta.subtotal}, ${meta.total}, ${meta.cuadra})
       returning id`;
     for (const r of renglones) {
       const p = emparejar(r.codigo, r.descripcion);
       if (p) emparejados++;
       await tx`
-        insert into cotizacion_partidas (cotizacion_id, codigo_proveedor, descripcion, cantidad, precio_unitario, disponible, tiempo_entrega, pedido_partida_id)
-        values (${cot.id}, ${r.codigo || null}, ${r.descripcion || null}, ${r.cantidad}, ${r.precio}, ${r.disponible}, ${r.tiempo || null}, ${p?.id ?? null})`;
+        insert into cotizacion_partidas (cotizacion_id, codigo_proveedor, descripcion, cantidad, unidad, precio_unitario,
+                                         disponible, tiempo_entrega, dias_entrega, pedido_partida_id)
+        values (${cot.id}, ${r.codigo || null}, ${r.descripcion || null}, ${r.cantidad}, ${r.unidad ?? null}, ${r.precio},
+                ${r.disponible}, ${r.tiempo || null}, ${r.dias ?? null}, ${p?.id ?? null})`;
       if (p) {
         // Guardamos el costo y el código del proveedor: así se arma la lista de costos con el uso.
         await tx`
-          insert into productos_proveedor (producto_id, proveedor_id, sku_proveedor, costo, actualizado_en)
-          values (${p.producto_id}, ${proveedorId}, ${r.codigo || null}, ${r.precio}, now())
+          insert into productos_proveedor (producto_id, proveedor_id, sku_proveedor, costo, tiempo_surtido_horas, actualizado_en)
+          values (${p.producto_id}, ${proveedorId}, ${r.codigo || null}, ${r.precio}, ${r.dias != null ? r.dias * 24 : null}, now())
           on conflict (producto_id, proveedor_id) do update
-            set costo = excluded.costo, sku_proveedor = coalesce(excluded.sku_proveedor, productos_proveedor.sku_proveedor), actualizado_en = now()`;
+            set costo = excluded.costo, sku_proveedor = coalesce(excluded.sku_proveedor, productos_proveedor.sku_proveedor),
+                tiempo_surtido_horas = coalesce(excluded.tiempo_surtido_horas, productos_proveedor.tiempo_surtido_horas), actualizado_en = now()`;
       }
     }
   });
   revalidatePath(`/interno/pedidos/${pedidoId}`);
-  return { mensaje: `Cotización cargada: ${renglones.length} renglones, ${emparejados} emparejados con el pedido.` };
+  const aviso = meta.cuadra === false ? " ⚠ La suma de partidas no cuadra con el subtotal del PDF: revísala." : "";
+  return {
+    mensaje: `Cotización ${meta.folio ?? ""} cargada: ${renglones.length} renglones, ${emparejados} emparejados con el pedido.${aviso}`,
+  };
+}
+
+/**
+ * Para pedidos que llegaron como foto o lista: los renglones de la cotización que no existen en el pedido
+ * se dan de alta (categoría "por clasificar", ligados al código de Emmsa) y entran como partidas.
+ */
+export async function agregarRenglonesAlPedido(fd: FormData) {
+  verificarAccesoInterno();
+  const pedidoId = String(fd.get("pedido_id"));
+  const proveedorId = await idEmmsa();
+  const sueltos = await sql<{ id: string; codigo_proveedor: string | null; descripcion: string; cantidad: number | null; precio_unitario: number; unidad: string | null }[]>`
+    select cp.id, cp.codigo_proveedor, cp.descripcion, cp.cantidad, cp.precio_unitario, cp.unidad
+    from cotizacion_partidas cp
+    where cp.pedido_partida_id is null
+      and cp.cotizacion_id = (select id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by cargada_en desc limit 1)`;
+  await sql.begin(async (tx) => {
+    for (const r of sueltos) {
+      // ¿Ya existe en catálogo con ese código de Emmsa?
+      let [prod] = await tx<{ id: string }[]>`
+        select producto_id as id from productos_proveedor where proveedor_id = ${proveedorId} and sku_proveedor = ${r.codigo_proveedor}`;
+      if (!prod) {
+        [prod] = await tx<{ id: string }[]>`
+          insert into productos (sku, nombre, categoria_id, unidad)
+          values (${"EM-" + (r.codigo_proveedor ?? r.id.slice(0, 8)).toUpperCase()}, ${r.descripcion}, 'por_clasificar',
+                  ${r.unidad === "MTO" ? "metro" : "pieza"})
+          on conflict (sku) do update set nombre = productos.nombre
+          returning id`;
+      }
+      await tx`
+        insert into productos_proveedor (producto_id, proveedor_id, sku_proveedor, costo, actualizado_en)
+        values (${prod.id}, ${proveedorId}, ${r.codigo_proveedor}, ${r.precio_unitario}, now())
+        on conflict (producto_id, proveedor_id) do update set costo = excluded.costo, actualizado_en = now()`;
+      const [partida] = await tx<{ id: string }[]>`
+        insert into pedido_partidas (pedido_id, producto_id, cantidad, costo_unitario)
+        values (${pedidoId}, ${prod.id}, ${r.cantidad ?? 1}, ${r.precio_unitario}) returning id`;
+      await tx`update cotizacion_partidas set pedido_partida_id = ${partida.id} where id = ${r.id}`;
+    }
+  });
+  revalidatePath(`/interno/pedidos/${pedidoId}`);
 }
 
 export async function asignarRenglon(fd: FormData) {

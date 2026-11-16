@@ -9,12 +9,13 @@ export function Simbolo({ className = "h-8 w-8", color = "var(--cian-flujo)" }: 
   );
 }
 
-export function Logo({ tono = "claro" }: { tono?: "claro" | "oscuro" }) {
+export function Logo({ tono = "oscuro", tamano = "normal" }: { tono?: "claro" | "oscuro"; tamano?: "normal" | "grande" }) {
   const texto = tono === "claro" ? "text-white" : "text-azul";
+  const g = tamano === "grande";
   return (
-    <span className="inline-flex items-center gap-2" aria-label="Tuval">
-      <Simbolo className="h-8 w-8" />
-      <span className={`font-display text-2xl font-bold tracking-wide ${texto}`}>TUVAL</span>
+    <span className="inline-flex items-center gap-1.5" aria-label="Tuval">
+      <Simbolo className={g ? "h-9 w-9" : "h-6 w-6"} />
+      <span className={`font-display font-bold tracking-wide ${g ? "text-3xl" : "text-xl"} ${texto}`}>TUVAL</span>
     </span>
   );
 }

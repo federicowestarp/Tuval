@@ -12,7 +12,7 @@ import { urlBase } from "@/lib/url";
 import { verificarAccesoInterno } from "../../acceso";
 import { NavegacionInterna } from "../../Navegacion";
 import { cambiarEstado } from "../acciones";
-import { asignarRenglon } from "./acciones";
+import { agregarRenglonesAlPedido, asignarRenglon } from "./acciones";
 import { FormConfirmar, FormCotizacion } from "./Formularios";
 
 export default function DetallePedido(props: PageProps<"/interno/pedidos/[id]">) {
@@ -119,7 +119,14 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
         <FormCotizacion pedidoId={pedido.id} />
         {sueltos.length > 0 && (
           <div className="mt-4">
-            <p className="text-sm font-semibold">Renglones de la cotización sin emparejar</p>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-semibold">{sueltos.length} renglón(es) de la cotización no están en el pedido</p>
+              <form action={agregarRenglonesAlPedido}>
+                <input type="hidden" name="pedido_id" value={pedido.id} />
+                <button className="rounded-full bg-cian px-4 py-2 text-sm font-semibold text-profundo">Agregarlos todos al pedido</button>
+              </form>
+            </div>
+            <p className="text-xs text-acero">Útil cuando el pedido llegó en foto o lista: se dan de alta como “por clasificar” con su código de Emmsa. O asigna uno por uno:</p>
             {sueltos.map((s) => (
               <form key={s.id} action={asignarRenglon} className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                 <input type="hidden" name="pedido_id" value={pedido.id} />

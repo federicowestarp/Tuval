@@ -1,6 +1,7 @@
 import { Suspense } from "react";
-import { Encabezado } from "@/components/Encabezado";
+import { Marco } from "@/components/marco/Marco";
 import { TarjetaDireccion } from "@/components/TarjetaDireccion";
+import { Titulo } from "@/components/ui";
 import { cuentaActual } from "@/lib/sesion";
 import { direccionesDe } from "@/lib/direcciones";
 import { FormularioDireccion } from "./FormularioDireccion";
@@ -8,33 +9,33 @@ import { borrarDireccion } from "./acciones";
 
 export default function Direcciones(props: PageProps<"/cuenta/direcciones">) {
   return (
-    <div className="flex flex-1 flex-col bg-niebla">
-      <header className="bg-azul"><Encabezado /></header>
-      <main className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-4 py-8">
-        <h1 className="font-display text-3xl font-bold">Mis direcciones</h1>
-        <Suspense fallback={<p className="text-sm text-acero">Cargando…</p>}>
+    <Marco pie={false}>
+      <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
+        <Titulo sub="Tus obras y domicilios, listos para el siguiente pedido.">Direcciones.</Titulo>
+        <Suspense fallback={<div className="h-24 animate-pulse rounded-3xl bg-niebla" />}>
           <Lista />
         </Suspense>
+        <h2 className="mb-5 mt-12 font-display text-2xl font-bold">Nueva dirección</h2>
         <Suspense>
           <Formulario searchParams={props.searchParams} />
         </Suspense>
       </main>
-    </div>
+    </Marco>
   );
 }
 
 async function Lista() {
   const cuenta = await cuentaActual();
   const dirs = cuenta ? await direccionesDe(cuenta.id) : [];
-  if (dirs.length === 0) return <p className="text-sm text-acero">Aún no tienes direcciones guardadas.</p>;
+  if (dirs.length === 0) return <p className="text-[15px] text-acero">Aún no tienes direcciones guardadas.</p>;
   return (
-    <ul className="space-y-3">
+    <ul className="space-y-2">
       {dirs.map((d) => (
-        <li key={d.id} className="flex items-start justify-between gap-3 rounded-xl bg-white p-4">
+        <li key={d.id} className="flex items-start justify-between gap-3 rounded-3xl bg-niebla p-4">
           <TarjetaDireccion d={d} />
           <form action={borrarDireccion}>
             <input type="hidden" name="id" value={d.id} />
-            <button className="text-sm text-acero underline">Quitar</button>
+            <button className="text-[14px] text-acero hover:text-azul">Quitar</button>
           </form>
         </li>
       ))}

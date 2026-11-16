@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useCarrito } from "@/components/carrito/CarritoProvider";
+import { IconoCamara, IconoCheck, IconoDocumento } from "@/components/Iconos";
+import { areaTexto, clasesBoton } from "@/components/ui";
 import { interpretarLista, subirLista, type LineaInterpretada } from "./acciones";
 
 const NO_ESTA = "no-esta";
@@ -15,117 +17,146 @@ export function ListaPedido() {
   const [cantidades, setCantidades] = useState<Record<number, number>>({});
   const [pendiente, iniciar] = useTransition();
   const [subiendo, setSubiendo] = useState(false);
-  const [mensaje, setMensaje] = useState("");
+  const [listo, setListo] = useState<string | null>(null);
+  const archivo = useRef<HTMLInputElement>(null);
 
-  const buscar = () =>
+  const buscar = (t: string) =>
     iniciar(async () => {
-      const r = await interpretarLista(texto);
+      const r = await interpretarLista(t);
       setLineas(r);
       setEleccion(Object.fromEntries(r.map((l, i) => [i, l.sugerencias[0]?.id ?? NO_ESTA])));
       setCantidades(Object.fromEntries(r.map((l, i) => [i, l.cantidad])));
     });
 
+  // Lista pegada en el buscador de la tienda o del inicio.
+  useEffect(() => {
+    const pegada = sessionStorage.getItem("tuval.lista");
+    if (pegada) {
+      sessionStorage.removeItem("tuval.lista");
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- precargar lista pegada en otra pantalla
+      setTexto(pegada);
+      buscar(pegada);
+    }
+  }, []);
+
   const agregarTodo = () => {
     lineas?.forEach((l, i) => {
       const cant = cantidades[i] ?? l.cantidad;
-      const id = eleccion[i];
-      const p = l.sugerencias.find((s) => s.id === id);
+      const p = l.sugerencias.find((s) => s.id === eleccion[i]);
       if (p) agregar({ id: p.id, sku: p.sku, nombre: p.nombre, unidad: p.unidad }, cant);
       else agregarEspecial(l.descripcion, cant);
     });
-    setMensaje(`Agregamos ${lineas?.length} partida(s) a tu carrito.`);
+    setListo(`Agregamos ${lineas?.length} producto${lineas?.length === 1 ? "" : "s"} a tu carrito.`);
     setLineas(null);
     setTexto("");
   };
 
   async function alSubir(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
+    e.target.value = "";
     if (!f) return;
     setSubiendo(true);
     const fd = new FormData();
     fd.set("archivo", f);
     const r = await subirLista(fd);
     setSubiendo(false);
-    e.target.value = "";
-    if (r.error) return setMensaje(r.error);
+    if (r.error) return setListo(r.error);
     agregarAdjunto({ id: r.id!, nombre: r.nombre! });
-    setMensaje("Listo. Adjuntamos tu lista al carrito; la revisamos y te confirmamos cada producto.");
+    setListo("Tu lista está en el carrito. La capturamos y te confirmamos cada producto.");
   }
 
-  return (
-    <div className="space-y-6">
-      <section className="rounded-xl bg-white p-4">
-        <h2 className="font-display text-xl font-bold">Sube una foto o PDF de tu lista</h2>
-        <p className="mt-1 text-sm text-acero">Lista a mano, cotización o requisición. Nosotros la capturamos y te confirmamos.</p>
-        <label className="mt-3 flex cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-cian p-6 font-semibold text-azul">
-          {subiendo ? "Subiendo…" : "📄 Tomar foto o elegir archivo"}
-          <input type="file" accept="image/*,application/pdf" onChange={alSubir} className="sr-only" />
-        </label>
-        {adjuntos.length > 0 && (
-          <p className="mt-2 text-sm">En tu carrito: {adjuntos.map((a) => a.nombre).join(", ")}</p>
-        )}
-      </section>
+  const porBuscar = lineas ? lineas.filter((_, i) => eleccion[i] === NO_ESTA).length : 0;
 
-      <section className="rounded-xl bg-white p-4">
-        <h2 className="font-display text-xl font-bold">O escríbela</h2>
-        <p className="mt-1 text-sm text-acero">Un producto por renglón, con la cantidad al inicio. Ej.: <em>10 codos 90 1/2</em></p>
+  return (
+    <div className="space-y-4">
+      {/* Opción 1: foto o PDF */}
+      <button
+        type="button"
+        onClick={() => archivo.current?.click()}
+        className="flex w-full items-center gap-4 rounded-3xl bg-niebla p-5 text-left transition hover:bg-cianclaro"
+      >
+        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-azul">
+          {subiendo ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-azul border-t-transparent" /> : <IconoCamara className="h-7 w-7" />}
+        </span>
+        <span>
+          <span className="block text-[17px] font-semibold">Foto o PDF de tu lista</span>
+          <span className="block text-[15px] text-acero">Requisición, cotización o lista a mano. Nosotros la capturamos.</span>
+        </span>
+      </button>
+      <input ref={archivo} type="file" accept="image/*,application/pdf" onChange={alSubir} className="sr-only" />
+      {adjuntos.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {adjuntos.map((a) => (
+            <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-cianclaro px-3 py-1.5 text-[13px] font-medium">
+              <IconoDocumento className="h-4 w-4" /> {a.nombre}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Opción 2: escribirla */}
+      <div className="rounded-3xl bg-niebla p-5">
+        <p className="text-[17px] font-semibold">O escríbela</p>
+        <p className="text-[15px] text-acero">Un producto por renglón, con la cantidad al inicio.</p>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
-          rows={6}
-          className="mt-3 w-full rounded-lg border border-cianclaro px-3 py-3 text-base outline-none focus:ring-4 focus:ring-cian"
+          rows={5}
+          className={`mt-4 bg-white ${areaTexto}`}
           placeholder={"10 cople pvc 1/2\n2 válvula esfera 3/4\n1 bomba periférica"}
         />
-        <button onClick={buscar} disabled={pendiente || !texto.trim()} className="mt-3 w-full rounded-xl bg-azul py-3 font-bold text-white disabled:opacity-50">
+        <button onClick={() => buscar(texto)} disabled={pendiente || !texto.trim()} className={`mt-3 ${clasesBoton("principal", "grande", true)}`}>
           {pendiente ? "Buscando…" : "Buscar en el catálogo"}
         </button>
-      </section>
+      </div>
 
       {lineas && (
-        <section className="space-y-3">
+        <div className="aparecer space-y-3 pt-4">
+          <h2 className="font-display text-2xl font-bold">Revisa tu lista</h2>
           {lineas.map((l, i) => (
-            <div key={i} className="rounded-xl bg-white p-4">
+            <div key={i} className="rounded-3xl bg-white p-4 ring-1 ring-linea">
               <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold">“{l.descripcion}”</p>
+                <p className="text-[15px] text-acero">“{l.descripcion}”</p>
                 <input
                   type="number"
                   min={1}
+                  inputMode="numeric"
                   value={cantidades[i] ?? l.cantidad}
                   onChange={(e) => setCantidades({ ...cantidades, [i]: Math.max(1, Number(e.target.value)) })}
-                  className="w-20 rounded-lg border border-cianclaro px-2 py-2 text-center"
+                  className="h-10 w-16 rounded-xl bg-niebla text-center text-[15px] font-semibold outline-none focus:ring-2 focus:ring-cian"
                   aria-label="Cantidad"
                 />
               </div>
-              <div className="mt-2 space-y-2">
-                {l.sugerencias.map((s) => (
-                  <label key={s.id} className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3 text-sm ${eleccion[i] === s.id ? "border-azul bg-cianclaro" : "border-cianclaro"}`}>
-                    <input type="radio" name={`l${i}`} checked={eleccion[i] === s.id} onChange={() => setEleccion({ ...eleccion, [i]: s.id })} />
+              <div className="mt-3 space-y-1.5">
+                {[...l.sugerencias.map((s) => ({ id: s.id, t: s.nombre, d: Object.values(s.atributos).join(" · ") || s.sku })),
+                  { id: NO_ESTA, t: l.sugerencias.length ? "Ninguno de estos" : "No está en catálogo", d: "Lo buscamos con proveedores y te avisamos" }].map((o) => (
+                  <label key={o.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition ${eleccion[i] === o.id ? "bg-cianclaro" : "hover:bg-niebla"}`}>
+                    <input type="radio" name={`l${i}`} checked={eleccion[i] === o.id} onChange={() => setEleccion({ ...eleccion, [i]: o.id })} className="sr-only" />
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${eleccion[i] === o.id ? "bg-azul text-white" : "ring-1 ring-acero/40"}`}>
+                      {eleccion[i] === o.id && <IconoCheck className="h-3.5 w-3.5" />}
+                    </span>
                     <span>
-                      <span className="font-semibold">{s.nombre}</span>
-                      <span className="block text-xs text-acero">{Object.values(s.atributos).join(" · ")} · SKU {s.sku}</span>
+                      <span className="block text-[15px] font-semibold">{o.t}</span>
+                      <span className="block text-[13px] text-acero">{o.d}</span>
                     </span>
                   </label>
                 ))}
-                <label className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3 text-sm ${eleccion[i] === NO_ESTA ? "border-azul bg-cianclaro" : "border-cianclaro"}`}>
-                  <input type="radio" name={`l${i}`} checked={eleccion[i] === NO_ESTA} onChange={() => setEleccion({ ...eleccion, [i]: NO_ESTA })} />
-                  <span>
-                    <span className="font-semibold">{l.sugerencias.length ? "Ninguno es: búsquenlo ustedes" : "No está en el catálogo: búsquenlo ustedes"}</span>
-                    <span className="block text-xs text-acero">Lo buscamos con nuestros proveedores y te avisamos.</span>
-                  </span>
-                </label>
               </div>
             </div>
           ))}
-          <button onClick={agregarTodo} className="w-full rounded-xl bg-cian py-4 text-lg font-bold text-profundo">
-            Agregar todo al carrito
-          </button>
-        </section>
+          <div className="sticky bottom-20 pt-2 md:bottom-4">
+            <button onClick={agregarTodo} className={`${clasesBoton("principal", "grande", true)} shadow-lg`}>
+              Agregar {lineas.length} al carrito{porBuscar > 0 && ` · ${porBuscar} por buscar`}
+            </button>
+          </div>
+        </div>
       )}
 
-      {mensaje && (
-        <p className="rounded-xl bg-cianclaro p-4 text-sm font-semibold">
-          {mensaje} <Link href="/carrito" className="underline">Ir al carrito</Link>
-        </p>
+      {listo && (
+        <div className="aparecer flex items-center justify-between gap-3 rounded-3xl bg-cianclaro p-5">
+          <p className="text-[15px] font-medium">{listo}</p>
+          <Link href="/carrito" className={clasesBoton("principal", "chico")}>Ver carrito</Link>
+        </div>
       )}
     </div>
   );

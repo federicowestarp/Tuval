@@ -1,125 +1,171 @@
-import { Suspense } from "react";
 import Link from "next/link";
-import { Encabezado } from "@/components/Encabezado";
-import { Sello } from "@/components/Sello";
+import { Marco } from "@/components/marco/Marco";
+import { Buscador } from "@/components/tienda/Buscador";
+import { Simbolo } from "@/components/Logo";
 import { IconoCategoria } from "@/components/IconoCategoria";
-import { BotonAgregar } from "@/components/carrito/BotonAgregar";
-import { BotonBuscarlo } from "@/components/carrito/BotonBuscarlo";
-import { CATEGORIAS, esCategoria } from "@/lib/categorias";
-import { buscarProductos, formatoMoneda } from "@/lib/catalogo";
+import { IconoCamion, IconoChat, IconoDocumento, IconoLista, IconoPin, IconoCamara, IconoCheck, IconoFlecha } from "@/components/Iconos";
+import { BotonLiga, Pastilla } from "@/components/ui";
+import { CATEGORIAS } from "@/lib/categorias";
+import { ligaWhatsAppTuval } from "@/lib/contacto";
 
-export default function Inicio(props: PageProps<"/">) {
+export default function Inicio() {
+  const wa = ligaWhatsAppTuval();
   return (
-    <>
-      <header className="bg-azul">
-        <Encabezado />
-        <Suspense fallback={<div className="h-48" />}>
-          <Buscador searchParams={props.searchParams} />
-        </Suspense>
-      </header>
-      <main className="flex-1 bg-niebla">
-        <Suspense fallback={<p className="mx-auto max-w-6xl px-4 py-6 text-sm text-acero">Cargando catálogo…</p>}>
-          <Catalogo searchParams={props.searchParams} />
-        </Suspense>
-      </main>
-      <footer className="bg-profundo py-6 text-center text-xs text-white">
-        Tubería, equipos y eléctrico. Todo, a tiempo. · Entregas en Puebla, Atlixco y Tlaxcala
-      </footer>
-    </>
-  );
-}
+    <Marco>
+      {/* Portada */}
+      <section className="mx-auto max-w-4xl px-4 pb-16 pt-14 text-center sm:px-6 sm:pt-24">
+        <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-acero">Puebla · Atlixco · Tlaxcala</p>
+        <h1 className="mt-4 font-display text-[44px] font-bold leading-[0.98] tracking-tight sm:text-7xl">
+          Tubería, equipos y eléctrico.
+          <span className="block text-cian">Todo, a tiempo.</span>
+        </h1>
+        <p className="mx-auto mt-5 max-w-xl text-[17px] text-acero sm:text-xl">
+          Pide lo que necesitas para tu obra y te lo llevamos. Si no lo tenemos, lo conseguimos.
+        </p>
+        <div className="mx-auto mt-8 max-w-2xl">
+          <Buscador grande />
+        </div>
+        <div className="mt-5 flex flex-wrap justify-center gap-2">
+          <BotonLiga href="/tienda" variante="principal">Ver tienda</BotonLiga>
+          <BotonLiga href="/lista" variante="secundario"><IconoLista className="h-5 w-5" /> Pedir con lista</BotonLiga>
+          {wa && <a href={wa} className="inline-flex h-12 items-center gap-2 rounded-full bg-niebla px-6 text-[15px] font-semibold text-azul"><IconoChat className="h-5 w-5" /> WhatsApp</a>}
+        </div>
+      </section>
 
-type SP = PageProps<"/">["searchParams"];
-
-async function leer(searchParams: SP) {
-  const sp = await searchParams;
-  const q = typeof sp.q === "string" ? sp.q : "";
-  const cat = esCategoria(sp.cat) ? sp.cat : undefined;
-  return { q, cat };
-}
-
-async function Buscador({ searchParams }: { searchParams: SP }) {
-  const { q, cat } = await leer(searchParams);
-  return (
-    <section className="mx-auto max-w-6xl px-4 pb-10 pt-6">
-      <h1 className="font-display text-3xl font-bold text-white sm:text-5xl">¿Qué necesitas para tu obra?</h1>
-      <form className="mt-6 flex max-w-2xl gap-2" action="/">
-        {cat && <input type="hidden" name="cat" value={cat} />}
-        <input
-          name="q"
-          defaultValue={q}
-          placeholder='Busca por producto, medida o SKU… (ej. cople 1/2")'
-          className="w-full rounded-lg bg-white px-4 py-3 text-base text-profundo outline-none ring-cian focus:ring-4"
-        />
-        <button className="rounded-lg bg-cian px-5 py-3 font-semibold text-profundo">Buscar</button>
-      </form>
-      <div className="mt-4 flex flex-wrap gap-2">
-        <span className="rounded-full bg-cian px-3 py-1 text-xs font-semibold text-profundo">Puebla · Atlixco · Tlaxcala</span>
-        <span className="rounded-full border border-white px-3 py-1 text-xs font-semibold text-white">Factura o nota</span>
-      </div>
-    </section>
-  );
-}
-
-async function Catalogo({ searchParams }: { searchParams: SP }) {
-  const { q, cat } = await leer(searchParams);
-  const productos = await buscarProductos(q, cat);
-  const enlace = (c?: string) => {
-    const p = new URLSearchParams();
-    if (q) p.set("q", q);
-    if (c) p.set("cat", c);
-    const s = p.toString();
-    return s ? `/?${s}` : "/";
-  };
-
-  return (
-    <>
-      <section className="mx-auto grid max-w-6xl grid-cols-3 gap-3 px-4 py-6 sm:grid-cols-6">
-        {CATEGORIAS.map((c) => (
-          <Link
-            key={c.id}
-            href={enlace(cat === c.id ? undefined : c.id)}
-            className={`flex flex-col items-start gap-3 rounded-xl p-4 text-azul transition ${cat === c.id ? "bg-cianclaro ring-2 ring-cian" : "bg-white hover:ring-2 hover:ring-cian"}`}
-          >
-            <IconoCategoria categoria={c.id} />
-            <span className="text-sm font-semibold">{c.nombre}</span>
-          </Link>
+      {/* Tres promesas */}
+      <section className="mx-auto grid max-w-6xl gap-3 px-4 sm:grid-cols-3 sm:px-6">
+        {[
+          { Icono: IconoCamion, t: "Te lo llevamos hoy", d: "En Puebla, pide antes de las 12:00 y llega el mismo día. Atlixco y Tlaxcala, al día siguiente." },
+          { Icono: IconoCamara, t: "Pide como quieras", d: "Busca en la tienda, pega tu lista o mándanos una foto de la requisición." },
+          { Icono: IconoDocumento, t: "Factura o nota", d: "Tú eliges. Confirmamos precio y existencias antes de surtir." },
+        ].map(({ Icono, t, d }) => (
+          <div key={t} className="rounded-3xl bg-niebla p-7">
+            <Icono className="h-8 w-8 text-azul" />
+            <h2 className="mt-5 font-display text-xl font-bold">{t}</h2>
+            <p className="mt-2 text-[15px] leading-relaxed text-acero">{d}</p>
+          </div>
         ))}
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-12">
-        <p className="mb-3 text-sm text-acero">
-          {productos.length} producto{productos.length === 1 ? "" : "s"}
-        </p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {productos.map((p) => (
-            <article key={p.id} className="flex flex-col rounded-xl border border-cianclaro bg-white p-4">
-              <div><Sello tipo="Entrega programada" /></div>
-              <h2 className="mt-3 font-semibold">{p.nombre}</h2>
-              <p className="mt-1 text-xs text-acero">
-                {[...Object.entries(p.atributos).map(([k, v]) => `${k}: ${v}`), `SKU ${p.sku}`].join(" · ")}
-              </p>
-              <p className="mt-3 font-display text-2xl font-bold text-azul">
-                {p.precio != null ? formatoMoneda(p.precio) : <span className="text-base">Precio por confirmar</span>}
-              </p>
-              <div className="mt-auto">
-                <BotonAgregar producto={{ id: p.id, sku: p.sku, nombre: p.nombre, unidad: p.unidad }} />
+      {/* Cómo funciona */}
+      <section className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-24 sm:px-6 md:grid-cols-2">
+        <div>
+          <h2 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">Así de simple.</h2>
+          <ol className="mt-8 space-y-7">
+            {[
+              ["Pide", "Desde el celular, la computadora o WhatsApp. Elige a cuál de tus obras o direcciones lo mandamos."],
+              ["Confirmamos", "Revisamos precios y existencias y te mandamos el total antes de surtir."],
+              ["Te lo llevamos", "Sigues la entrega en vivo. Quien recibe en obra confirma lo que llegó."],
+            ].map(([t, d], i) => (
+              <li key={t} className="flex gap-5">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-azul font-display font-bold text-white">{i + 1}</span>
+                <div>
+                  <p className="text-lg font-semibold">{t}</p>
+                  <p className="mt-1 text-[15px] leading-relaxed text-acero">{d}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+        {/* Vista de seguimiento, dibujada con la misma interfaz de la app */}
+        <div className="mx-auto w-full max-w-sm rounded-[2.5rem] bg-niebla p-3">
+          <div className="rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(7,30,61,.08)]">
+            <p className="text-[13px] text-acero">Pedido de ejemplo · Obra</p>
+            <p className="mt-1 font-display text-2xl font-bold">Va en camino</p>
+            <div className="mt-6 flex gap-1.5">
+              {[1, 1, 1, 0].map((on, i) => <span key={i} className={`h-1.5 flex-1 rounded-full ${on ? "bg-cian" : "bg-niebla"}`} />)}
+            </div>
+            <div className="mt-2 flex justify-between text-[11px] text-acero"><span>Recibido</span><span>Preparando</span><span>En ruta</span><span>Entregado</span></div>
+            <div className="mt-6 rounded-2xl bg-niebla p-4">
+              <p className="text-[13px] text-acero">Llega</p>
+              <p className="font-semibold">Hoy por la tarde</p>
+            </div>
+            <div className="mt-3 flex items-center gap-3 rounded-2xl bg-niebla p-4">
+              <IconoPin className="h-5 w-5 text-azul" />
+              <p className="text-[14px]">Recibe el residente de obra</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Para obras */}
+      <section id="obras" className="scroll-mt-14 bg-profundo text-white">
+        <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+          <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-cian">Para obras y constructoras</p>
+          <h2 className="mt-4 max-w-2xl font-display text-4xl font-bold tracking-tight sm:text-5xl">Material en tu obra, sin perseguir a nadie.</h2>
+          <div className="mt-12 grid gap-px overflow-hidden rounded-3xl bg-white/10 sm:grid-cols-2">
+            {[
+              ["Todas tus obras guardadas", "Dirección, ubicación en mapa, foto de la entrada y quién recibe en cada una."],
+              ["Acceso para el residente", "Ve cuándo llega el material y confirma partida por partida lo que recibió."],
+              ["Entrega sin esperar", "Si lo autorizas, dejamos el material con foto y ubicación como comprobante."],
+              ["Pide con tu requisición", "Mándanos la lista en foto o PDF. La capturamos y te confirmamos todo."],
+            ].map(([t, d]) => (
+              <div key={t} className="bg-profundo p-7">
+                <IconoCheck className="h-6 w-6 text-cian" />
+                <p className="mt-4 text-lg font-semibold">{t}</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-white/70">{d}</p>
               </div>
-            </article>
+            ))}
+          </div>
+          <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-3xl bg-white/5 p-7 sm:flex-row sm:items-center">
+            <div className="flex items-center gap-4">
+              <Simbolo className="h-10 w-10" />
+              <div>
+                <p className="font-display text-xl font-bold">Tuval <span className="text-cian">Obra</span></p>
+                <p className="text-[15px] text-white/70">Tu bodega, dentro de tu obra.</p>
+              </div>
+            </div>
+            <Pastilla tono="cian">Próximamente</Pastilla>
+          </div>
+        </div>
+      </section>
+
+      {/* Categorías */}
+      <section className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
+        <h2 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">Todo sale de un solo lugar.</h2>
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          {CATEGORIAS.map((c) => (
+            <Link key={c.id} href={`/tienda?cat=${c.id}`} className="group flex flex-col justify-between rounded-3xl bg-niebla p-5 transition hover:bg-cianclaro">
+              <IconoCategoria categoria={c.id} className="h-9 w-9 text-azul" />
+              <p className="mt-10 flex items-center justify-between font-semibold">
+                {c.nombre}
+                <IconoFlecha className="h-4 w-4 text-acero transition group-hover:translate-x-0.5" />
+              </p>
+            </Link>
           ))}
         </div>
-        {productos.length === 0 ? (
-          <div className="rounded-xl bg-white p-6">
-            <p className="font-semibold">No lo tenemos en el catálogo… todavía.</p>
-            <p className="text-sm text-acero">Pídelo y lo buscamos con nuestros proveedores.</p>
-            {q && <BotonBuscarlo texto={q} />}
-          </div>
-        ) : (
-          <p className="mt-6 text-center text-sm text-acero">
-            ¿No encuentras algo? <Link href="/lista" className="font-semibold text-azul underline">Pide con tu lista</Link> y lo buscamos.
-          </p>
-        )}
       </section>
-    </>
+
+      {/* Entregas */}
+      <section id="entregas" className="scroll-mt-14 bg-niebla">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-24 sm:px-6 md:grid-cols-2">
+          <div>
+            <h2 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">Horarios de entrega.</h2>
+            <p className="mt-4 text-[17px] text-acero">Te decimos cuándo llega al momento de pedir. Sin sorpresas.</p>
+          </div>
+          <div className="divide-y divide-linea rounded-3xl bg-white px-6 ring-1 ring-linea">
+            {[
+              ["Puebla", "Pide antes de las 12:00", "Llega hoy"],
+              ["Puebla · sábado", "Pide antes de las 10:00", "Llega hoy"],
+              ["Atlixco y Tlaxcala", "Pide antes de las 17:00", "Llega mañana temprano"],
+            ].map(([z, c, l]) => (
+              <div key={z} className="flex items-center justify-between gap-4 py-5">
+                <div>
+                  <p className="font-semibold">{z}</p>
+                  <p className="text-[14px] text-acero">{c}</p>
+                </div>
+                <Pastilla tono="niebla">{l}</Pastilla>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Cierre */}
+      <section className="mx-auto max-w-3xl px-4 py-24 text-center sm:px-6">
+        <h2 className="font-display text-4xl font-bold tracking-tight sm:text-6xl">¿Qué necesitas para tu obra?</h2>
+        <div className="mx-auto mt-8 max-w-xl"><Buscador grande /></div>
+      </section>
+    </Marco>
   );
 }

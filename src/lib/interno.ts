@@ -13,6 +13,7 @@ export type RenglonComparacion = {
   cot_disponible: boolean | null;
   cot_tiempo: string | null;
   cot_codigo: string | null;
+  cot_dias: number | null;
 };
 
 export async function idEmmsa(): Promise<string> {
@@ -33,7 +34,7 @@ export async function compararPedido(pedidoId: string): Promise<RenglonComparaci
            coalesce((select sum(e.cantidad) from existencias e join almacenes a on a.id = e.almacen_id
                      where e.producto_id = pr.id and a.tipo in ('cedis', 'sucursal')), 0) as existencia_propia,
            cp.precio_unitario as cot_precio, cp.disponible as cot_disponible, cp.tiempo_entrega as cot_tiempo,
-           cp.codigo_proveedor as cot_codigo
+           cp.codigo_proveedor as cot_codigo, cp.dias_entrega as cot_dias
     from pedido_partidas pp
     join productos pr on pr.id = pp.producto_id
     left join cotizacion_partidas cp on cp.pedido_partida_id = pp.id and cp.cotizacion_id = (select id from ultima)

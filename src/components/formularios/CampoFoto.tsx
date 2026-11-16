@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { IconoCamara } from "@/components/Iconos";
 
 /** Toma o elige una foto y la reduce en el teléfono (máx. 1600 px, JPEG) antes de subirla. */
 export function CampoFoto({ name, etiqueta, ayuda }: { name: string; etiqueta: string; ayuda?: string }) {
@@ -35,18 +36,18 @@ export function CampoFoto({ name, etiqueta, ayuda }: { name: string; etiqueta: s
 
   return (
     <div>
-      <span className="mb-1 block text-sm font-semibold">{etiqueta}</span>
-      <label className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-dashed border-cianclaro p-3">
+      <span className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-acero">{etiqueta}</span>
+      <label className="flex cursor-pointer items-center gap-4 rounded-3xl bg-niebla p-4 transition hover:bg-cianclaro">
         {vista ? (
           // eslint-disable-next-line @next/next/no-img-element -- vista previa local
-          <img src={vista} alt="" className="h-20 w-20 rounded-md object-cover" />
+          <img src={vista} alt="" className="h-16 w-16 rounded-2xl object-cover" />
         ) : (
-          <span className="flex h-20 w-20 items-center justify-center rounded-md bg-niebla text-3xl text-acero">📷</span>
+          <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-azul"><IconoCamara className="h-7 w-7" /></span>
         )}
-        <span className="text-sm">{procesando ? "Procesando…" : vista ? "Cambiar foto" : "Tomar o elegir foto"}</span>
+        <span className="text-[15px] font-semibold text-azul">{procesando ? "Procesando…" : vista ? "Cambiar foto" : "Tomar o elegir foto"}</span>
         <input ref={input} type="file" name={name} accept="image/*" capture="environment" onChange={alCambiar} className="sr-only" />
       </label>
-      {ayuda && <p className="mt-1 text-xs text-acero">{ayuda}</p>}
+      {ayuda && <p className="mt-1.5 text-[13px] text-acero">{ayuda}</p>}
     </div>
   );
 }

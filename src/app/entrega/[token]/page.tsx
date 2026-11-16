@@ -3,18 +3,20 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { ListaProductosPedido } from "@/components/ListaProductosPedido";
+import { Progreso } from "@/components/Progreso";
+import { IconoCheck } from "@/components/Iconos";
 import { obtenerPedidoPorTokenReceptor } from "@/lib/pedidos";
-import { ETAPAS_CLIENTE, etapaCliente } from "@/lib/estados";
+import { etapaCliente } from "@/lib/estados";
 import { describirPromesa } from "@/lib/corte";
 import { FormularioRecepcion } from "./FormularioRecepcion";
 
 /** Acceso de quien recibe (residente de obra, encargado): ve la entrega y confirma lo que llegó. Sin precios. */
 export default function Entrega(props: PageProps<"/entrega/[token]">) {
   return (
-    <div className="flex flex-1 flex-col bg-niebla">
-      <header className="bg-azul px-4 py-4"><Link href="/"><Logo /></Link></header>
-      <main className="mx-auto w-full max-w-md flex-1 px-4 py-8">
-        <Suspense fallback={<p className="text-sm text-acero">Cargando…</p>}>
+    <div className="flex min-h-full flex-1 flex-col bg-white">
+      <header className="border-b border-linea/70 px-4 py-3.5"><Link href="/"><Logo /></Link></header>
+      <main className="mx-auto w-full max-w-xl flex-1 px-4 py-10">
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-3xl bg-niebla" />}>
           <Contenido params={props.params} />
         </Suspense>
       </main>
@@ -30,36 +32,38 @@ async function Contenido({ params }: Pick<PageProps<"/entrega/[token]">, "params
   const puedeConfirmar = (pedido.estado === "en_ruta" || pedido.estado === "entregado") && !pedido.recepcion_confirmada_en;
 
   return (
-    <>
-      <p className="text-sm text-acero">Hola {pedido.recibe_nombre}</p>
-      <h1 className="font-display text-2xl font-bold">Entrega del pedido {pedido.folio}</h1>
-      <p className="mt-1 text-sm text-acero">{pedido.direccion_entrega}</p>
+    <div className="space-y-8">
+      <div>
+        <p className="text-[15px] text-acero">Hola, {pedido.recibe_nombre?.split(" ")[0]}</p>
+        <h1 className="mt-1 font-display text-[34px] font-bold leading-tight tracking-tight">
+          {actual === 2 ? "Tu material va en camino." : actual === 3 ? "Material entregado." : "Material para tu obra."}
+        </h1>
+        <p className="mt-2 text-[15px] text-acero">Pedido {pedido.folio} · {pedido.direccion_entrega}</p>
+      </div>
 
-      {actual >= 0 && (
-        <ol className="mt-6 space-y-4 rounded-xl bg-white p-5">
-          {ETAPAS_CLIENTE.map((e, i) => (
-            <li key={e} className="flex items-center gap-3">
-              <span className={`h-4 w-4 rounded-full ${i < actual ? "bg-cian" : i === actual ? "bg-azul ring-4 ring-cianclaro" : "bg-cianclaro"}`} />
-              <span className={i <= actual ? "font-semibold" : "text-acero"}>{e}</span>
-            </li>
-          ))}
-        </ol>
-      )}
+      {actual >= 0 && <Progreso actual={actual} />}
+
       {actual >= 0 && actual < 3 && pedido.entrega_fecha && pedido.entrega_ventana && (
-        <p className="mt-4 rounded-xl bg-white p-4 font-semibold">{describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana })}</p>
+        <div className="rounded-3xl bg-niebla p-5">
+          <p className="text-[13px] text-acero">Llega</p>
+          <p className="text-xl font-semibold">{describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }).replace(/^Llega /, "").replace(/^./, (c) => c.toUpperCase())}</p>
+        </div>
       )}
 
-      <section className="mt-4 rounded-xl bg-white p-4">
-        <h2 className="font-semibold">Material</h2>
+      <section>
+        <h2 className="mb-2 font-display text-xl font-bold">Material</h2>
         <ListaProductosPedido pedido={{ ...pedido, adjuntos: [] }} conPrecios={false} />
       </section>
 
       {puedeConfirmar && <FormularioRecepcion token={token} partidas={pedido.partidas} />}
       {pedido.recepcion_confirmada_en && (
-        <p className="mt-4 rounded-xl bg-cianclaro p-4 text-sm font-semibold">
-          Recepción confirmada{pedido.estado === "entregado_con_faltantes" ? " con faltantes: ya estamos en eso." : "."}
-        </p>
+        <div className="flex items-center gap-3 rounded-3xl bg-cianclaro p-5">
+          <IconoCheck className="h-6 w-6 shrink-0" />
+          <p className="font-semibold">
+            Recepción confirmada{pedido.estado === "entregado_con_faltantes" ? ". Ya estamos resolviendo lo que faltó." : ". ¡Gracias!"}
+          </p>
+        </div>
       )}
-    </>
+    </div>
   );
 }

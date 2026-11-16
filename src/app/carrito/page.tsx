@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { Encabezado } from "@/components/Encabezado";
+import { Marco } from "@/components/marco/Marco";
+import { Titulo } from "@/components/ui";
 import { cuentaActual } from "@/lib/sesion";
 import { direccionesDe } from "@/lib/direcciones";
 import { haySucursales } from "@/lib/pedidos";
@@ -7,27 +8,19 @@ import { FormularioPedido } from "./FormularioPedido";
 
 export default function Carrito() {
   return (
-    <div className="flex flex-1 flex-col bg-niebla">
-      <header className="bg-azul"><Encabezado /></header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">
-        <h1 className="font-display text-3xl font-bold">Tu pedido</h1>
-        <Suspense fallback={<p className="mt-6 text-sm text-acero">Cargando…</p>}>
+    <Marco pie={false}>
+      <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+        <Titulo>Tu pedido.</Titulo>
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-3xl bg-niebla" />}>
           <Contenido />
         </Suspense>
       </main>
-    </div>
+    </Marco>
   );
 }
 
 async function Contenido() {
   const cuenta = await cuentaActual();
   const [direcciones, sucursales] = await Promise.all([cuenta ? direccionesDe(cuenta.id) : [], haySucursales()]);
-  return (
-    <FormularioPedido
-      direcciones={direcciones}
-      haySucursal={sucursales}
-      nombre={cuenta?.nombre ?? ""}
-      telefono={cuenta?.telefono ?? ""}
-    />
-  );
+  return <FormularioPedido direcciones={direcciones} haySucursal={sucursales} nombre={cuenta?.nombre ?? ""} telefono={cuenta?.telefono ?? ""} />;
 }
