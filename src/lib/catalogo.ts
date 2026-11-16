@@ -77,3 +77,27 @@ export async function sugerirProductos(texto: string, limite = 3): Promise<Produ
 export const IVA = 0.16;
 
 export { formatoMoneda } from "@/lib/catalogo-formato";
+
+export async function productoPorSku(sku: string): Promise<(Producto & { marca: string | null; existencia_prov: number }) | null> {
+  if (!/^[A-Za-z0-9-]{1,60}$/.test(sku)) return null;
+  const [p] = await sql<(Producto & { marca: string | null; existencia_prov: number })[]>`
+    select p.id, p.sku, p.nombre, p.categoria_id, p.atributos, p.unidad, p.marca, pr.precio,
+           coalesce((select sum(cantidad) from existencias e where e.producto_id = p.id), 0) existencia_prov
+    from productos p
+    left join precios pr on pr.producto_id = p.id and pr.lista_id = (select id from listas_precio where nombre = 'Público')
+    where p.activo and upper(p.sku) = upper(${sku})`;
+  return p ?? null;
+}
+
+export async function relacionados(categoria: string, excluir: string, n = 4): Promise<Producto[]> {
+  return sql<Producto[]>`
+    select p.id, p.sku, p.nombre, p.categoria_id, p.atributos, p.unidad, pr.precio
+    from productos p
+    left join precios pr on pr.producto_id = p.id and pr.lista_id = (select id from listas_precio where nombre = 'Público')
+    where p.activo and p.categoria_id = ${categoria} and p.id <> ${excluir}
+    order by (pr.precio is null), random() limit ${n}`;
+}
+
+export async function skusPublicos(limite = 5000): Promise<{ sku: string }[]> {
+  return sql<{ sku: string }[]>`select sku from productos where activo order by sku limit ${limite}`;
+}

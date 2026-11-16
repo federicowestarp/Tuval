@@ -31,6 +31,9 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D24 | Diseño minimalista (referencia de estilo: Apple y Rivian) sobre la identidad Tuval; **página de Internet** en `/` y tienda en `/tienda`. | nov 2026 |
 | D25 | Cotizaciones de Emmsa se suben en **PDF** y se leen automáticamente (`src/lib/emmsa.ts`), validando que la suma cuadre con el subtotal. | nov 2026 |
 | D27 | **Equipo Tuval con inicio de sesión**: correo y contraseña (scrypt), sesiones de 7 días, roles administrador/operador, alta por invitación de un solo uso (24 h), bloqueo de 15 min tras 5 intentos fallidos. Panel en `/interno/*`. | nov 2026 |
+| D28 | Catálogo de **prueba con el inventario de PurAqua** (origen `puraqua-prueba`), importado por CSV; se puede quitar de la tienda con un clic. Existencias en almacén tipo proveedor: no se anuncia "Disponible hoy". | nov 2026 |
+| D29 | **App del chofer** (rol chofer): ruta del día, salir a entregar, ubicación cada minuto visible para el cliente, entrega con foto y ubicación obligatorias. | nov 2026 |
+| D30 | **Página de Internet**: inicio, tienda, ficha de producto (destino de QR), Tuval Obra con formulario, sitemap, robots, vista previa al compartir e instalable como app. | nov 2026 |
 | D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar

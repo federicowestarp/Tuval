@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCarrito } from "@/components/carrito/CarritoProvider";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { IconoMas, IconoMenos } from "@/components/Iconos";
@@ -20,12 +21,12 @@ export function TarjetaProducto(p: Props) {
 
   return (
     <article className="flex flex-col rounded-[20px] bg-niebla p-3">
-      <div className="flex aspect-square items-center justify-center rounded-2xl bg-white text-azul">
+      <Link href={`/producto/${encodeURIComponent(p.sku)}`} className="flex aspect-square items-center justify-center rounded-2xl bg-white text-azul">
         {esCategoria(p.categoria) ? <IconoCategoria categoria={p.categoria} className="h-12 w-12" /> : <span className="text-[13px] text-secundario">Sin foto</span>}
-      </div>
+      </Link>
       <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
         {categoria && <p className="text-[13px] text-secundario">{categoria}</p>}
-        <h2 className="font-display text-[16px] font-semibold leading-snug">{p.nombre}</h2>
+        <h2 className="font-display text-[16px] font-semibold leading-snug"><Link href={`/producto/${encodeURIComponent(p.sku)}`} className="hover:text-azul">{p.nombre}</Link></h2>
         {detalle && <p className="mt-0.5 text-[13px] text-secundario">{detalle}</p>}
         <p className="mt-3 font-display text-[22px] font-semibold tracking-[-0.02em]">
           {p.precio != null ? formatoMoneda(p.precio) : <span className="font-sans text-[13px] font-normal tracking-normal text-secundario">Precio a confirmar</span>}

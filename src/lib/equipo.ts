@@ -10,7 +10,8 @@ export const COOKIE_INTERNA = "tuval_interno";
 const DIAS_SESION = 7;
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
-export type UsuarioInterno = { id: string; nombre: string; correo: string; rol: "admin" | "operador" };
+export type RolInterno = "admin" | "operador" | "chofer";
+export type UsuarioInterno = { id: string; nombre: string; correo: string; rol: RolInterno };
 
 export async function hashContrasena(contrasena: string): Promise<string> {
   const sal = randomBytes(16);
@@ -58,11 +59,15 @@ export async function usuarioInterno(): Promise<UsuarioInterno | null> {
   return u ?? null;
 }
 
+/** Qué puede ver cada rol. admin: todo · operador: pedidos, demanda y ruta · chofer: solo su ruta. */
+export const puede = (rol: RolInterno, minimo?: "admin" | "operador") =>
+  !minimo || rol === "admin" || (minimo === "operador" && rol === "operador");
+
 /** Para páginas y acciones del panel: sin sesión → a la entrada; sin rol suficiente → no existe. */
-export async function requerirInterno(rol?: "admin"): Promise<UsuarioInterno> {
+export async function requerirInterno(minimo?: "admin" | "operador"): Promise<UsuarioInterno> {
   const u = await usuarioInterno();
   if (!u) redirect("/interno/entrar");
-  if (rol === "admin" && u.rol !== "admin") notFound();
+  if (!puede(u.rol, minimo)) notFound();
   return u;
 }
 
@@ -86,7 +91,7 @@ export async function registrarIntento(correo: string, exitoso: boolean) {
 }
 
 /** Invitación de un solo uso (24 h). Devuelve el token: se muestra una vez y no se guarda en claro. */
-export async function crearInvitacion(rol: "admin" | "operador", creadaPor: string | null): Promise<string> {
+export async function crearInvitacion(rol: RolInterno, creadaPor: string | null): Promise<string> {
   const token = randomBytes(24).toString("base64url");
   await sql`
     insert into invitaciones_internas (token_hash, rol, creada_por, expira_en)
@@ -96,7 +101,7 @@ export async function crearInvitacion(rol: "admin" | "operador", creadaPor: stri
 
 export async function invitacionVigente(token: string) {
   if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return null;
-  const [i] = await sql<{ rol: "admin" | "operador" }[]>`
+  const [i] = await sql<{ rol: RolInterno }[]>`
     select rol from invitaciones_internas where token_hash = ${hash(token)} and usada_en is null and expira_en > now()`;
   return i ?? null;
 }

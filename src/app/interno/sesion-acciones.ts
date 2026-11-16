@@ -22,7 +22,8 @@ export async function entrar(_prev: EstadoSesion, fd: FormData): Promise<EstadoS
   if (!u || !ok) return { error: "Correo o contraseña incorrectos.", correo };
 
   await iniciarSesion(u.id);
-  redirect("/interno/pedidos");
+  const [{ rol }] = await sql<{ rol: string }[]>`select rol from usuarios_internos where id = ${u.id}`;
+  redirect(rol === "chofer" ? "/interno/chofer" : "/interno/pedidos");
 }
 
 export async function salir() {
@@ -62,5 +63,5 @@ export async function activar(_prev: EstadoActivar, fd: FormData): Promise<Estad
     return u.id;
   });
   await iniciarSesion(id);
-  redirect("/interno/pedidos");
+  redirect(inv.rol === "chofer" ? "/interno/chofer" : "/interno/pedidos");
 }

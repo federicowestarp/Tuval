@@ -9,7 +9,8 @@ export type EstadoInvitar = { liga?: string; rol?: string; error?: string };
 
 export async function invitar(_prev: EstadoInvitar, fd: FormData): Promise<EstadoInvitar> {
   const yo = await requerirInterno("admin");
-  const rol = String(fd.get("rol")) === "admin" ? "admin" : "operador";
+  const r = String(fd.get("rol"));
+  const rol = r === "admin" ? "admin" : r === "chofer" ? "chofer" : "operador";
   const token = await crearInvitacion(rol, yo.id);
   return { liga: `${await urlBase()}/interno/activar/${token}`, rol };
 }

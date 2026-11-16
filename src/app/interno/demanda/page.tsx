@@ -35,7 +35,7 @@ export default function Demanda(props: PageProps<"/interno/demanda">) {
 
 async function Lista({ searchParams }: { searchParams: PageProps<"/interno/demanda">["searchParams"] }) {
   await connection();
-  await requerirInterno();
+  await requerirInterno("operador");
   const sp = await searchParams;
   const estado = typeof sp.estado === "string" && ESTADOS.some(([e]) => e === sp.estado) ? sp.estado : undefined;
   const grupos = await listarDemanda(estado);

@@ -10,6 +10,8 @@ import { buscarProductos } from "@/lib/catalogo";
 
 type SP = PageProps<"/tienda">["searchParams"];
 
+export const metadata = { title: "Tienda", description: "Tubería, conexiones, válvulas, equipos y material eléctrico. Busca por producto o medida." };
+
 export default function Tienda(props: PageProps<"/tienda">) {
   return (
     <Marco>

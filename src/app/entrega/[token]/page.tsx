@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Logo } from "@/components/Logo";
 import { ListaProductosPedido } from "@/components/ListaProductosPedido";
 import { Progreso } from "@/components/Progreso";
+import { EnCamino } from "@/components/EnCamino";
 import { IconoCheck } from "@/components/Iconos";
 import { obtenerPedidoPorTokenReceptor } from "@/lib/pedidos";
 import { etapaCliente } from "@/lib/estados";
@@ -42,6 +43,8 @@ async function Contenido({ params }: Pick<PageProps<"/entrega/[token]">, "params
       </div>
 
       {actual >= 0 && <Progreso actual={actual} />}
+
+      <EnCamino pedidoId={pedido.id} estado={pedido.estado} />
 
       {actual >= 0 && actual < 3 && pedido.entrega_fecha && pedido.entrega_ventana && (
         <div className="rounded-[20px] bg-niebla p-5">

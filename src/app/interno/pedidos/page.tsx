@@ -24,7 +24,7 @@ export default function PanelPedidos() {
 
 async function Lista() {
   await connection(); // siempre en vivo, nunca prerenderizado
-  await requerirInterno();
+  await requerirInterno("operador");
   const pedidos = await listarPedidos();
   if (pedidos.length === 0) return <p className="rounded-xl bg-white p-6">No hay pedidos.</p>;
 

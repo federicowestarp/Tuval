@@ -12,7 +12,7 @@ const ids = (fd: FormData) => String(fd.get("ids") ?? "").split(",").filter((x) 
 
 /** Actualiza todas las solicitudes del grupo (misma pieza pedida varias veces). */
 export async function actualizarSolicitud(fd: FormData) {
-  await requerirInterno();
+  await requerirInterno("operador");
   const grupo = ids(fd);
   const estado = String(fd.get("estado"));
   if (!ESTADOS.includes(estado)) throw new Error("Estado inválido");
@@ -31,7 +31,7 @@ export type ResultadoAlta = { error?: string; mensaje?: string };
  * se agrega como partida a ese pedido.
  */
 export async function darDeAlta(_prev: ResultadoAlta, fd: FormData): Promise<ResultadoAlta> {
-  await requerirInterno();
+  await requerirInterno("operador");
   const grupo = ids(fd);
   if (grupo.length === 0) return { error: "Solicitud no encontrada." };
   const nombre = String(fd.get("nombre") ?? "").trim();

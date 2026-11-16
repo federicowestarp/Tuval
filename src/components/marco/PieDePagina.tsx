@@ -16,7 +16,7 @@ export function PieDePagina() {
           <p className="font-semibold text-tinta">Comprar</p>
           <Link href="/tienda" className="block hover:text-azul">Tienda</Link>
           <Link href="/lista" className="block hover:text-azul">Pedir con lista o foto</Link>
-          <Link href="/#obras" className="block hover:text-azul">Para obras y constructoras</Link>
+          <Link href="/obras" className="block hover:text-azul">Para obras y constructoras</Link>
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-tinta">Ayuda</p>

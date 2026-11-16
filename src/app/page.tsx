@@ -121,7 +121,10 @@ export default function Inicio() {
                 <p className="text-[15px] text-white/70">Tu bodega, dentro de tu obra.</p>
               </div>
             </div>
-            <Pastilla tono="cian">Próximamente</Pastilla>
+            <div className="flex items-center gap-3">
+              <Pastilla tono="cian">Próximamente</Pastilla>
+              <Link href="/obras" className="text-[15px] font-semibold text-white hover:text-cian">Conocer más ›</Link>
+            </div>
           </div>
         </div>
       </section>

@@ -2,6 +2,8 @@ import { Marco } from "@/components/marco/Marco";
 import { Titulo } from "@/components/ui";
 import { ListaPedido } from "./ListaPedido";
 
+export const metadata = { title: "Pide con tu lista", description: "Escribe, pega o sube una foto de tu lista. Si algo no está en catálogo, lo conseguimos." };
+
 export default function Lista() {
   return (
     <Marco>

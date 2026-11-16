@@ -4,6 +4,7 @@ import { Marco } from "@/components/marco/Marco";
 import { VaciarCarrito } from "@/components/carrito/VaciarCarrito";
 import { ListaProductosPedido } from "@/components/ListaProductosPedido";
 import { Progreso } from "@/components/Progreso";
+import { EnCamino } from "@/components/EnCamino";
 import { IconoChat, IconoPin } from "@/components/Iconos";
 import { clasesBoton } from "@/components/ui";
 import { obtenerPedido, ligaWhatsApp } from "@/lib/pedidos";
@@ -59,6 +60,8 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
       </div>
 
       {actual >= 0 && <Progreso actual={actual} />}
+
+      <EnCamino pedidoId={pedido.id} estado={pedido.estado} />
 
       {actual >= 0 && actual < 3 && pedido.entrega_fecha && pedido.entrega_ventana && (
         <div className="rounded-[20px] bg-niebla p-5">

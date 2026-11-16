@@ -6,7 +6,7 @@ import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
 import { requerirInterno } from "@/lib/equipo";
 
 export async function cambiarEstado(fd: FormData) {
-  await requerirInterno();
+  await requerirInterno("operador");
   const id = String(fd.get("id"));
   const estado = String(fd.get("estado")) as EstadoPedido;
   if (!ESTADOS_INTERNOS.includes(estado)) throw new Error("Estado inválido");

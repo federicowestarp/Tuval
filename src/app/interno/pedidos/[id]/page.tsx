@@ -32,7 +32,7 @@ const caja = "rounded-xl bg-white p-4";
 
 async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "params">) {
   await connection();
-  await requerirInterno();
+  await requerirInterno("operador");
   const { id } = await params;
   const pedido = await obtenerPedido(id);
   if (!pedido) notFound();
