@@ -9,15 +9,15 @@ export function ListaProductosPedido({ pedido, conPrecios = true }: { pedido: Pe
     <ul className="divide-y divide-linea text-[15px]">
       {pedido.partidas.map((p) => (
         <li key={p.id} className="flex justify-between gap-4 py-3">
-          <span><span className="font-semibold">{p.cantidad}</span> <span className="text-acero">×</span> {p.nombre}</span>
+          <span><span className="font-semibold">{p.cantidad}</span> <span className="text-secundario">×</span> {p.nombre}</span>
           {conPrecios && (
-            <span className="shrink-0 text-acero">{p.precio_unitario != null && pedido.confirmado_en ? formatoMoneda(p.precio_unitario * p.cantidad) : "—"}</span>
+            <span className="shrink-0 text-secundario">{p.precio_unitario != null && pedido.confirmado_en ? formatoMoneda(p.precio_unitario * p.cantidad) : "—"}</span>
           )}
         </li>
       ))}
       {pedido.especiales.map((e) => (
         <li key={e.id} className="flex items-center justify-between gap-4 py-3">
-          <span><span className="font-semibold">{e.cantidad}</span> <span className="text-acero">×</span> {e.descripcion}</span>
+          <span><span className="font-semibold">{e.cantidad}</span> <span className="text-secundario">×</span> {e.descripcion}</span>
           <Pastilla tono="niebla">{e.estado === "no_conseguible" ? "No se consiguió" : "Buscando"}</Pastilla>
         </li>
       ))}

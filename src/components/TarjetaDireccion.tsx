@@ -16,10 +16,10 @@ export function TarjetaDireccion({ d }: { d: Direccion }) {
       )}
       <div className="min-w-0">
         <p className="font-semibold">
-          {d.alias} <span className="ml-1 text-[13px] font-medium text-acero">· {d.tipo === "obra" ? "Obra" : "Particular"}</span>
+          {d.alias} <span className="ml-1 text-[13px] font-medium text-secundario">· {d.tipo === "obra" ? "Obra" : "Particular"}</span>
         </p>
-        <p className="truncate text-[14px] text-acero">{d.direccion}</p>
-        <p className="text-[14px] text-acero">{ZONAS.find((z) => z.id === d.zona)?.nombre}</p>
+        <p className="truncate text-[14px] text-secundario">{d.direccion}</p>
+        <p className="text-[14px] text-secundario">{ZONAS.find((z) => z.id === d.zona)?.nombre}</p>
         <p className="mt-1 text-[14px]">Recibe {d.recibe_nombre}</p>
       </div>
     </div>

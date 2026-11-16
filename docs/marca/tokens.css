@@ -1,0 +1,19 @@
+:root{
+  --tuval-white: #FFFFFF;
+  --tuval-stone: #F4F2EE;
+  --tuval-mist: #F5F5F7;
+  --tuval-ink: #1D1D1F;
+  --tuval-secondary: #6E6E73;
+  --tuval-primary: #0B2E5C;
+  --tuval-accent: #2BB3D9;
+  --tuval-onAccent: #071E3D;
+  --tuval-border: #E3E1DC;
+  --tuval-font-display: 'Inter Tight', sans-serif;
+  --tuval-font-body: 'Inter', sans-serif;
+  --tuval-tracking-hero: -0.04em;
+  --tuval-tracking-title: -0.03em;
+  --tuval-radius-field: 12px;
+  --tuval-radius-card: 20px;
+  --tuval-radius-panel: 28px;
+  --tuval-radius-pill: 999px;
+}

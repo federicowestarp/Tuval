@@ -1,30 +1,29 @@
 @import "tailwindcss";
 
-/*
- * Identidad Tuval (Manual de marca v1) aplicada con criterio minimalista:
- * blanco domina en pantalla, Azul Tuval para texto y acciones, Cian solo para acentos.
- */
+/* Tuval · Manual de marca v2 (docs/marca/tokens.css). Blanco y piedra dominan; sin fondos negros. */
 :root {
-  --azul-tuval: #0b2e5c;
-  --cian-flujo: #2bb3d9;
-  --azul-profundo: #071e3d;
-  --gris-acero: #5a6b7d;
-  --niebla: #f0f5fa;
-  --cian-claro: #d5f0f7;
-  --blanco: #ffffff;
-  --linea: #e3e9f0;
+  --blanco: #ffffff;       /* 45% · fondo principal */
+  --piedra: #f4f2ee;       /* 25% · fondo cálido, héroes */
+  --niebla: #f5f5f7;       /* 10% · tarjetas y superficies */
+  --tinta: #1d1d1f;        /* 10% · solo texto */
+  --secundario: #6e6e73;   /* texto secundario */
+  --azul-tuval: #0b2e5c;   /* 8% · logo, botón principal */
+  --cian-flujo: #2bb3d9;   /* 2% · punto del símbolo y estados */
+  --sobre-cian: #071e3d;   /* texto sobre cian, nunca blanco */
+  --linea: #e3e1dc;        /* bordes de 1 px */
 }
 
 @theme inline {
+  --color-piedra: var(--piedra);
+  --color-niebla: var(--niebla);
+  --color-tinta: var(--tinta);
+  --color-secundario: var(--secundario);
   --color-azul: var(--azul-tuval);
   --color-cian: var(--cian-flujo);
-  --color-profundo: var(--azul-profundo);
-  --color-acero: var(--gris-acero);
-  --color-niebla: var(--niebla);
-  --color-cianclaro: var(--cian-claro);
+  --color-sobrecian: var(--sobre-cian);
   --color-linea: var(--linea);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-space-grotesk);
+  --font-display: var(--font-inter-tight);
 }
 
 html {
@@ -34,12 +33,13 @@ html {
 
 body {
   background: var(--blanco);
-  color: var(--azul-profundo);
+  color: var(--tinta);
   font-family: var(--font-inter), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Regla del manual: texto sobre cian siempre en azul profundo, nunca blanco. */
+/* Inter Tight 600 con tracking negativo para títulos y precios. */
+.font-display { letter-spacing: -0.03em; }
 
 .sin-barra::-webkit-scrollbar { display: none; }
 .sin-barra { scrollbar-width: none; }

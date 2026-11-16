@@ -76,12 +76,12 @@ export function MapaUbicacion({ lat, lng }: { lat?: number; lng?: number }) {
 
   return (
     <div>
-      <div ref={div} className="h-64 w-full overflow-hidden rounded-3xl bg-niebla" />
+      <div ref={div} className="h-64 w-full overflow-hidden rounded-[20px] bg-niebla" />
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button type="button" onClick={usarMiUbicacion} className="inline-flex h-10 items-center rounded-full bg-cian px-4 text-[14px] font-semibold text-profundo">
+        <button type="button" onClick={usarMiUbicacion} className="inline-flex h-10 items-center rounded-full bg-niebla px-4 text-[14px] font-semibold text-azul">
           Usar mi ubicación actual
         </button>
-        <span className="text-[13px] text-acero">{aviso || (pos ? "Ubicación marcada. Puedes mover el punto." : "Toca el mapa para marcar la entrada.")}</span>
+        <span className="text-[13px] text-secundario">{aviso || (pos ? "Ubicación marcada. Puedes mover el punto." : "Toca el mapa para marcar la entrada.")}</span>
       </div>
       <input type="hidden" name="lat" value={pos?.[0] ?? ""} />
       <input type="hidden" name="lng" value={pos?.[1] ?? ""} />

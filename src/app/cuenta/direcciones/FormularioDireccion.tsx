@@ -10,7 +10,7 @@ import { ZONAS } from "@/lib/corte";
 
 const MapaUbicacion = dynamic(() => import("@/components/formularios/MapaUbicacion").then((m) => m.MapaUbicacion), {
   ssr: false,
-  loading: () => <div className="h-64 animate-pulse rounded-3xl bg-niebla" />,
+  loading: () => <div className="h-64 animate-pulse rounded-[20px] bg-niebla" />,
 });
 
 export function FormularioDireccion({ volver }: { volver?: string }) {
@@ -41,13 +41,13 @@ export function FormularioDireccion({ volver }: { volver?: string }) {
       </div>
 
       <div className="space-y-4 border-t border-linea pt-8">
-        <h2 className="font-display text-xl font-bold">Ubicación exacta</h2>
+        <h2 className="font-display text-xl font-semibold">Ubicación exacta</h2>
         <MapaUbicacion />
         <CampoFoto name="foto" etiqueta="Foto de la entrada (opcional)" ayuda="Así el chofer llega a la primera." />
       </div>
 
       <div className="space-y-4 border-t border-linea pt-8">
-        <h2 className="font-display text-xl font-bold">¿Quién recibe?</h2>
+        <h2 className="font-display text-xl font-semibold">¿Quién recibe?</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className={etiqueta} htmlFor="recibe_nombre">Nombre</label>
@@ -63,13 +63,13 @@ export function FormularioDireccion({ volver }: { volver?: string }) {
           <Segmentado name="preferencia_contacto" valor={pref} onCambio={setPref} opciones={[{ id: "whatsapp", texto: "WhatsApp" }, { id: "telefono", texto: "Llamada" }]} />
         </div>
         {tipo === "obra" && (
-          <label className="flex cursor-pointer items-start justify-between gap-4 rounded-3xl bg-niebla p-5">
+          <label className="flex cursor-pointer items-start justify-between gap-4 rounded-[20px] bg-niebla p-5">
             <span>
               <span className="block font-semibold">Entregar sin que alguien reciba</span>
-              <span className="block text-[14px] text-acero">El chofer deja foto con ubicación como comprobante.</span>
+              <span className="block text-[14px] text-secundario">El chofer deja foto con ubicación como comprobante.</span>
             </span>
             <input type="checkbox" name="permite_sin_recepcion" defaultChecked={v.permite_sin_recepcion === "on"} className="peer sr-only" />
-            <span className="relative mt-1 h-7 w-12 shrink-0 rounded-full bg-acero/30 transition peer-checked:bg-cian after:absolute after:left-0.5 after:top-0.5 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" />
+            <span className="relative mt-1 h-7 w-12 shrink-0 rounded-full bg-secundario/30 transition peer-checked:bg-azul after:absolute after:left-0.5 after:top-0.5 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-5" />
           </label>
         )}
         <div>

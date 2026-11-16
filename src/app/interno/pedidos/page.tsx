@@ -14,7 +14,7 @@ export default function PanelPedidos() {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="pedidos" />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-acero">Cargando…</p>}>
+        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}>
           <Lista />
         </Suspense>
       </main>
@@ -37,15 +37,15 @@ async function Lista() {
             <div>
               <p className="font-semibold">
                 <Link href={`/interno/pedidos/${p.id}`} className="text-azul underline">{p.folio}</Link>
-                <span className="ml-2 rounded-full bg-cianclaro px-2 py-0.5 text-xs text-profundo">{NOMBRE_INTERNO[p.estado]}</span>
-                {!p.confirmado_en && <span className="ml-2 rounded-full bg-cian px-2 py-0.5 text-xs text-profundo">Por confirmar</span>}
+                <span className="ml-2 rounded-full bg-piedra px-2 py-0.5 text-xs text-tinta">{NOMBRE_INTERNO[p.estado]}</span>
+                {!p.confirmado_en && <span className="ml-2 rounded-full bg-cian px-2 py-0.5 text-xs text-sobrecian">Por confirmar</span>}
               </p>
               <p className="mt-1 text-sm">
                 {p.contacto_nombre} · {p.contacto_telefono} · {p.zona ? ZONAS.find((z) => z.id === p.zona)?.nombre : "Recoger"} · {p.tipo_entrega}
                 {p.sin_recepcion_solicitada && " · sin recepción"}
               </p>
-              <p className="text-sm text-acero">{p.direccion_entrega}</p>
-              <p className="mt-1 text-xs text-acero">
+              <p className="text-sm text-secundario">{p.direccion_entrega}</p>
+              <p className="mt-1 text-xs text-secundario">
                 {p.entrega_fecha && p.entrega_ventana ? describirPromesa({ fecha: p.entrega_fecha, ventana: p.entrega_ventana }) : "Recoger"} · {p.piezas} pzas
                 {p.especiales > 0 && ` · ${p.especiales} por buscar`}
                 {p.adjuntos > 0 && ` · ${p.adjuntos} lista(s) adjunta(s)`}
@@ -65,7 +65,7 @@ async function Lista() {
                 <form action={cambiarEstado}>
                   <input type="hidden" name="id" value={p.id} />
                   <input type="hidden" name="estado" value="cancelado" />
-                  <button className="rounded-lg border border-acero px-3 py-2 text-sm text-acero">Cancelar</button>
+                  <button className="rounded-lg border border-secundario px-3 py-2 text-sm text-secundario">Cancelar</button>
                 </form>
               )}
             </div>

@@ -20,7 +20,7 @@ export default function DetallePedido(props: PageProps<"/interno/pedidos/[id]">)
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="pedidos" />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-acero">Cargando…</p>}>
+        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}>
           <Contenido params={props.params} />
         </Suspense>
       </main>
@@ -51,10 +51,10 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-display text-2xl font-bold">
-            {pedido.folio} <span className="ml-2 rounded-full bg-cianclaro px-2 py-0.5 align-middle text-sm text-profundo">{NOMBRE_INTERNO[pedido.estado]}</span>
+          <h1 className="font-display text-2xl font-semibold">
+            {pedido.folio} <span className="ml-2 rounded-full bg-piedra px-2 py-0.5 align-middle text-sm text-tinta">{NOMBRE_INTERNO[pedido.estado]}</span>
           </h1>
-          <p className="text-sm text-acero">
+          <p className="text-sm text-secundario">
             {promesa} · {pedido.comprobante} · {pedido.confirmado_en ? `confirmado · ${formatoMoneda(pedido.total)}` : "por confirmar"}
           </p>
         </div>
@@ -107,7 +107,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
           ))}
           {pedido.especiales.map((e) => (
             <p key={e.id} className="text-sm">
-              {e.cantidad} × {e.descripcion} <span className="rounded-full bg-cianclaro px-2 text-xs">{e.estado}</span>
+              {e.cantidad} × {e.descripcion} <span className="rounded-full bg-piedra px-2 text-xs">{e.estado}</span>
             </p>
           ))}
           <Link href="/interno/demanda" className="mt-2 inline-block text-sm text-azul underline">Gestionar en Demanda →</Link>
@@ -123,16 +123,16 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
               <p className="text-sm font-semibold">{sueltos.length} renglón(es) de la cotización no están en el pedido</p>
               <form action={agregarRenglonesAlPedido}>
                 <input type="hidden" name="pedido_id" value={pedido.id} />
-                <button className="rounded-full bg-cian px-4 py-2 text-sm font-semibold text-profundo">Agregarlos todos al pedido</button>
+                <button className="rounded-full bg-azul px-4 py-2 text-sm font-semibold text-white">Agregarlos todos al pedido</button>
               </form>
             </div>
-            <p className="text-xs text-acero">Útil cuando el pedido llegó en foto o lista: se dan de alta como “por clasificar” con su código de Emmsa. O asigna uno por uno:</p>
+            <p className="text-xs text-secundario">Útil cuando el pedido llegó en foto o lista: se dan de alta como “por clasificar” con su código de Emmsa. O asigna uno por uno:</p>
             {sueltos.map((s) => (
               <form key={s.id} action={asignarRenglon} className="mt-2 flex flex-wrap items-center gap-2 text-sm">
                 <input type="hidden" name="pedido_id" value={pedido.id} />
                 <input type="hidden" name="renglon_id" value={s.id} />
                 <span>{s.codigo_proveedor} · {s.descripcion} · {formatoMoneda(s.precio_unitario)}</span>
-                <select name="partida_id" className="rounded-lg border border-cianclaro px-2 py-1">
+                <select name="partida_id" className="rounded-lg border border-linea px-2 py-1">
                   {pedido.partidas.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
                 </select>
                 <button className="rounded-lg border border-azul px-3 py-1 text-azul">Asignar</button>
@@ -153,7 +153,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
             confirmado={!!pedido.confirmado_en}
           />
         ) : (
-          <p className="text-sm text-acero">El pedido no tiene partidas de catálogo todavía.</p>
+          <p className="text-sm text-secundario">El pedido no tiene partidas de catálogo todavía.</p>
         )}
       </section>
 
@@ -161,7 +161,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
         <section className={caja}>
           <h2 className="font-semibold">3 · Avisar al cliente</h2>
           <p className="mt-1 rounded-lg bg-niebla p-3 text-sm">{mensajeConfirmacion}</p>
-          <a href={ligaWhatsApp(pedido.contacto_telefono, mensajeConfirmacion)} target="_blank" className="mt-2 inline-block rounded-lg bg-cian px-4 py-2 font-bold text-profundo">
+          <a href={ligaWhatsApp(pedido.contacto_telefono, mensajeConfirmacion)} target="_blank" className="mt-2 inline-block rounded-full bg-azul px-4 py-2 font-semibold text-white">
             Enviar por WhatsApp
           </a>
         </section>

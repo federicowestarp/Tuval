@@ -31,7 +31,7 @@ type Props = { direcciones: Direccion[]; haySucursal: boolean; nombre: string; t
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="border-t border-linea pt-8">
-      <h2 className="mb-5 font-display text-2xl font-bold">{titulo}</h2>
+      <h2 className="mb-5 font-display text-2xl font-semibold">{titulo}</h2>
       {children}
     </section>
   );
@@ -48,8 +48,8 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
   if (lineas.length === 0 && adjuntos.length === 0) {
     return (
       <div className="py-16 text-center">
-        <p className="font-display text-2xl font-bold">Tu carrito está vacío.</p>
-        <p className="mt-2 text-acero">Busca en la tienda o pide con tu lista.</p>
+        <p className="font-display text-2xl font-semibold">Tu carrito está vacío.</p>
+        <p className="mt-2 text-secundario">Busca en la tienda o pide con tu lista.</p>
         <div className="mt-6 flex justify-center gap-2">
           <BotonLiga href="/tienda">Ir a la tienda</BotonLiga>
           <BotonLiga href="/lista" variante="secundario">Pedir con lista</BotonLiga>
@@ -72,7 +72,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
           <li key={l.id} className="flex items-center justify-between gap-4 py-4">
             <div className="min-w-0">
               <p className="font-semibold leading-snug">{l.nombre}</p>
-              <div className="mt-1">{l.especial ? <Pastilla tono="niebla">Lo buscamos por ti</Pastilla> : <p className="text-[13px] text-acero">{l.sku}</p>}</div>
+              <div className="mt-1">{l.especial ? <Pastilla tono="niebla">Lo buscamos por ti</Pastilla> : <p className="text-[13px] text-secundario">{l.sku}</p>}</div>
             </div>
             <div className="flex h-10 shrink-0 items-center rounded-full bg-niebla">
               <button type="button" aria-label="Quitar uno" onClick={() => cambiar(l.id, l.cantidad - 1)} className="flex h-10 w-10 items-center justify-center text-azul"><IconoMenos className="h-4 w-4" /></button>
@@ -87,14 +87,14 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-niebla text-azul"><IconoDocumento className="h-5 w-5" /></span>
               <div className="min-w-0">
                 <p className="truncate font-semibold">{a.nombre}</p>
-                <p className="text-[13px] text-acero">Lista adjunta · la capturamos</p>
+                <p className="text-[13px] text-secundario">Lista adjunta · la capturamos</p>
               </div>
             </div>
-            <button type="button" onClick={() => quitarAdjunto(a.id)} className="text-[14px] text-acero">Quitar</button>
+            <button type="button" onClick={() => quitarAdjunto(a.id)} className="text-[14px] text-secundario">Quitar</button>
           </li>
         ))}
       </ul>
-      <p className="-mt-4 text-[13px] text-acero">Confirmamos precios y existencias antes de surtir. <Link href="/tienda" className="text-azul underline">Seguir comprando</Link></p>
+      <p className="-mt-4 text-[13px] text-secundario">Confirmamos precios y existencias antes de surtir. <Link href="/tienda" className="text-azul underline">Seguir comprando</Link></p>
 
       <Seccion titulo="Tus datos">
         <div className="grid gap-4 sm:grid-cols-2">
@@ -125,7 +125,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
               <fieldset className="min-w-0 space-y-2">
                 <legend className="sr-only">Dirección de entrega</legend>
                 {direcciones.map((d) => (
-                  <label key={d.id} className={`relative block cursor-pointer rounded-3xl p-4 transition ${dirId === d.id ? "bg-white ring-2 ring-azul" : "bg-niebla ring-1 ring-transparent hover:ring-linea"}`}>
+                  <label key={d.id} className={`relative block cursor-pointer rounded-[20px] p-4 transition ${dirId === d.id ? "bg-white ring-2 ring-azul" : "bg-niebla ring-1 ring-transparent hover:ring-linea"}`}>
                     <input type="radio" name="direccion_id" value={d.id} checked={dirId === d.id} onChange={() => setDirId(d.id)} className="sr-only" />
                     <TarjetaDireccion d={d} />
                     {dirId === d.id && <span className="absolute right-4 top-4 flex h-6 w-6 items-center justify-center rounded-full bg-azul text-white"><IconoCheck className="h-4 w-4" /></span>}
@@ -133,7 +133,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
                 ))}
               </fieldset>
             ) : (
-              <p className="rounded-3xl bg-niebla p-5 text-[15px] text-acero">Agrega la dirección de tu obra o de tu casa. Se guarda para tus siguientes pedidos.</p>
+              <p className="rounded-[20px] bg-niebla p-5 text-[15px] text-secundario">Agrega la dirección de tu obra o de tu casa. Se guarda para tus siguientes pedidos.</p>
             )}
             <BotonLiga href="/cuenta/direcciones?volver=/carrito" variante="secundario" ancho>
               <IconoMas className="h-5 w-5" /> Agregar dirección
@@ -187,7 +187,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
           <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>
             {enviando ? "Enviando…" : `Enviar pedido · ${piezas} ${piezas === 1 ? "artículo" : "artículos"}`}
           </button>
-          <p className="mt-2 hidden text-center text-[13px] text-acero md:block">Te confirmamos total y forma de pago por WhatsApp antes de surtir.</p>
+          <p className="mt-2 hidden text-center text-[13px] text-secundario md:block">Te confirmamos total y forma de pago por WhatsApp antes de surtir.</p>
         </div>
       </div>
     </form>

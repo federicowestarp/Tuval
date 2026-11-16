@@ -10,7 +10,7 @@ export function Segmentado({
         <label
           key={o.id}
           className={`flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-xl px-2 py-2 text-center text-[15px] font-semibold transition ${
-            o.deshabilitada ? "cursor-not-allowed text-acero/60" : valor === o.id ? "bg-white text-azul shadow-sm" : "text-acero"
+            o.deshabilitada ? "cursor-not-allowed text-secundario/60" : valor === o.id ? "bg-white text-azul shadow-sm" : "text-secundario"
           }`}
         >
           <input type="radio" name={name} value={o.id} checked={valor === o.id} disabled={o.deshabilitada} onChange={() => onCambio(o.id)} className="sr-only" />

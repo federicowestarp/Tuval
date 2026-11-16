@@ -16,7 +16,7 @@ export default function SeguimientoPedido(props: PageProps<"/pedido/[id]">) {
   return (
     <Marco pie={false}>
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
-        <Suspense fallback={<div className="h-64 animate-pulse rounded-3xl bg-niebla" />}>
+        <Suspense fallback={<div className="h-64 animate-pulse rounded-[20px] bg-niebla" />}>
           <Contenido params={props.params} searchParams={props.searchParams} />
         </Suspense>
       </main>
@@ -50,21 +50,21 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
     <div className="space-y-8">
       {nuevo && <VaciarCarrito />}
       <div>
-        <p className="text-[13px] font-medium text-acero">
+        <p className="text-[13px] font-medium text-secundario">
           {pedido.folio} · {pedido.tipo_entrega === "obra" ? "Obra" : pedido.tipo_entrega === "recoger" ? "Recoger" : "Domicilio"}
           {pedido.zona && ` · ${ZONAS.find((z) => z.id === pedido.zona)?.nombre}`}
         </p>
-        <h1 className="mt-1 font-display text-[34px] font-bold leading-tight tracking-tight">{titulo}</h1>
-        {sub && <p className="mt-2 text-[17px] text-acero">{sub}</p>}
+        <h1 className="mt-1 font-display text-[34px] font-semibold leading-tight">{titulo}</h1>
+        {sub && <p className="mt-2 text-[17px] text-secundario">{sub}</p>}
       </div>
 
       {actual >= 0 && <Progreso actual={actual} />}
 
       {actual >= 0 && actual < 3 && pedido.entrega_fecha && pedido.entrega_ventana && (
-        <div className="rounded-3xl bg-niebla p-5">
-          <p className="text-[13px] text-acero">Llega</p>
+        <div className="rounded-[20px] bg-niebla p-5">
+          <p className="text-[13px] text-secundario">Llega</p>
           <p className="text-xl font-semibold">{describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }).replace(/^Llega /, "").replace(/^./, (c) => c.toUpperCase())}</p>
-          {porConfirmar && <p className="mt-1 text-[13px] text-acero">Sujeto a confirmar existencias</p>}
+          {porConfirmar && <p className="mt-1 text-[13px] text-secundario">Sujeto a confirmar existencias</p>}
         </div>
       )}
 
@@ -73,8 +73,8 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-niebla text-azul"><IconoPin className="h-5 w-5" /></span>
           <div className="text-[15px]">
             <p className="font-semibold">{pedido.direccion_entrega}</p>
-            <p className="text-acero">Recibe {pedido.recibe_nombre} · {pedido.recibe_telefono}</p>
-            {pedido.sin_recepcion_solicitada && <p className="text-acero">Se puede dejar sin recepción, con foto.</p>}
+            <p className="text-secundario">Recibe {pedido.recibe_nombre} · {pedido.recibe_telefono}</p>
+            {pedido.sin_recepcion_solicitada && <p className="text-secundario">Se puede dejar sin recepción, con foto.</p>}
           </div>
         </div>
       )}
@@ -83,26 +83,26 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
         <a
           href={ligaWhatsApp(pedido.recibe_telefono!, `Hola ${pedido.recibe_nombre}, te va a llegar material de Tuval (pedido ${pedido.folio}). Aquí ves cuándo llega y confirmas lo que recibas: ${ligaReceptor}`)}
           target="_blank"
-          className={clasesBoton("acento", "grande", true)}
+          className={clasesBoton("principal", "grande", true)}
         >
           <IconoChat className="h-5 w-5" /> Compartir entrega con {pedido.recibe_nombre?.split(" ")[0]}
         </a>
       )}
 
       <section>
-        <h2 className="mb-2 font-display text-xl font-bold">Productos</h2>
+        <h2 className="mb-2 font-display text-xl font-semibold">Productos</h2>
         <ListaProductosPedido pedido={pedido} />
         <div className="mt-4 flex items-baseline justify-between border-t border-linea pt-4">
-          <span className="text-acero">{pedido.comprobante === "factura" ? "Total con factura" : "Total"}</span>
+          <span className="text-secundario">{pedido.comprobante === "factura" ? "Total con factura" : "Total"}</span>
           {porConfirmar ? (
-            <span className="text-[15px] text-acero">Por confirmar</span>
+            <span className="text-[15px] text-secundario">Por confirmar</span>
           ) : (
-            <span className="font-display text-2xl font-bold">{formatoMoneda(pedido.total)}</span>
+            <span className="font-display text-2xl font-semibold">{formatoMoneda(pedido.total)}</span>
           )}
         </div>
       </section>
 
-      <p className="text-center text-[13px] text-acero">Guarda esta página para ver tu pedido. También está en Pedidos.</p>
+      <p className="text-center text-[13px] text-secundario">Guarda esta página para ver tu pedido. También está en Pedidos.</p>
     </div>
   );
 }

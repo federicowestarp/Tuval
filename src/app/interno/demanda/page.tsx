@@ -23,9 +23,9 @@ export default function Demanda(props: PageProps<"/interno/demanda">) {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="demanda" />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-        <h1 className="font-display text-2xl font-bold">Demanda no surtida</h1>
-        <p className="text-sm text-acero">Lo que nos piden y no tenemos. Ordenado por cuántas veces lo han pedido.</p>
-        <Suspense fallback={<p className="mt-4 text-sm text-acero">Cargando…</p>}>
+        <h1 className="font-display text-2xl font-semibold">Demanda no surtida</h1>
+        <p className="text-sm text-secundario">Lo que nos piden y no tenemos. Ordenado por cuántas veces lo han pedido.</p>
+        <Suspense fallback={<p className="mt-4 text-sm text-secundario">Cargando…</p>}>
           <Lista searchParams={props.searchParams} />
         </Suspense>
       </main>
@@ -54,11 +54,11 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/deman
           <article key={g.ids[0]} className="rounded-xl bg-white p-4">
             <p className="font-semibold">
               {g.descripcion}
-              <span className="ml-2 rounded-full bg-cian px-2 py-0.5 text-xs text-profundo">
+              <span className="ml-2 rounded-full bg-niebla px-2 py-0.5 text-xs text-tinta">
                 {g.veces} {g.veces === 1 ? "vez" : "veces"} · {g.clientes} cliente{g.clientes === 1 ? "" : "s"}
               </span>
             </p>
-            <p className="text-xs text-acero">
+            <p className="text-xs text-secundario">
               {g.cantidad_total != null && `${g.cantidad_total} piezas en total · `}
               {g.origenes.map((o) => ORIGEN[o]).join(" / ")} · último {new Date(g.ultima).toLocaleDateString("es-MX", { timeZone: "America/Mexico_City" })}
               {g.pedidos.length > 0 && " · "}
@@ -68,11 +68,11 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/deman
             </p>
             <form action={actualizarSolicitud} className="mt-2 grid gap-2 sm:grid-cols-[auto_1fr_1fr_auto]">
               <input type="hidden" name="ids" value={g.ids.join(",")} />
-              <select name="estado" defaultValue={g.estado} className="rounded-lg border border-cianclaro px-2 py-2 text-sm">
+              <select name="estado" defaultValue={g.estado} className="rounded-lg border border-linea px-2 py-2 text-sm">
                 {ESTADOS.map(([e, n]) => <option key={e} value={e}>{n}</option>)}
               </select>
-              <input name="proveedor_alterno" defaultValue={g.proveedor_alterno ?? ""} placeholder="¿Quién lo vende?" className="rounded-lg border border-cianclaro px-2 py-2 text-sm" />
-              <input name="notas" defaultValue={g.notas ?? ""} placeholder="Notas (precio, tiempo, marca…)" className="rounded-lg border border-cianclaro px-2 py-2 text-sm" />
+              <input name="proveedor_alterno" defaultValue={g.proveedor_alterno ?? ""} placeholder="¿Quién lo vende?" className="rounded-lg border border-linea px-2 py-2 text-sm" />
+              <input name="notas" defaultValue={g.notas ?? ""} placeholder="Notas (precio, tiempo, marca…)" className="rounded-lg border border-linea px-2 py-2 text-sm" />
               <button className="rounded-lg bg-azul px-3 py-2 text-sm font-semibold text-white">Guardar</button>
             </form>
             {g.estado !== "agregada_catalogo" && <div className="mt-2"><FormAlta ids={g.ids} descripcion={g.descripcion} /></div>}

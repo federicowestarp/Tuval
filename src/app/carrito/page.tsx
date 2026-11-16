@@ -11,7 +11,7 @@ export default function Carrito() {
     <Marco pie={false}>
       <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
         <Titulo>Tu pedido.</Titulo>
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-3xl bg-niebla" />}>
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-[20px] bg-niebla" />}>
           <Contenido />
         </Suspense>
       </main>

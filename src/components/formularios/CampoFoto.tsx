@@ -36,8 +36,8 @@ export function CampoFoto({ name, etiqueta, ayuda }: { name: string; etiqueta: s
 
   return (
     <div>
-      <span className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-acero">{etiqueta}</span>
-      <label className="flex cursor-pointer items-center gap-4 rounded-3xl bg-niebla p-4 transition hover:bg-cianclaro">
+      <span className="mb-1.5 block text-[13px] font-semibold uppercase tracking-wide text-secundario">{etiqueta}</span>
+      <label className="flex cursor-pointer items-center gap-4 rounded-[20px] bg-niebla p-4 transition hover:bg-piedra">
         {vista ? (
           // eslint-disable-next-line @next/next/no-img-element -- vista previa local
           <img src={vista} alt="" className="h-16 w-16 rounded-2xl object-cover" />
@@ -47,7 +47,7 @@ export function CampoFoto({ name, etiqueta, ayuda }: { name: string; etiqueta: s
         <span className="text-[15px] font-semibold text-azul">{procesando ? "Procesando…" : vista ? "Cambiar foto" : "Tomar o elegir foto"}</span>
         <input ref={input} type="file" name={name} accept="image/*" capture="environment" onChange={alCambiar} className="sr-only" />
       </label>
-      {ayuda && <p className="mt-1.5 text-[13px] text-acero">{ayuda}</p>}
+      {ayuda && <p className="mt-1.5 text-[13px] text-secundario">{ayuda}</p>}
     </div>
   );
 }

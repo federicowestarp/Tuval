@@ -13,7 +13,7 @@ export default function MisPedidos() {
     <Marco pie={false}>
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
         <Titulo>Pedidos.</Titulo>
-        <Suspense fallback={<div className="h-40 animate-pulse rounded-3xl bg-niebla" />}>
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-[20px] bg-niebla" />}>
           <Lista />
         </Suspense>
       </main>
@@ -34,7 +34,7 @@ async function Lista() {
   if (pedidos.length === 0)
     return (
       <div className="py-10 text-center">
-        <p className="text-acero">Aún no tienes pedidos en este dispositivo.</p>
+        <p className="text-secundario">Aún no tienes pedidos en este dispositivo.</p>
         <div className="mt-6"><BotonLiga href="/tienda">Ir a la tienda</BotonLiga></div>
       </div>
     );
@@ -46,15 +46,15 @@ async function Lista() {
         return (
           <li key={p.id}>
             <Link href={`/pedido/${p.id}`} className="flex items-center gap-4 py-4">
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${e === 3 ? "bg-acero/40" : e === -1 ? "bg-red-400" : "bg-cian"}`} />
+              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${e === 3 ? "bg-secundario/40" : e === -1 ? "bg-red-400" : "bg-cian"}`} />
               <span className="flex-1">
                 <span className="block font-semibold">{e === -1 ? "Cancelado" : p.estado === "entregado_con_faltantes" ? "Entregado con faltantes" : ETAPAS_CLIENTE[e]}</span>
-                <span className="block text-[14px] text-acero">
+                <span className="block text-[14px] text-secundario">
                   {p.folio} · {new Date(p.creado_en).toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: "America/Mexico_City" })} · {p.piezas} art.
                   {p.confirmado_en && ` · ${formatoMoneda(p.total)}`}
                 </span>
               </span>
-              <IconoFlecha className="h-5 w-5 text-acero" />
+              <IconoFlecha className="h-5 w-5 text-secundario" />
             </Link>
           </li>
         );

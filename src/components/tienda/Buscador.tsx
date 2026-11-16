@@ -65,8 +65,8 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false }: { 
 
   return (
     <div className="w-full">
-      <form onSubmit={enviar} className={`flex items-center gap-2 rounded-full bg-niebla pl-5 pr-1.5 ring-cian transition focus-within:bg-white focus-within:ring-2 ${grande ? "h-16" : "h-12"}`}>
-        <IconoBuscar className="h-5 w-5 shrink-0 text-acero" />
+      <form onSubmit={enviar} className={`flex items-center gap-2 rounded-full bg-niebla pl-5 pr-1.5 ring-azul/30 transition focus-within:bg-white focus-within:ring-2 ${grande ? "h-16" : "h-12"}`}>
+        <IconoBuscar className="h-5 w-5 shrink-0 text-secundario" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -74,11 +74,11 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false }: { 
           autoFocus={autoFocus}
           enterKeyHint="search"
           placeholder={grande ? "Busca por producto o medida, o pega tu lista" : "Buscar: cople 1/2, válvula…"}
-          className={`h-full min-w-0 flex-1 bg-transparent text-profundo outline-none placeholder:text-acero/70 ${grande ? "text-[17px] sm:text-lg" : "text-[16px]"}`}
+          className={`h-full min-w-0 flex-1 bg-transparent text-tinta outline-none placeholder:text-secundario/70 ${grande ? "text-[17px] sm:text-lg" : "text-[16px]"}`}
           aria-label="Buscar productos"
         />
         {q && (
-          <button type="button" onClick={() => setQ("")} aria-label="Borrar" className="flex h-9 w-9 items-center justify-center rounded-full text-acero hover:bg-white">
+          <button type="button" onClick={() => setQ("")} aria-label="Borrar" className="flex h-9 w-9 items-center justify-center rounded-full text-secundario hover:bg-white">
             <IconoCerrar className="h-4 w-4" />
           </button>
         )}
@@ -86,7 +86,7 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false }: { 
           type="button"
           onClick={() => archivo.current?.click()}
           aria-label="Subir foto o PDF de tu lista"
-          className={`flex shrink-0 items-center justify-center rounded-full bg-white text-azul shadow-sm hover:bg-cianclaro ${grande ? "h-12 w-12" : "h-9 w-9"}`}
+          className={`flex shrink-0 items-center justify-center rounded-full bg-white text-azul shadow-sm hover:bg-piedra ${grande ? "h-12 w-12" : "h-9 w-9"}`}
         >
           {subiendo ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-azul border-t-transparent" /> : <IconoCamara className="h-5 w-5" />}
         </button>
@@ -94,9 +94,9 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false }: { 
       </form>
 
       {lista && (
-        <div className="aparecer mt-3 rounded-3xl bg-white p-5 text-left ring-1 ring-linea">
-          <p className="flex items-center gap-2 font-semibold"><IconoLista className="h-5 w-5 text-cian" /> Pegaste una lista de {renglones} productos</p>
-          <p className="mt-1 text-sm text-acero">Buscamos cada uno en el catálogo. Lo que no tengamos, lo conseguimos.</p>
+        <div className="aparecer mt-3 rounded-[20px] bg-white p-5 text-left ring-1 ring-linea">
+          <p className="flex items-center gap-2 font-semibold"><IconoLista className="h-5 w-5 text-azul" /> Pegaste una lista de {renglones} productos</p>
+          <p className="mt-1 text-sm text-secundario">Buscamos cada uno en el catálogo. Lo que no tengamos, lo conseguimos.</p>
           <div className="mt-4 flex gap-2">
             <button type="button" onClick={() => { sessionStorage.setItem("tuval.lista", lista); router.push("/lista?pegada=1"); }} className={clasesBoton("principal", "normal")}>
               Buscar todos
@@ -107,7 +107,7 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false }: { 
       )}
 
       {aviso && (
-        <div className="aparecer mt-3 flex items-start justify-between gap-3 rounded-3xl bg-cianclaro p-4 text-left text-[15px]">
+        <div className="aparecer mt-3 flex items-start justify-between gap-3 rounded-[20px] bg-piedra p-4 text-left text-[15px]">
           <p>{aviso} <Link href="/carrito" className="font-semibold underline">Ver carrito</Link></p>
           <button onClick={() => setAviso(null)} aria-label="Cerrar"><IconoCerrar className="h-4 w-4" /></button>
         </div>

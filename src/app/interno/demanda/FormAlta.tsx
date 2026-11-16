@@ -13,13 +13,13 @@ export function FormAlta({ ids, descripcion }: { ids: string[]; descripcion: str
   return (
     <form action={accion} className="mt-2 grid gap-2 rounded-lg bg-niebla p-3 sm:grid-cols-4">
       <input type="hidden" name="ids" value={ids.join(",")} />
-      <input name="nombre" defaultValue={descripcion} placeholder="Nombre" className="rounded-lg border border-cianclaro px-2 py-2 sm:col-span-2" />
-      <input name="sku" placeholder="SKU" className="rounded-lg border border-cianclaro px-2 py-2 uppercase" />
-      <select name="categoria" defaultValue="" className="rounded-lg border border-cianclaro px-2 py-2">
+      <input name="nombre" defaultValue={descripcion} placeholder="Nombre" className="rounded-lg border border-linea px-2 py-2 sm:col-span-2" />
+      <input name="sku" placeholder="SKU" className="rounded-lg border border-linea px-2 py-2 uppercase" />
+      <select name="categoria" defaultValue="" className="rounded-lg border border-linea px-2 py-2">
         <option value="" disabled>Categoría</option>
         {CATEGORIAS.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
       </select>
-      <input name="precio" placeholder="Precio venta sin IVA (opcional)" inputMode="decimal" className="rounded-lg border border-cianclaro px-2 py-2 sm:col-span-2" />
+      <input name="precio" placeholder="Precio venta sin IVA (opcional)" inputMode="decimal" className="rounded-lg border border-linea px-2 py-2 sm:col-span-2" />
       <button disabled={enviando} className="rounded-lg bg-azul px-3 py-2 text-sm font-semibold text-white sm:col-span-2">
         {enviando ? "Guardando…" : "Dar de alta"}
       </button>

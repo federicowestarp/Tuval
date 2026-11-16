@@ -22,7 +22,7 @@ export function BarraSuperior() {
         <Link href="/" aria-label="Inicio"><Logo /></Link>
         <nav className="hidden items-center gap-7 text-[14px] md:flex">
           {ENLACES.map((e) => (
-            <Link key={e.href} href={e.href} className={`transition hover:text-azul ${ruta === e.href ? "font-semibold text-azul" : "text-acero"}`}>
+            <Link key={e.href} href={e.href} className={`transition hover:text-azul ${ruta === e.href ? "font-semibold text-azul" : "text-secundario"}`}>
               {e.texto}
             </Link>
           ))}
@@ -30,7 +30,7 @@ export function BarraSuperior() {
         <Link href="/carrito" aria-label={`Carrito, ${piezas} productos`} className="relative -mr-2 flex h-10 w-10 items-center justify-center rounded-full text-azul hover:bg-niebla">
           <IconoBolsa />
           {piezas > 0 && (
-            <span className="aparecer absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cian px-1 text-[11px] font-bold text-profundo">
+            <span className="aparecer absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-azul px-1 text-[11px] font-semibold text-white">
               {piezas > 99 ? "99+" : piezas}
             </span>
           )}

@@ -13,29 +13,29 @@ export default function Cuenta() {
         <Suspense fallback={<div className="h-12" />}>
           <Encabezado />
         </Suspense>
-        <nav className="divide-y divide-linea overflow-hidden rounded-3xl bg-niebla">
+        <nav className="divide-y divide-linea overflow-hidden rounded-[20px] bg-niebla">
           {[
             { href: "/cuenta/pedidos", t: "Mis pedidos", d: "Seguimiento y entregas", Icono: IconoCaja },
             { href: "/cuenta/direcciones", t: "Mis direcciones", d: "Obras y domicilios guardados", Icono: IconoPin },
           ].map(({ href, t, d, Icono }) => (
-            <Link key={href} href={href} className="flex items-center gap-4 p-5 transition hover:bg-cianclaro">
+            <Link key={href} href={href} className="flex items-center gap-4 p-5 transition hover:bg-piedra">
               <Icono className="h-6 w-6 text-azul" />
               <span className="flex-1">
                 <span className="block font-semibold">{t}</span>
-                <span className="block text-[14px] text-acero">{d}</span>
+                <span className="block text-[14px] text-secundario">{d}</span>
               </span>
-              <IconoFlecha className="h-5 w-5 text-acero" />
+              <IconoFlecha className="h-5 w-5 text-secundario" />
             </Link>
           ))}
           {ligaWhatsAppTuval() && (
-            <a href={ligaWhatsAppTuval("Hola Tuval, necesito ayuda.")!} className="flex items-center gap-4 p-5 transition hover:bg-cianclaro">
+            <a href={ligaWhatsAppTuval("Hola Tuval, necesito ayuda.")!} className="flex items-center gap-4 p-5 transition hover:bg-piedra">
               <IconoChat className="h-6 w-6 text-azul" />
               <span className="flex-1"><span className="block font-semibold">Ayuda por WhatsApp</span></span>
-              <IconoFlecha className="h-5 w-5 text-acero" />
+              <IconoFlecha className="h-5 w-5 text-secundario" />
             </a>
           )}
         </nav>
-        <p className="mt-6 text-center text-[13px] text-acero">Pronto podrás entrar con tu celular o correo desde cualquier dispositivo.</p>
+        <p className="mt-6 text-center text-[13px] text-secundario">Pronto podrás entrar con tu celular o correo desde cualquier dispositivo.</p>
       </main>
     </Marco>
   );

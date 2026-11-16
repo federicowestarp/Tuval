@@ -73,21 +73,21 @@ export function ListaPedido() {
       <button
         type="button"
         onClick={() => archivo.current?.click()}
-        className="flex w-full items-center gap-4 rounded-3xl bg-niebla p-5 text-left transition hover:bg-cianclaro"
+        className="flex w-full items-center gap-4 rounded-[20px] bg-niebla p-5 text-left transition hover:bg-piedra"
       >
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-azul">
           {subiendo ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-azul border-t-transparent" /> : <IconoCamara className="h-7 w-7" />}
         </span>
         <span>
           <span className="block text-[17px] font-semibold">Foto o PDF de tu lista</span>
-          <span className="block text-[15px] text-acero">Requisición, cotización o lista a mano. Nosotros la capturamos.</span>
+          <span className="block text-[15px] text-secundario">Requisición, cotización o lista a mano. Nosotros la capturamos.</span>
         </span>
       </button>
       <input ref={archivo} type="file" accept="image/*,application/pdf" onChange={alSubir} className="sr-only" />
       {adjuntos.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {adjuntos.map((a) => (
-            <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-cianclaro px-3 py-1.5 text-[13px] font-medium">
+            <span key={a.id} className="inline-flex items-center gap-1.5 rounded-full bg-piedra px-3 py-1.5 text-[13px] font-medium">
               <IconoDocumento className="h-4 w-4" /> {a.nombre}
             </span>
           ))}
@@ -95,9 +95,9 @@ export function ListaPedido() {
       )}
 
       {/* Opción 2: escribirla */}
-      <div className="rounded-3xl bg-niebla p-5">
+      <div className="rounded-[20px] bg-niebla p-5">
         <p className="text-[17px] font-semibold">O escríbela</p>
-        <p className="text-[15px] text-acero">Un producto por renglón, con la cantidad al inicio.</p>
+        <p className="text-[15px] text-secundario">Un producto por renglón, con la cantidad al inicio.</p>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -112,32 +112,32 @@ export function ListaPedido() {
 
       {lineas && (
         <div className="aparecer space-y-3 pt-4">
-          <h2 className="font-display text-2xl font-bold">Revisa tu lista</h2>
+          <h2 className="font-display text-2xl font-semibold">Revisa tu lista</h2>
           {lineas.map((l, i) => (
-            <div key={i} className="rounded-3xl bg-white p-4 ring-1 ring-linea">
+            <div key={i} className="rounded-[20px] bg-white p-4 ring-1 ring-linea">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[15px] text-acero">“{l.descripcion}”</p>
+                <p className="text-[15px] text-secundario">“{l.descripcion}”</p>
                 <input
                   type="number"
                   min={1}
                   inputMode="numeric"
                   value={cantidades[i] ?? l.cantidad}
                   onChange={(e) => setCantidades({ ...cantidades, [i]: Math.max(1, Number(e.target.value)) })}
-                  className="h-10 w-16 rounded-xl bg-niebla text-center text-[15px] font-semibold outline-none focus:ring-2 focus:ring-cian"
+                  className="h-10 w-16 rounded-xl bg-niebla text-center text-[15px] font-semibold outline-none focus:ring-2 focus:ring-azul/30"
                   aria-label="Cantidad"
                 />
               </div>
               <div className="mt-3 space-y-1.5">
                 {[...l.sugerencias.map((s) => ({ id: s.id, t: s.nombre, d: Object.values(s.atributos).join(" · ") || s.sku })),
                   { id: NO_ESTA, t: l.sugerencias.length ? "Ninguno de estos" : "No está en catálogo", d: "Lo buscamos con proveedores y te avisamos" }].map((o) => (
-                  <label key={o.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition ${eleccion[i] === o.id ? "bg-cianclaro" : "hover:bg-niebla"}`}>
+                  <label key={o.id} className={`flex cursor-pointer items-center gap-3 rounded-2xl p-3 transition ${eleccion[i] === o.id ? "bg-piedra" : "hover:bg-niebla"}`}>
                     <input type="radio" name={`l${i}`} checked={eleccion[i] === o.id} onChange={() => setEleccion({ ...eleccion, [i]: o.id })} className="sr-only" />
-                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${eleccion[i] === o.id ? "bg-azul text-white" : "ring-1 ring-acero/40"}`}>
+                    <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${eleccion[i] === o.id ? "bg-azul text-white" : "ring-1 ring-secundario/40"}`}>
                       {eleccion[i] === o.id && <IconoCheck className="h-3.5 w-3.5" />}
                     </span>
                     <span>
                       <span className="block text-[15px] font-semibold">{o.t}</span>
-                      <span className="block text-[13px] text-acero">{o.d}</span>
+                      <span className="block text-[13px] text-secundario">{o.d}</span>
                     </span>
                   </label>
                 ))}
@@ -153,7 +153,7 @@ export function ListaPedido() {
       )}
 
       {listo && (
-        <div className="aparecer flex items-center justify-between gap-3 rounded-3xl bg-cianclaro p-5">
+        <div className="aparecer flex items-center justify-between gap-3 rounded-[20px] bg-piedra p-5">
           <p className="text-[15px] font-medium">{listo}</p>
           <Link href="/carrito" className={clasesBoton("principal", "chico")}>Ver carrito</Link>
         </div>
