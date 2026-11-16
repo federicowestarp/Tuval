@@ -11,6 +11,8 @@ export function MapaUbicacion({ lat, lng }: { lat?: number; lng?: number }) {
   const [pos, setPos] = useState<[number, number] | null>(lat != null && lng != null ? [lat, lng] : null);
   const [aviso, setAviso] = useState("");
   const mapaRef = useRef<{ mover: (p: [number, number]) => void } | null>(null);
+  // Ubicación obtenida antes de que el mapa termine de cargar (señal lenta): se aplica al estar listo.
+  const pendiente = useRef<[number, number] | null>(null);
 
   useEffect(() => {
     let mapa: import("leaflet").Map | undefined;
@@ -53,6 +55,7 @@ export function MapaUbicacion({ lat, lng }: { lat?: number; lng?: number }) {
           mapa?.setView(p, 17);
         },
       };
+      if (pendiente.current) mapaRef.current.mover(pendiente.current);
     })();
     return () => {
       cancelado = true;
@@ -66,7 +69,12 @@ export function MapaUbicacion({ lat, lng }: { lat?: number; lng?: number }) {
     setAviso("Buscando tu ubicación…");
     navigator.geolocation.getCurrentPosition(
       (p) => {
-        mapaRef.current?.mover([p.coords.latitude, p.coords.longitude]);
+        const punto: [number, number] = [p.coords.latitude, p.coords.longitude];
+        if (mapaRef.current) mapaRef.current.mover(punto);
+        else {
+          pendiente.current = punto;
+          setPos(punto);
+        }
         setAviso("");
       },
       () => setAviso("No pudimos obtener tu ubicación. Toca el mapa para marcarla."),
