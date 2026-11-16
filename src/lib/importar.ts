@@ -30,6 +30,8 @@ const sinAcentos = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toL
 export function categoriaTuval(nombre: string, categoriaOrigen = ""): ProductoImportado["categoria"] {
   const n = ` ${sinAcentos(nombre)} `;
   if (/\bvalv|\bcheck\b|\bllave de paso|\bcompuerta/.test(n)) return "valvulas";
+  if (/\b(desnatador|skimmer|bomba de calor)\b/.test(n)) return "equipos";
+  if (/\b(cuadro|tablero) electrico\b/.test(n)) return "electrico";
   if (/\b(tubo|tuberia|tramo)\b/.test(n) && !/\bconduit\b/.test(n)) return "tuberia";
   if (/\b(cable|contacto|apagador|breaker|interruptor|centro de carga|conduit|clavija|foco|reflector|lampara|luminaria|transformador|arrancador|contactor|timer|termomagnetic)/.test(n)) return "electrico";
   if (/\b(codo|cople|tee|te|reduccion|reductor|adaptador|tapon|tapa|brida|tuerca|niple|union|bushing|conector|abrazadera|yee)\b/.test(n)) return "conexiones";
@@ -44,13 +46,23 @@ export function categoriaTuval(nombre: string, categoriaOrigen = ""): ProductoIm
   return "por_clasificar";
 }
 
+const vacio = (v?: string) => v == null || v === "" || /^(null|undefined|n\/a|-|sin proveedor|sin marca)$/i.test(v.trim());
+
+/** Servicios y conceptos que no son producto (mano de obra, instalación, envío…). */
+export function esServicio(nombre: string, categoriaOrigen = "", unidad = ""): boolean {
+  const n = sinAcentos(nombre), c = sinAcentos(categoriaOrigen), u = sinAcentos(unidad);
+  if (/servicio/.test(c) || /servicio/.test(u)) return true;
+  return /^(instalacion|cambio de|mano de obra|obra civil|material|colocacion|demolicion|reparacion|aplicacion de|gastos de envio)\b/.test(n.trim());
+}
+
 export function normalizarRenglon(r: Record<string, string>): ProductoImportado | null {
-  const g = (...k: string[]) => k.map((x) => r[x]).find((v) => v != null && v !== "") ?? "";
+  const g = (...k: string[]) => k.map((x) => r[x]).find((v) => !vacio(v)) ?? "";
   const nombre = g("nombre", "name", "descripcion", "producto");
   if (nombre.length < 2) return null;
+  if (esServicio(nombre, g("categoria", "category"), g("unidad", "unit"))) return null;
   const sku = (g("sku", "codigo", "code", "clave") || nombre).toUpperCase().replace(/\s+/g, "-").replace(/[^A-Z0-9-]/g, "").slice(0, 40);
   const unidadOrigen = sinAcentos(g("unidad", "unit") || "pieza");
-  const unidad = /^(m|mt|mts|mto|metro)/.test(unidadOrigen) ? "metro" : /tramo/.test(unidadOrigen) ? "tramo" : /rollo/.test(unidadOrigen) ? "rollo" : /^(kg|kilo)/.test(unidadOrigen) ? "kg" : /^(l|lt|litro)/.test(unidadOrigen) ? "litro" : "pieza";
+  const unidad = /^(m2|m²|metro cuadrado)/.test(unidadOrigen) ? "m²" : /^caja/.test(unidadOrigen) ? "caja" : /^(m|mt|mts|mto|metro)/.test(unidadOrigen) ? "metro" : /tramo/.test(unidadOrigen) ? "tramo" : /rollo/.test(unidadOrigen) ? "rollo" : /^(kg|kilo)/.test(unidadOrigen) ? "kg" : /^(l|lt|litro)/.test(unidadOrigen) ? "litro" : "pieza";
   const marca = g("marca", "brand") || null;
   const modelo = g("modelo", "model");
   const atributos: Record<string, string> = {};

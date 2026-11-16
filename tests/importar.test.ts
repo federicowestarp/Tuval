@@ -24,3 +24,25 @@ test("categorías por nombre", () => {
   assert.equal(categoriaTuval("Tubo conduit 3/4"), "electrico");
 });
 test("sin nombre se descarta", () => assert.equal(normalizarRenglon({ sku: "X" }), null));
+
+test("'null' de Supabase cuenta como vacío y el código sirve de SKU", () => {
+  const [r] = leerCsv("sku,codigo,nombre,marca,modelo,categoria,unidad,proveedor,costo,precio,existencia,sat_clave,sat_unidad\nnull,P-03593,Boquilla de barredora,Hayward,null,Accesorios de alberca,pza,null,0.00,0.00,-1.000,null,H87\n");
+  const p = normalizarRenglon(r)!;
+  assert.equal(p.sku, "P-03593");
+  assert.deepEqual(p.atributos, { Marca: "Hayward" });
+  assert.equal(p.proveedor, null);
+  assert.equal(p.precio, null); // precio 0 = por confirmar
+  assert.equal(p.satClave, null);
+});
+test("servicios no se importan y m² se respeta", () => {
+  const f = leerCsv("nombre,categoria,unidad\nMano de obra,Servicios,servicio\nInstalación de lámpara,Iluminación,pza\nMosaico chukum 5*5,Acabados y recubrimientos,m²\n");
+  const ps = f.map(normalizarRenglon).filter(Boolean);
+  assert.equal(ps.length, 1);
+  assert.equal(ps[0]!.unidad, "m²");
+});
+test("casos de PurAqua", () => {
+  assert.equal(categoriaTuval("Cuadro eléctrico universal sumergible", "Accesorios de alberca"), "electrico");
+  assert.equal(categoriaTuval("Desnatador 3400 tapa cuadrada", "Accesorios de alberca"), "equipos");
+  const [r] = leerCsv("nombre,proveedor,costo\nBomba X,Sin proveedor,10\n");
+  assert.equal(normalizarRenglon(r)!.proveedor, null);
+});
