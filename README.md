@@ -34,6 +34,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0001_esquema_inicial.sql
 psql "$DATABASE_URL" -f supabase/migrations/0002_pedido_en_linea.sql
 psql "$DATABASE_URL" -f supabase/migrations/0003_direcciones_demanda_cotizaciones.sql
 psql "$DATABASE_URL" -f supabase/migrations/0004_cotizacion_pdf.sql
+psql "$DATABASE_URL" -f supabase/migrations/0005_seguridad.sql
 psql "$DATABASE_URL" -f supabase/seed.sql   # opcional: productos de demostración
 npm run dev
 npm test                             # hora de corte, lector de listas y de cotizaciones
