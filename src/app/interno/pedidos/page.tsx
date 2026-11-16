@@ -6,6 +6,7 @@ import { NOMBRE_INTERNO, SIGUIENTE } from "@/lib/estados";
 import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { cambiarEstado } from "./acciones";
+import { Cancelar } from "./Cancelar";
 import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../Navegacion";
 
@@ -73,11 +74,7 @@ async function Lista() {
                 </form>
               )}
               {p.estado !== "entregado" && p.estado !== "entregado_con_faltantes" && p.estado !== "cancelado" && (
-                <form action={cambiarEstado}>
-                  <input type="hidden" name="id" value={p.id} />
-                  <input type="hidden" name="estado" value="cancelado" />
-                  <button className="rounded-lg border border-secundario px-3 py-2 text-sm text-secundario">Cancelar</button>
-                </form>
+                <Cancelar id={p.id} />
               )}
             </div>
           </article>

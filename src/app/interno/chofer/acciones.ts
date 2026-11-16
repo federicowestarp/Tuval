@@ -8,17 +8,19 @@ import { hoyMx, rutaDeHoy } from "@/lib/ruta";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function asegurarRuta(choferId: string) {
+async function asegurarRuta(choferId: string, vehiculoId: string | null = null) {
   const [r] = await sql<{ id: string }[]>`
-    insert into rutas (chofer_id, fecha, iniciada_en) values (${choferId}, ${hoyMx()}, now())
-    on conflict (chofer_id, fecha) do update set iniciada_en = coalesce(rutas.iniciada_en, now()), terminada_en = null
+    insert into rutas (chofer_id, fecha, iniciada_en, vehiculo_id) values (${choferId}, ${hoyMx()}, now(), ${vehiculoId})
+    on conflict (chofer_id, fecha) do update set iniciada_en = coalesce(rutas.iniciada_en, now()), terminada_en = null,
+      vehiculo_id = coalesce(excluded.vehiculo_id, rutas.vehiculo_id)
     returning id`;
   return r.id;
 }
 
-export async function iniciarRuta() {
+export async function iniciarRuta(fd: FormData) {
   const yo = await requerirInterno();
-  await asegurarRuta(yo.id);
+  const v = String(fd.get("vehiculo_id") ?? "");
+  await asegurarRuta(yo.id, UUID.test(v) ? v : null);
   revalidatePath("/interno/chofer");
 }
 

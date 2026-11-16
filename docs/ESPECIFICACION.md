@@ -104,6 +104,13 @@ Cuando haya volumen, una bodega pequeña cerca de Bodega ciudad permite tener lo
 ### Demanda no surtida (`/interno/demanda`)
 Agrupada por descripción: cuántas veces y cuántos clientes lo han pedido. Estados: nueva → buscando → conseguida → en catálogo / no se consigue. Se anota quién lo vende y notas. "Dar de alta en catálogo" crea el producto y, si el pedido de origen sigue sin confirmar, lo agrega como partida.
 
+### Tablero, gastos y flotilla (`/interno/tablero`, solo admin)
+- **Pedidos:** recibidos, cotizaciones de proveedor cargadas, confirmados, entregados, cancelados por motivo (cancelar exige motivo: Sin existencia, Cliente canceló, Precio no aceptado, Fuera de cobertura, Duplicado, Otro + nota) y abiertos por etapa.
+- **Tiempos (mediana):** pedido → cotización cargada → confirmado (existencias) → comprado → surtido → en ruta → entregado. Salen de los eventos que ya registra el sistema; no se capturan a mano.
+- **Rutas:** por chofer y día, vehículo, entregas, horas y km sumando los puntos GPS del chofer (aproximado: depende de que el teléfono mande ubicación).
+- **Ingresos y gastos:** ventas = pedidos confirmados con IVA; costo = cotizaciones del proveedor; cobrado = cobros registrados en cada pedido; gastos en `/interno/gastos` (con comprobante, ligados a vehículo o persona).
+- **Flotilla y nómina:** `/interno/flotilla` da de alta vehículos y personal; el chofer elige vehículo al iniciar ruta; la nómina pagada se registra como gasto de categoría Nómina.
+
 ## 4. Tuval Obra · consignación (opinión y reglas propuestas)
 
 **Modelo decidido (D13):** bodeguero Tuval en la obra. Dos formas de retiro:

@@ -11,7 +11,9 @@ import { urlArchivo } from "@/lib/url-archivo";
 import { urlBase } from "@/lib/url";
 import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../../Navegacion";
-import { cambiarEstado } from "../acciones";
+import { cambiarEstado, registrarCobro } from "../acciones";
+import { Cancelar } from "../Cancelar";
+import { sql } from "@/lib/db";
 import { agregarRenglonesAlPedido, asignarRenglon } from "./acciones";
 import { FormConfirmar, FormCotizacion } from "./Formularios";
 
@@ -38,6 +40,9 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
   if (!pedido) notFound();
   const [comparacion, sueltos, base, cotizacionId] = await Promise.all([compararPedido(id), renglonesSinAsignar(id), urlBase(), ultimaCotizacion(id)]);
   const siguiente = SIGUIENTE[pedido.estado];
+  const cobros = await sql<{ id: string; fecha: string; forma: string; monto: number; referencia_pasarela: string | null }[]>`
+    select id, to_char(pagado_en at time zone 'America/Mexico_City', 'DD/MM/YYYY') fecha, forma, monto::float monto, referencia_pasarela
+    from pagos where pedido_id = ${pedido.id} order by pagado_en`;
   const ligaCliente = `${base}/pedido/${pedido.id}`;
   const promesa = pedido.entrega_fecha && pedido.entrega_ventana ? describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }) : pedido.zona === "otro" ? `Envío a ${pedido.entidad ?? "otro estado"}: fecha y costo por confirmar` : "Recoger";
   const pendientes = pedido.especiales.filter((e) => e.estado === "nueva" || e.estado === "buscando");
@@ -66,8 +71,26 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
               <button className="rounded-lg bg-azul px-4 py-2 text-sm font-semibold text-white">→ {NOMBRE_INTERNO[siguiente]}</button>
             </form>
           )}
+          {!["entregado", "entregado_con_faltantes", "cancelado"].includes(pedido.estado) && <Cancelar id={pedido.id} />}
         </div>
       </div>
+
+      {pedido.estado === "cancelado" && pedido.motivo_cancelacion && <p className="rounded-xl bg-white p-3 text-sm">Motivo de cancelación: <strong>{pedido.motivo_cancelacion}</strong></p>}
+
+      <section className={caja}>
+        <h2 className="font-semibold">Cobros</h2>
+        {cobros.length === 0 ? <p className="text-sm text-secundario">Sin cobros registrados.</p> : (
+          <ul className="text-sm">{cobros.map((c) => <li key={c.id}>{c.fecha} · {c.forma} · <strong>{formatoMoneda(c.monto)}</strong>{c.referencia_pasarela && ` · ${c.referencia_pasarela}`}</li>)}</ul>
+        )}
+        {pedido.confirmado_en && <p className="mt-1 text-sm text-secundario">Por cobrar: {formatoMoneda(Math.max(0, pedido.total - cobros.reduce((a, c) => a + c.monto, 0)))}</p>}
+        <form action={registrarCobro} className="mt-3 flex flex-wrap gap-2">
+          <input type="hidden" name="id" value={pedido.id} />
+          <input name="monto" inputMode="decimal" placeholder="Monto" required className="w-32 rounded-lg border border-linea px-3 py-2 text-sm" />
+          <select name="forma" className="rounded-lg border border-linea px-3 py-2 text-sm"><option value="transferencia">Transferencia</option><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="credito">Crédito</option></select>
+          <input name="referencia" placeholder="Referencia (opcional)" className="w-44 rounded-lg border border-linea px-3 py-2 text-sm" />
+          <button className="rounded-lg bg-azul px-4 py-2 text-sm font-semibold text-white">Registrar cobro</button>
+        </form>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-2">
         <section className={caja}>

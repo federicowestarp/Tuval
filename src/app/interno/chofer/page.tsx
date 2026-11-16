@@ -1,3 +1,4 @@
+import { sql } from "@/lib/db";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
@@ -27,7 +28,10 @@ export default function Chofer() {
 async function Contenido() {
   await connection();
   const yo = await requerirInterno();
-  const [ruta, paradas] = await Promise.all([rutaDeHoy(yo.id), paradasPendientes()]);
+  const [ruta, paradas, vehiculos] = await Promise.all([
+    rutaDeHoy(yo.id), paradasPendientes(),
+    sql<{ id: string; nombre: string }[]>`select id, nombre from vehiculos where activo order by nombre`,
+  ]);
   const activa = !!ruta?.iniciada_en && !ruta.terminada_en;
 
   return (
@@ -37,7 +41,13 @@ async function Contenido() {
           <h1 className="font-display text-2xl font-semibold">Ruta de hoy</h1>
           <p className="text-[14px] text-secundario">{paradas.length} entrega{paradas.length === 1 ? "" : "s"} pendiente{paradas.length === 1 ? "" : "s"}</p>
         </div>
-        <form action={activa ? terminarRuta : iniciarRuta}>
+        <form action={activa ? terminarRuta : iniciarRuta} className="flex items-center gap-2">
+          {!activa && vehiculos.length > 0 && (
+            <select name="vehiculo_id" aria-label="Vehículo" required className="h-11 rounded-full border border-linea bg-white px-3 text-[14px]">
+              <option value="">Vehículo…</option>
+              {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
+            </select>
+          )}
           <button className={clasesBoton(activa ? "secundario" : "principal", "normal")}>{activa ? "Terminar ruta" : "Iniciar ruta"}</button>
         </form>
       </div>

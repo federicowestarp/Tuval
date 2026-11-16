@@ -4,12 +4,15 @@ import { Logo } from "@/components/Logo";
 import { puede, usuarioInterno } from "@/lib/equipo";
 import { salir } from "./sesion-acciones";
 
-type Seccion = "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer";
+type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla";
 const SECCIONES: { id: Seccion; texto: string; href: string; minimo?: "admin" | "operador" }[] = [
+  { id: "tablero", texto: "Tablero", href: "/interno/tablero", minimo: "admin" },
   { id: "pedidos", texto: "Pedidos", href: "/interno/pedidos", minimo: "operador" },
   { id: "demanda", texto: "Demanda", href: "/interno/demanda", minimo: "operador" },
   { id: "contactos", texto: "Contactos", href: "/interno/contactos", minimo: "operador" },
   { id: "chofer", texto: "Ruta", href: "/interno/chofer" },
+  { id: "gastos", texto: "Gastos", href: "/interno/gastos", minimo: "admin" },
+  { id: "flotilla", texto: "Flotilla", href: "/interno/flotilla", minimo: "admin" },
   { id: "catalogo", texto: "Catálogo", href: "/interno/catalogo", minimo: "admin" },
   { id: "equipo", texto: "Equipo", href: "/interno/equipo", minimo: "admin" },
 ];
