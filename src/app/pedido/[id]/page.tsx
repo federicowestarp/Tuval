@@ -2,10 +2,12 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Encabezado } from "@/components/Encabezado";
 import { VaciarCarrito } from "@/components/carrito/VaciarCarrito";
-import { obtenerPedido } from "@/lib/pedidos";
+import { ListaProductosPedido } from "@/components/ListaProductosPedido";
+import { obtenerPedido, ligaWhatsApp } from "@/lib/pedidos";
 import { ETAPAS_CLIENTE, etapaCliente } from "@/lib/estados";
 import { describirPromesa, ZONAS } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
+import { urlBase } from "@/lib/url";
 
 export default function SeguimientoPedido(props: PageProps<"/pedido/[id]">) {
   return (
@@ -27,16 +29,23 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
   if (!pedido) notFound();
 
   const actual = etapaCliente(pedido.estado);
-  const sinPrecio = pedido.partidas.some((p) => p.precio_unitario == null);
+  const porConfirmar = !pedido.confirmado_en;
   const titulo =
-    actual === -1 ? "Pedido cancelado" : actual === 3 ? "Pedido entregado" : actual === 2 ? "Tu pedido va en camino" : nuevo ? "¡Recibimos tu pedido!" : "Tu pedido";
+    actual === -1 ? "Pedido cancelado" : pedido.estado === "entregado_con_faltantes" ? "Entregado con faltantes: ya estamos en eso" : actual === 3 ? "Pedido entregado" : actual === 2 ? "Tu pedido va en camino" : nuevo ? "¡Recibimos tu pedido!" : "Tu pedido";
+
+  // Acceso para quien recibe (residente u otra persona): mismo seguimiento + confirmar lo que llegó.
+  const otraPersonaRecibe = pedido.recibe_telefono && pedido.recibe_telefono !== pedido.contacto_telefono;
+  const base = await urlBase();
+  const ligaReceptor = `${base}/entrega/${pedido.token_receptor}`;
 
   return (
     <>
       {nuevo && <VaciarCarrito />}
       <h1 className="font-display text-2xl font-bold">{titulo}</h1>
       <p className="mt-1 text-sm text-acero">
-        Pedido {pedido.folio} · {ZONAS.find((z) => z.id === pedido.zona)?.nombre} · {pedido.tipo_entrega === "obra" ? "Obra" : "Domicilio"}
+        Pedido {pedido.folio}
+        {pedido.zona && ` · ${ZONAS.find((z) => z.id === pedido.zona)?.nombre}`}
+        {` · ${pedido.tipo_entrega === "obra" ? "Obra" : pedido.tipo_entrega === "recoger" ? "Recoger" : "Domicilio"}`}
       </p>
 
       {actual >= 0 && (
@@ -44,29 +53,35 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
           {ETAPAS_CLIENTE.map((e, i) => (
             <li key={e} className="flex items-center gap-3">
               <span className={`h-4 w-4 rounded-full ${i < actual ? "bg-cian" : i === actual ? "bg-azul ring-4 ring-cianclaro" : "bg-cianclaro"}`} />
-              <span className={i <= actual ? "font-semibold" : "text-acero"}>{e}</span>
+              <span className={i <= actual ? "font-semibold" : "text-acero"}>
+                {e}
+                {i === 0 && actual === 0 && porConfirmar && <span className="block text-xs font-normal text-acero">Estamos confirmando precios y existencias</span>}
+              </span>
             </li>
           ))}
         </ol>
       )}
 
-      {actual >= 0 && actual < 3 && (
+      {actual >= 0 && actual < 3 && pedido.entrega_fecha && pedido.entrega_ventana && (
         <p className="mt-4 rounded-xl bg-white p-4 font-semibold">
           {describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana })}
+          {porConfirmar && <span className="block text-xs font-normal text-acero">Sujeto a confirmación de existencias</span>}
         </p>
+      )}
+
+      {pedido.direccion_entrega && (
+        <section className="mt-4 rounded-xl bg-white p-4 text-sm">
+          <p className="font-semibold">Entrega en</p>
+          <p className="text-acero">{pedido.direccion_entrega}</p>
+          <p className="mt-1">Recibe: {pedido.recibe_nombre} · {pedido.recibe_telefono}</p>
+          {pedido.sin_recepcion_solicitada && <p className="mt-1 text-xs text-acero">Autorizaste entrega sin recepción: el chofer dejará foto con ubicación.</p>}
+        </section>
       )}
 
       <section className="mt-4 rounded-xl bg-white p-4">
         <h2 className="font-semibold">Productos</h2>
-        <ul className="mt-2 divide-y divide-cianclaro text-sm">
-          {pedido.partidas.map((p) => (
-            <li key={p.sku} className="flex justify-between gap-3 py-2">
-              <span>{p.cantidad} × {p.nombre}</span>
-              <span className="text-acero">{p.precio_unitario != null ? formatoMoneda(p.precio_unitario * p.cantidad) : "por confirmar"}</span>
-            </li>
-          ))}
-        </ul>
-        {sinPrecio ? (
+        <ListaProductosPedido pedido={pedido} />
+        {porConfirmar ? (
           <p className="mt-3 text-sm text-acero">Te confirmamos el total por WhatsApp al {pedido.contacto_telefono}.</p>
         ) : (
           <p className="mt-3 text-right font-display text-xl font-bold text-azul">Total {formatoMoneda(pedido.total)}</p>
@@ -74,10 +89,20 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
         <p className="mt-1 text-xs text-acero">{pedido.comprobante === "factura" ? "Con factura" : "Con nota"}</p>
       </section>
 
-      <p className="mt-6 text-xs text-acero">
-        Guarda esta liga para ver cómo va tu pedido. Al recibir podrás confirmar partida por partida y reportar faltantes.
-        {pedido.sin_recepcion_solicitada && " Autorizaste entrega sin recepción: el chofer dejará foto con ubicación como comprobante."}
-      </p>
+      {otraPersonaRecibe && actual >= 0 && actual < 3 && (
+        <a
+          href={ligaWhatsApp(
+            pedido.recibe_telefono!,
+            `Hola ${pedido.recibe_nombre}, te va a llegar material de Tuval (pedido ${pedido.folio}). Aquí ves cómo va la entrega y confirmas lo que recibas: ${ligaReceptor}`,
+          )}
+          target="_blank"
+          className="mt-4 block rounded-xl bg-cian p-4 text-center font-bold text-profundo"
+        >
+          Enviar acceso de entrega a {pedido.recibe_nombre}
+        </a>
+      )}
+
+      <p className="mt-6 text-xs text-acero">Guarda esta liga para ver cómo va tu pedido.</p>
     </>
   );
 }

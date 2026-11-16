@@ -43,7 +43,37 @@ export async function productosPorId(ids: string[]): Promise<Producto[]> {
     where p.activo and p.id = any(${ids}::uuid[])`;
 }
 
+/**
+ * Sugerencias para una línea escrita por el cliente ("10 codos 90 1/2").
+ * Ordena por cuántas palabras coinciden; exige al menos la mitad.
+ */
+export async function sugerirProductos(texto: string, limite = 3): Promise<Producto[]> {
+  const terminos = texto
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.replace(/^(de|del|la|el|los|las|para|con|y|pza|pzas|piezas?|tramos?)$/, ""))
+    .filter((t) => t.length > 0)
+    .slice(0, 8);
+  if (terminos.length === 0) return [];
+  const minimo = Math.max(1, Math.ceil(terminos.length / 2));
+  const puntaje = terminos.reduce(
+    (acc, t) =>
+      sql`${acc} + (unaccent(lower(p.nombre || ' ' || p.sku || ' ' || p.atributos::text)) like unaccent(lower(${"%" + escaparLike(t) + "%"})))::int`,
+    sql`0`,
+  );
+  return sql<Producto[]>`
+    select * from (
+      select p.id, p.sku, p.nombre, p.categoria_id, p.atributos, p.unidad, pr.precio, ${puntaje} as puntaje
+      from productos p
+      left join precios pr on pr.producto_id = p.id
+        and pr.lista_id = (select id from listas_precio where nombre = 'Público')
+      where p.activo
+    ) x
+    where puntaje >= ${minimo}
+    order by puntaje desc, nombre
+    limit ${limite}`;
+}
+
 export const IVA = 0.16;
 
-export const formatoMoneda = (n: number) =>
-  new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(n);
+export { formatoMoneda } from "@/lib/catalogo-formato";

@@ -4,6 +4,7 @@ import { Encabezado } from "@/components/Encabezado";
 import { Sello } from "@/components/Sello";
 import { IconoCategoria } from "@/components/IconoCategoria";
 import { BotonAgregar } from "@/components/carrito/BotonAgregar";
+import { BotonBuscarlo } from "@/components/carrito/BotonBuscarlo";
 import { CATEGORIAS, esCategoria } from "@/lib/categorias";
 import { buscarProductos, formatoMoneda } from "@/lib/catalogo";
 
@@ -107,9 +108,15 @@ async function Catalogo({ searchParams }: { searchParams: SP }) {
             </article>
           ))}
         </div>
-        {productos.length === 0 && (
-          <p className="rounded-xl bg-white p-6 text-sm">
-            No encontramos eso. Prueba con otra medida o escríbenos y lo conseguimos.
+        {productos.length === 0 ? (
+          <div className="rounded-xl bg-white p-6">
+            <p className="font-semibold">No lo tenemos en el catálogo… todavía.</p>
+            <p className="text-sm text-acero">Pídelo y lo buscamos con nuestros proveedores.</p>
+            {q && <BotonBuscarlo texto={q} />}
+          </div>
+        ) : (
+          <p className="mt-6 text-center text-sm text-acero">
+            ¿No encuentras algo? <Link href="/lista" className="font-semibold text-azul underline">Pide con tu lista</Link> y lo buscamos.
           </p>
         )}
       </section>

@@ -21,6 +21,11 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D14 | Emmsa tiene dos almacenes: **Bodega ciudad** (C. 25 Sur 1902 B, Sta Cruz los Ángeles, 72400 Puebla · 222 295 9451) y **Corredor Industrial La Ciénega** (Calle L 7b, 72225 Puebla · 222 141 9800), que respalda lo que no haya en la de ciudad. Preparan un pedido en ~20–30 min según tamaño (estimado de Fede). Tienen servicio a domicilio: opción para pedidos grandes. | nov 2026 |
 | D15 | Foráneas (Atlixco, Tlaxcala): pedidos hasta las **17:00**; se confirman existencias con Emmsa esa tarde y salen en la ruta de la mañana siguiente. | nov 2026 |
 | D16 | El cliente **no ve** "comprado a proveedor": ve **"Preparando pedido"**. El estado de compra es solo interno. | nov 2026 |
+| D17 | El cliente guarda **varias direcciones** marcadas como **obra** o **particular**, con ubicación en mapa, foto de fachada/entrada (opcional), quién recibe, su teléfono y si prefiere **WhatsApp o llamada**. Al pedir solo elige **envío** (a una dirección guardada) o **recoger en sucursal** (desactivado hasta tener sucursal). | nov 2026 |
+| D18 | **Acceso de entrega para quien recibe** (residente de obra): liga propia, sin precios, con seguimiento y confirmación partida por partida; lo que falte queda como reporte de faltante. | nov 2026 |
+| D19 | Para **confirmar** un pedido se carga la **cotización de Emmsa** (precios, disponibilidad, tiempo) y se compara contra nuestro precio, existencias y promesa; después se confirma al cliente. | nov 2026 |
+| D20 | **Nada de lo que pidan se pierde:** lo que no está en catálogo o no se consigue se registra como **demanda** para buscar proveedor o darlo de alta en catálogo. | nov 2026 |
+| D21 | El cliente puede **pedir con una lista**: escrita (se busca en catálogo renglón por renglón), o **foto/PDF** adjunta que el equipo captura. | nov 2026 |
 | D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar
@@ -78,6 +83,17 @@ Cuando haya volumen, una bodega pequeña cerca de Bodega ciudad permite tener lo
 - Seguimiento de pedido y confirmación de recepción.
 - Panel interno: pedidos del día, compras pendientes, entregas.
 
+### Confirmación del pedido (interno)
+1. Pedido entra "por confirmar". El cliente ve "Estamos confirmando precios y existencias".
+2. En `/interno/pedidos/[id]` se pega la cotización de Emmsa desde Excel (código | descripción | cantidad | precio | disponible | tiempo). Se empareja con las partidas por código de Emmsa, SKU o descripción; lo que no empate se asigna a mano.
+3. Tabla de comparación: existencia propia, costo Emmsa, disponibilidad y tiempo, nuestra lista, precio de venta y **margen** (en rojo si vendemos a costo o abajo).
+4. Lo que Emmsa no tiene viene pre-marcado como "no se consigue": al confirmar se quita del pedido y queda en Demanda.
+5. Confirmar fija precios y total; el costo de Emmsa se guarda en `productos_proveedor` (así se arma la lista de costos con el uso).
+6. Botón de WhatsApp con el mensaje de confirmación (total, promesa, lo que seguimos buscando y liga de seguimiento).
+
+### Demanda no surtida (`/interno/demanda`)
+Agrupada por descripción: cuántas veces y cuántos clientes lo han pedido. Estados: nueva → buscando → conseguida → en catálogo / no se consigue. Se anota quién lo vende y notas. "Dar de alta en catálogo" crea el producto y, si el pedido de origen sigue sin confirmar, lo agrega como partida.
+
 ## 4. Tuval Obra · consignación (opinión y reglas propuestas)
 
 **Modelo decidido (D13):** bodeguero Tuval en la obra. Dos formas de retiro:
@@ -121,6 +137,10 @@ Fiscal a considerar desde el diseño: factura global para ventas con nota; compl
 
 - ¿Qué es exactamente Emmsa para Tuval (distribuidor/mayorista)? ¿Entrega lista de precios/catálogo? ¿En qué formato (Excel, PDF, API)? ¿Comparte existencias?
 - Condiciones con Emmsa: crédito, horarios de recolección, tiempo de surtido.
+- **Ejemplo real de cotización de Emmsa** (Excel o PDF) para ajustar el lector al formato real.
+- Verificación de la cuenta por código de WhatsApp para entrar desde otro dispositivo (hoy la cuenta vive en la cookie del dispositivo).
+- Captura asistida de listas en foto/PDF con IA (costo por uso; cotizar antes de activarla). Hoy la captura es manual.
+- Mover archivos (fotos, PDFs) de Postgres a Supabase Storage cuando crezca el volumen.
 - Coordenadas de los almacenes de Emmsa (de las ligas de Google Maps) para calcular rutas.
 - Si Emmsa puede compartir existencias por archivo o sistema, y con qué frecuencia.
 - Costo y condiciones del servicio a domicilio de Emmsa.

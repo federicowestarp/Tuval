@@ -11,10 +11,15 @@ Una sola app (PWA) para clientes (plomeros y empresas), choferes y equipo intern
 
 | Ruta | Para quién | Qué hace |
 |---|---|---|
-| `/` | Cliente | Catálogo, búsqueda por medida o SKU, categorías |
-| `/carrito` | Cliente | Carrito, datos de entrega, factura o nota, hace el pedido |
-| `/pedido/[id]` | Cliente | Seguimiento: recibido → preparando → en ruta → entregado |
+| `/` | Cliente | Catálogo, búsqueda por medida o SKU; si no está, "pídelo y lo buscamos" |
+| `/lista` | Cliente | Pedir con lista escrita (busca en catálogo) o foto/PDF adjunta |
+| `/cuenta/direcciones` | Cliente | Direcciones guardadas: obra/particular, mapa, foto de fachada, quién recibe |
+| `/carrito` | Cliente | Envío a dirección guardada o recoger, factura o nota, enviar pedido |
+| `/pedido/[id]` | Cliente | Seguimiento y botón para compartir el acceso de entrega con quien recibe |
+| `/entrega/[token]` | Quien recibe | Seguimiento sin precios y confirmación de lo recibido (faltantes) |
 | `/interno/pedidos` | Equipo Tuval | Pedidos del día y avance de estado (**sin inicio de sesión todavía**) |
+| `/interno/pedidos/[id]` | Equipo Tuval | Cotización de Emmsa, comparación, confirmación y aviso por WhatsApp |
+| `/interno/demanda` | Equipo Tuval | Lo que piden y no tenemos, agrupado; alta en catálogo |
 
 ## Correr en local
 
@@ -25,9 +30,10 @@ npm install
 cp .env.example .env.local          # y pon tu DATABASE_URL
 psql "$DATABASE_URL" -f supabase/migrations/0001_esquema_inicial.sql
 psql "$DATABASE_URL" -f supabase/migrations/0002_pedido_en_linea.sql
+psql "$DATABASE_URL" -f supabase/migrations/0003_direcciones_demanda_cotizaciones.sql
 psql "$DATABASE_URL" -f supabase/seed.sql   # opcional: productos de demostración
 npm run dev
-npm test                             # reglas de hora de corte
+npm test                             # hora de corte, lector de listas y de cotizaciones
 ```
 
 El catálogo de demostración no tiene precios: aparecen como "Precio por confirmar" hasta cargar la lista de Emmsa.

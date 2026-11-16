@@ -14,10 +14,11 @@ export async function cambiarEstado(fd: FormData) {
   await sql.begin(async (tx) => {
     const [actual] = await tx<{ estado: EstadoPedido }[]>`select estado from pedidos where id = ${id} for update`;
     if (!actual) throw new Error("Pedido no encontrado");
-    const permitido = SIGUIENTE[actual.estado] === estado || (estado === "cancelado" && actual.estado !== "entregado");
+    const permitido = SIGUIENTE[actual.estado] === estado || (estado === "cancelado" && !["entregado", "entregado_con_faltantes", "cancelado"].includes(actual.estado));
     if (!permitido) throw new Error(`No se puede pasar de ${actual.estado} a ${estado}`);
     await tx`update pedidos set estado = ${estado} where id = ${id}`;
     await tx`insert into pedido_eventos (pedido_id, estado, nota) values (${id}, ${estado}, 'Panel interno')`;
   });
   revalidatePath("/interno/pedidos");
+  revalidatePath(`/interno/pedidos/${id}`);
 }
