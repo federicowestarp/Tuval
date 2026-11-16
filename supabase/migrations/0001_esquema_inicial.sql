@@ -161,6 +161,10 @@ create table autorizados_obra (
   nombre text not null,
   telefono text,
   foto_url text,
+  usuario_id uuid,                            -- si usa la app
+  qr_token text unique,                       -- QR personal para retiro directo
+  limite_qr_diario numeric(12,2) not null default 0,  -- monto que puede retirar sin confirmación
+  categorias_qr text[],                       -- null = todas
   activo boolean not null default true
 );
 
@@ -280,11 +284,24 @@ create table reportes_faltante (
 );
 
 -- ───────────── Tuval Obra (consignación, fase 3) ─────────────
+create type origen_vale as enum ('solicitud_app', 'qr');
+create type estado_vale as enum ('solicitado', 'confirmado', 'entregado', 'rechazado');
+
+-- Retiro en bodega de obra. Lo entrega el bodeguero Tuval en sitio.
+--  · solicitud_app: alguien pide en la app → autorizador del cliente confirma → bodeguero entrega.
+--  · qr: autorizado muestra su QR → bodeguero escanea QR y productos → entrega directa si cabe en su límite diario.
 create table vales_salida (
   id uuid primary key default gen_random_uuid(),
   folio text not null unique,
   obra_id uuid not null references obras(id),
   autorizado_id uuid not null references autorizados_obra(id),
+  origen origen_vale not null,
+  estado estado_vale not null default 'solicitado',
+  confirmado_por uuid,                        -- autorizador del cliente (solicitud_app o excedente de QR)
+  confirmado_en timestamptz,
+  entregado_por uuid,                         -- bodeguero Tuval
+  entregado_en timestamptz,
+  firma_url text,
   partida_obra text,                          -- consumo por partida
   pedido_id uuid references pedidos(id),      -- se agrupa en pedido para facturar por periodo
   creado_en timestamptz not null default now()

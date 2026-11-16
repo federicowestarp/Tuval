@@ -15,6 +15,10 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D7 | Desarrollo: Fede + Claude. | nov 2026 |
 | D8 | **PurAqua** es el cliente principal inicial. | nov 2026 |
 | D9 | Identidad visual: Manual de marca Tuval v1 (colores, Space Grotesk + Inter, sellos, íconos). | nov 2026 |
+| D10 | Emmsa: distribuidor mayorista, crédito a 30 días, horario L–V 8:00–18:00 y S 9:00–13:00, mucho inventario de entrega inmediata. Se le pedirá compartir existencias. | nov 2026 |
+| D11 | Zonas de entrega: ciudad de Puebla, Atlixco y Tlaxcala. | nov 2026 |
+| D12 | Señal de potencial: ~2 pedidos diarios (ver métrica en §3). | nov 2026 |
+| D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar
 
@@ -37,6 +41,22 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 7. Entrega: foto + ubicación; firma opcional; **entrega sin recepción** si la obra lo tiene autorizado.
 8. Cliente confirma partida por partida y reporta faltantes.
 
+### Horario de corte (recomendación, por validar)
+
+| Ola | Pedidos | Zona | Entrega |
+|---|---|---|---|
+| Mañana | del día anterior después del corte y hasta las 8:00 | Puebla | mismo día antes de mediodía* |
+| Tarde | 8:00 a 12:00 L–V | Puebla | mismo día por la tarde* |
+| Foráneas | hasta las 12:00 | Atlixco y Tlaxcala | siguiente día hábil, ruta fija |
+| Sábado | hasta las 10:00 | Puebla | mismo día |
+
+\* Las horas exactas dependen de dos datos pendientes: cuánto tarda Emmsa en preparar un pedido y el horario del chofer. No se publican hasta medirlos.
+
+Dos recolecciones en Emmsa al día (aprox. 9:00 y 12:30). Atlixco y Tlaxcala al día siguiente (hipótesis: con un solo chofer no da tiempo de cubrir Puebla y foráneas el mismo día; se valida con las primeras rutas); cuando el volumen lo justifique, días fijos o tercero.
+
+### Métrica de validación (recomendación)
+"2 pedidos diarios" contado así: **pedidos de clientes que no sean PurAqua**, promedio de días hábiles, **sostenido 4 semanas seguidas**, con margen bruto positivo después del costo de entrega. PurAqua se mide aparte.
+
 Estados: `recibido → comprado_proveedor → surtido → en_ruta → entregado` (+ `entregado_con_faltantes`, `cancelado`).
 
 ### Módulos fase 1
@@ -51,10 +71,16 @@ Estados: `recibido → comprado_proveedor → surtido → en_ruta → entregado`
 
 ## 4. Tuval Obra · consignación (opinión y reglas propuestas)
 
+**Modelo decidido (D13):** bodeguero Tuval en la obra. Dos formas de retiro:
+1. **Pedido en la app:** el residente o comprador pide → el autorizador del cliente confirma → el bodeguero surte, escanea y entrega; el que recibe firma en la tableta.
+2. **QR personal:** el autorizado muestra su QR → el bodeguero escanea QR y productos → si el monto del día cabe en su límite (y en las categorías permitidas), se entrega sin confirmación; si se pasa, el autorizador confirma desde su celular.
+
+Consecuencia: con bodeguero propio **la custodia es de Tuval**, no del cliente. Ganas control (nadie saca sin escaneo), pero la merma es tuya y el sueldo del bodeguero es costo fijo por obra. Recomendación: solo abrir bodega en obras con consumo suficiente para pagar al bodeguero (umbral pendiente) y contenedor cerrado fuera de su horario.
+
 **Opinión:** es el mejor gancho comercial para constructoras (no inmovilizan capital y no paran la obra), pero el riesgo lo absorbe Tuval: capital inmovilizado, merma y robo en obra, y material que sobra al cerrar la obra. Funciona si el contrato y la app cierran esos huecos. **Recomendación:** pilotearlo primero en una obra de PurAqua, y hasta que haya inventario propio (fase 3).
 
 Reglas propuestas (recomendación, por validar con abogado y contador):
-- Contrato de consignación: el cliente es **custodio** del inventario; diferencias en conteo se le cobran.
+- Contrato de consignación: el cliente responde por lo que sus autorizados retiran con QR o firma; la custodia física es del bodeguero Tuval.
 - Solo **personas autorizadas** por el cliente retiran (lista en la app, con foto/código).
 - Cada retiro = **vale de salida** digital (quién, qué, cuándo, partida de obra), escaneado.
 - Facturación de lo retirado por periodo (semanal o quincenal), no por retiro.
@@ -86,7 +112,8 @@ Fiscal a considerar desde el diseño: factura global para ventas con nota; compl
 
 - ¿Qué es exactamente Emmsa para Tuval (distribuidor/mayorista)? ¿Entrega lista de precios/catálogo? ¿En qué formato (Excel, PDF, API)? ¿Comparte existencias?
 - Condiciones con Emmsa: crédito, horarios de recolección, tiempo de surtido.
-- Hora de corte del día y zonas de entrega en Puebla.
+- Tiempo de preparación de pedido en Emmsa y ubicación de su almacén.
+- Horario del chofer.
+- Umbral de consumo mensual para abrir una bodega en obra.
 - Pasarela de pago y PAC elegidos.
-- Métrica externa que valida la idea (pedidos/semana de clientes que no sean PurAqua, ticket, margen).
 - Razón social y RFC de Tuval para facturar.
