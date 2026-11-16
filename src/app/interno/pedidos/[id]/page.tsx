@@ -9,7 +9,7 @@ import { describirPromesa, ZONAS } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { urlArchivo } from "@/lib/url-archivo";
 import { urlBase } from "@/lib/url";
-import { verificarAccesoInterno } from "../../acceso";
+import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../../Navegacion";
 import { cambiarEstado } from "../acciones";
 import { agregarRenglonesAlPedido, asignarRenglon } from "./acciones";
@@ -32,7 +32,7 @@ const caja = "rounded-xl bg-white p-4";
 
 async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "params">) {
   await connection();
-  verificarAccesoInterno();
+  await requerirInterno();
   const { id } = await params;
   const pedido = await obtenerPedido(id);
   if (!pedido) notFound();

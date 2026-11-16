@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { listarDemanda } from "@/lib/interno";
-import { verificarAccesoInterno } from "../acceso";
+import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../Navegacion";
 import { actualizarSolicitud } from "./acciones";
 import { FormAlta } from "./FormAlta";
@@ -35,7 +35,7 @@ export default function Demanda(props: PageProps<"/interno/demanda">) {
 
 async function Lista({ searchParams }: { searchParams: PageProps<"/interno/demanda">["searchParams"] }) {
   await connection();
-  verificarAccesoInterno();
+  await requerirInterno();
   const sp = await searchParams;
   const estado = typeof sp.estado === "string" && ESTADOS.some(([e]) => e === sp.estado) ? sp.estado : undefined;
   const grupos = await listarDemanda(estado);

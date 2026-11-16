@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
 import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
-import { verificarAccesoInterno } from "../acceso";
+import { requerirInterno } from "@/lib/equipo";
 
 export async function cambiarEstado(fd: FormData) {
-  verificarAccesoInterno();
+  await requerirInterno();
   const id = String(fd.get("id"));
   const estado = String(fd.get("estado")) as EstadoPedido;
   if (!ESTADOS_INTERNOS.includes(estado)) throw new Error("Estado inválido");

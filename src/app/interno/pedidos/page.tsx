@@ -6,7 +6,7 @@ import { NOMBRE_INTERNO, SIGUIENTE } from "@/lib/estados";
 import { describirPromesa, ZONAS } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { cambiarEstado } from "./acciones";
-import { verificarAccesoInterno } from "../acceso";
+import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../Navegacion";
 
 export default function PanelPedidos() {
@@ -24,7 +24,7 @@ export default function PanelPedidos() {
 
 async function Lista() {
   await connection(); // siempre en vivo, nunca prerenderizado
-  verificarAccesoInterno();
+  await requerirInterno();
   const pedidos = await listarPedidos();
   if (pedidos.length === 0) return <p className="rounded-xl bg-white p-6">No hay pedidos.</p>;
 

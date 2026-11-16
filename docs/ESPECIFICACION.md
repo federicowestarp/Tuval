@@ -30,6 +30,7 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D23 | Cuentas que no se pierden: acceso con **celular (código por WhatsApp) o correo** (pendiente de conectar con Supabase Auth). | nov 2026 |
 | D24 | Diseño minimalista (referencia de estilo: Apple y Rivian) sobre la identidad Tuval; **página de Internet** en `/` y tienda en `/tienda`. | nov 2026 |
 | D25 | Cotizaciones de Emmsa se suben en **PDF** y se leen automáticamente (`src/lib/emmsa.ts`), validando que la suma cuadre con el subtotal. | nov 2026 |
+| D27 | **Equipo Tuval con inicio de sesión**: correo y contraseña (scrypt), sesiones de 7 días, roles administrador/operador, alta por invitación de un solo uso (24 h), bloqueo de 15 min tras 5 intentos fallidos. Panel en `/interno/*`. | nov 2026 |
 | D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar
@@ -150,5 +151,5 @@ Fiscal a considerar desde el diseño: factura global para ventas con nota; compl
 - Horario del chofer.
 - Umbral de consumo mensual para abrir una bodega en obra.
 - Pasarela de pago y PAC elegidos (mientras tanto el total y el pago se confirman por WhatsApp).
-- Inicio de sesión para panel interno y clientes (el panel `/interno/pedidos` no tiene autenticación todavía).
+- Inicio de sesión de clientes con celular (código por WhatsApp) o correo.
 - Razón social y RFC de Tuval para facturar.

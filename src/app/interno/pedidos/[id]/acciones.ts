@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { sql } from "@/lib/db";
-import { verificarAccesoInterno } from "../../acceso";
+import { requerirInterno } from "@/lib/equipo";
 import { leerCotizacion, normalizar } from "@/lib/cotizacion";
 import { leerPdfEmmsa } from "@/lib/emmsa";
 import { guardarArchivo } from "@/lib/archivos";
@@ -15,7 +15,7 @@ type Renglon = { codigo: string; descripcion: string; cantidad: number | null; u
 
 /** Carga la cotización de Emmsa (PDF o pegada desde Excel) y la empareja con las partidas del pedido. */
 export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<Resultado> {
-  verificarAccesoInterno();
+  await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   const archivo = fd.get("pdf");
   let renglones: Renglon[] = [];
@@ -100,7 +100,7 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
  * se dan de alta (categoría "por clasificar", ligados al código de Emmsa) y entran como partidas.
  */
 export async function agregarRenglonesAlPedido(fd: FormData) {
-  verificarAccesoInterno();
+  await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   const proveedorId = await idEmmsa();
   const sueltos = await sql<{ id: string; codigo_proveedor: string | null; descripcion: string; cantidad: number | null; precio_unitario: number; unidad: string | null }[]>`
@@ -135,7 +135,7 @@ export async function agregarRenglonesAlPedido(fd: FormData) {
 }
 
 export async function asignarRenglon(fd: FormData) {
-  verificarAccesoInterno();
+  await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   const renglonId = String(fd.get("renglon_id"));
   const partidaId = String(fd.get("partida_id"));
@@ -150,7 +150,7 @@ export async function asignarRenglon(fd: FormData) {
  * recalcula totales. Después se avisa al cliente por WhatsApp.
  */
 export async function confirmarPedido(_prev: Resultado, fd: FormData): Promise<Resultado> {
-  verificarAccesoInterno();
+  await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   const partidas = await sql<{ id: string; producto_id: string; nombre: string; cantidad: number; cot_precio: number | null }[]>`
     select pp.id, pp.producto_id, pr.nombre, pp.cantidad,

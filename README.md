@@ -19,7 +19,9 @@ Una sola app (PWA) para clientes (plomeros y empresas), choferes y equipo intern
 | `/carrito` | Cliente | Envío a dirección guardada o recoger, factura o nota, enviar pedido |
 | `/pedido/[id]` | Cliente | Seguimiento y botón para compartir el acceso de entrega con quien recibe |
 | `/entrega/[token]` | Quien recibe | Seguimiento sin precios y confirmación de lo recibido (faltantes) |
-| `/interno/pedidos` | Equipo Tuval | Pedidos del día y avance de estado (**sin inicio de sesión todavía**) |
+| `/interno/entrar` | Equipo Tuval | Inicio de sesión (correo y contraseña; bloqueo tras 5 intentos) |
+| `/interno/pedidos` | Equipo Tuval | Pedidos del día y avance de estado |
+| `/interno/equipo` | Administrador | Invitar usuarios (liga de un solo uso, 24 h) y darlos de baja |
 | `/interno/pedidos/[id]` | Equipo Tuval | Cotización de Emmsa en PDF, comparación, confirmación y aviso por WhatsApp |
 | `/interno/demanda` | Equipo Tuval | Lo que piden y no tenemos, agrupado; alta en catálogo |
 
@@ -35,6 +37,7 @@ psql "$DATABASE_URL" -f supabase/migrations/0002_pedido_en_linea.sql
 psql "$DATABASE_URL" -f supabase/migrations/0003_direcciones_demanda_cotizaciones.sql
 psql "$DATABASE_URL" -f supabase/migrations/0004_cotizacion_pdf.sql
 psql "$DATABASE_URL" -f supabase/migrations/0005_seguridad.sql
+psql "$DATABASE_URL" -f supabase/migrations/0006_equipo.sql
 psql "$DATABASE_URL" -f supabase/seed.sql   # opcional: productos de demostración
 npm run dev
 npm test                             # hora de corte, lector de listas y de cotizaciones
