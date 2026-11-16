@@ -7,7 +7,7 @@ import { FormContacto } from "./FormContacto";
 
 export const metadata: Metadata = {
   title: "Para obras y constructoras",
-  description: "Suministro de tubería, equipos y material eléctrico a tu obra en Puebla, Atlixco y Tlaxcala. Pide con tu requisición y sigue cada entrega.",
+  description: "Suministro de tubería, equipos y material eléctrico a tu obra. Pide con tu requisición y sigue cada entrega.",
 };
 
 export default function Obras() {

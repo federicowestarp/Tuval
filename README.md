@@ -45,6 +45,9 @@ psql "$DATABASE_URL" -f supabase/migrations/0005_seguridad.sql
 psql "$DATABASE_URL" -f supabase/migrations/0006_equipo.sql
 psql "$DATABASE_URL" -f supabase/migrations/0007_catalogo_y_chofer.sql
 psql "$DATABASE_URL" -f supabase/migrations/0008_catalogo_y_chofer_2.sql
+psql "$DATABASE_URL" -f supabase/migrations/0009_otros_estados.sql
+psql "$DATABASE_URL" -f supabase/migrations/0010_otros_estados_2.sql
+psql "$DATABASE_URL" -f supabase/migrations/0011_municipio.sql
 psql "$DATABASE_URL" -f supabase/seed.sql   # opcional: productos de demostración
 npm run dev
 npm test                             # hora de corte, lector de listas y de cotizaciones

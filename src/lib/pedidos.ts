@@ -18,6 +18,7 @@ export type PedidoDetalle = {
   folio: string;
   estado: EstadoPedido;
   zona: Zona | null;
+  entidad: string | null;
   tipo_entrega: "domicilio" | "obra" | "recoger";
   direccion_entrega: string | null;
   lat: number | null;
@@ -49,7 +50,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 async function detalle(where: ReturnType<typeof sql>): Promise<PedidoDetalle | null> {
   const [p] = await sql<PedidoDetalle[]>`
-    select p.id, p.folio, p.estado, p.zona, p.tipo_entrega, p.direccion_entrega, p.lat, p.lng, p.foto_fachada_id,
+    select p.id, p.folio, p.estado, p.zona, p.entidad, p.tipo_entrega, p.direccion_entrega, p.lat, p.lng, p.foto_fachada_id,
            p.recibe_nombre, p.recibe_telefono, p.preferencia_contacto,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') as entrega_fecha, p.entrega_ventana, p.comprobante,
            p.contacto_nombre, p.contacto_telefono, p.sin_recepcion_solicitada, p.notas,
@@ -87,7 +88,7 @@ export type PedidoResumen = Omit<PedidoDetalle, "partidas" | "especiales" | "adj
 
 export async function listarPedidos(): Promise<PedidoResumen[]> {
   return sql<PedidoResumen[]>`
-    select p.id, p.folio, p.estado, p.zona, p.tipo_entrega, p.direccion_entrega, p.recibe_nombre, p.recibe_telefono,
+    select p.id, p.folio, p.estado, p.zona, p.entidad, p.tipo_entrega, p.direccion_entrega, p.recibe_nombre, p.recibe_telefono,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') as entrega_fecha, p.entrega_ventana, p.comprobante,
            p.contacto_nombre, p.contacto_telefono, p.sin_recepcion_solicitada, p.subtotal, p.iva, p.total,
            p.confirmado_en, p.creado_en,
@@ -111,3 +112,20 @@ export const ligaWhatsApp = (telefono: string, mensaje: string) =>
   `https://wa.me/52${telefono.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(mensaje)}`;
 
 export const ligaMapa = (lat: number, lng: number) => `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+
+/** Dónde se entrega, para mostrar: el estado si es foráneo, la zona si es local. */
+export function lugar(p: { zona: string | null; entidad: string | null }): string {
+  if (!p.zona) return "Recoger";
+  if (p.zona === "otro") return p.entidad ?? "Otro estado";
+  return { puebla: "Puebla", atlixco: "Atlixco", tlaxcala: "Tlaxcala" }[p.zona] ?? p.zona;
+}
+
+/** Pedidos y solicitudes de la página por estado (últimos 90 días): para ver dónde hay demanda. */
+export async function demandaPorEstado() {
+  return sql<{ entidad: string; pedidos: number; contactos: number }[]>`
+    select entidad, sum(p)::int pedidos, sum(c)::int contactos from (
+      select coalesce(entidad, 'Sin estado') entidad, 1 p, 0 c from pedidos where creado_en > now() - interval '90 days' and estado <> 'cancelado'
+      union all
+      select coalesce(entidad, 'Sin estado'), 0, 1 from contactos_web where creado_en > now() - interval '90 days'
+    ) x group by entidad order by sum(p) + sum(c) desc`;
+}

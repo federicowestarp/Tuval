@@ -15,7 +15,7 @@ export default function Imagen() {
         </svg>
         <div style={{ marginTop: 40, fontSize: 76, fontWeight: 700, color: "#1D1D1F", letterSpacing: -3, lineHeight: 1.05 }}>Tubería, equipos y eléctrico.</div>
         <div style={{ fontSize: 76, fontWeight: 700, color: "#6E6E73", letterSpacing: -3, lineHeight: 1.05 }}>Todo, a tiempo.</div>
-        <div style={{ marginTop: 36, fontSize: 30, color: "#6E6E73" }}>Puebla · Atlixco · Tlaxcala · tuval.mx</div>
+        <div style={{ marginTop: 36, fontSize: 30, color: "#6E6E73" }}>tuval.mx</div>
       </div>
     ),
     size,

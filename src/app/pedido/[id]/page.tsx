@@ -7,9 +7,9 @@ import { Progreso } from "@/components/Progreso";
 import { EnCamino } from "@/components/EnCamino";
 import { IconoChat, IconoPin } from "@/components/Iconos";
 import { clasesBoton } from "@/components/ui";
-import { obtenerPedido, ligaWhatsApp } from "@/lib/pedidos";
+import { obtenerPedido, ligaWhatsApp, lugar } from "@/lib/pedidos";
 import { etapaCliente } from "@/lib/estados";
-import { describirPromesa, ZONAS } from "@/lib/corte";
+import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { urlBase } from "@/lib/url";
 
@@ -53,7 +53,7 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
       <div>
         <p className="text-[13px] font-medium text-secundario">
           {pedido.folio} · {pedido.tipo_entrega === "obra" ? "Obra" : pedido.tipo_entrega === "recoger" ? "Recoger" : "Domicilio"}
-          {pedido.zona && ` · ${ZONAS.find((z) => z.id === pedido.zona)?.nombre}`}
+          {pedido.zona && ` · ${lugar(pedido)}`}
         </p>
         <h1 className="mt-1 font-display text-[34px] font-semibold leading-tight">{titulo}</h1>
         {sub && <p className="mt-2 text-[17px] text-secundario">{sub}</p>}
@@ -68,6 +68,13 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
           <p className="text-[13px] text-secundario">Llega</p>
           <p className="text-xl font-semibold">{describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }).replace(/^Llega /, "").replace(/^./, (c) => c.toUpperCase())}</p>
           {porConfirmar && <p className="mt-1 text-[13px] text-secundario">Sujeto a confirmar existencias</p>}
+        </div>
+      )}
+
+      {actual >= 0 && actual < 3 && pedido.zona === "otro" && (
+        <div className="rounded-[20px] bg-niebla p-5">
+          <p className="text-[13px] text-secundario">Envío a {pedido.entidad ?? "tu estado"}</p>
+          <p className="text-xl font-semibold">{pedido.confirmado_en ? "Te confirmamos la fecha por WhatsApp" : "Te confirmamos fecha y costo de envío"}</p>
         </div>
       )}
 

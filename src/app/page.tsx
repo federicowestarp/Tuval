@@ -16,7 +16,6 @@ export default function Inicio() {
       {/* Portada */}
       <section className="bg-piedra">
       <div className="mx-auto max-w-4xl px-4 pb-20 pt-14 text-center sm:px-6 sm:pt-24">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-secundario">Puebla · Atlixco · Tlaxcala</p>
         <h1 className="mt-4 font-display text-[44px] font-semibold leading-[0.98] tracking-[-0.04em] sm:text-7xl">
           Tubería, equipos y eléctrico.
           <span className="block text-secundario">Todo, a tiempo.</span>
@@ -38,7 +37,7 @@ export default function Inicio() {
       {/* Tres promesas */}
       <section className="mx-auto mt-16 grid max-w-6xl gap-3 px-4 sm:grid-cols-3 sm:px-6">
         {[
-          { Icono: IconoCamion, t: "Te lo llevamos hoy", d: "En Puebla, pide antes de las 12:00 y llega el mismo día. Atlixco y Tlaxcala, al día siguiente." },
+          { Icono: IconoCamion, t: "Te lo llevamos", d: "Pide desde cualquier estado. Antes de surtir te decimos cuándo llega y cuánto cuesta el envío." },
           { Icono: IconoCamara, t: "Pide como quieras", d: "Busca en la tienda, pega tu lista o mándanos una foto de la requisición." },
           { Icono: IconoDocumento, t: "Factura o nota", d: "Tú eliges. Confirmamos precio y existencias antes de surtir." },
         ].map(({ Icono, t, d }) => (
@@ -145,28 +144,25 @@ export default function Inicio() {
         </div>
       </section>
 
-      {/* Entregas */}
+      {/* Envíos */}
       <section id="entregas" className="scroll-mt-14 bg-piedra">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-24 sm:px-6 md:grid-cols-2">
           <div>
-            <h2 className="font-display text-4xl font-semibold sm:text-5xl">Horarios de entrega.</h2>
-            <p className="mt-4 text-[17px] text-secundario">Te decimos cuándo llega al momento de pedir. Sin sorpresas.</p>
+            <h2 className="font-display text-4xl font-semibold sm:text-5xl">Pide desde donde estés.</h2>
+            <p className="mt-4 text-[17px] text-secundario">Recibimos pedidos de todo México. Antes de surtir te confirmamos existencias, fecha de entrega y costo de envío. Sin sorpresas.</p>
           </div>
-          <div className="divide-y divide-linea rounded-[20px] bg-white px-6 ring-1 ring-linea">
+          <ol className="divide-y divide-linea rounded-[20px] bg-white px-6 ring-1 ring-linea">
             {[
-              ["Puebla", "Pide antes de las 12:00", "Llega hoy"],
-              ["Puebla · sábado", "Pide antes de las 10:00", "Llega hoy"],
-              ["Atlixco y Tlaxcala", "Pide antes de las 17:00", "Llega mañana temprano"],
-            ].map(([z, c, l]) => (
-              <div key={z} className="flex items-center justify-between gap-4 py-5">
-                <div>
-                  <p className="font-semibold">{z}</p>
-                  <p className="text-[14px] text-secundario">{c}</p>
-                </div>
-                <Pastilla tono="niebla">{l}</Pastilla>
-              </div>
+              ["Haces tu pedido", "En la tienda, con tu lista o por foto."],
+              ["Te confirmamos", "Precio, existencias, fecha y costo de envío."],
+              ["Te lo llevamos", "Sigues la entrega y confirmas lo que llegó."],
+            ].map(([t, d], i) => (
+              <li key={t} className="flex items-center gap-4 py-5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-niebla font-semibold text-azul">{i + 1}</span>
+                <div><p className="font-semibold">{t}</p><p className="text-[14px] text-secundario">{d}</p></div>
+              </li>
             ))}
-          </div>
+          </ol>
         </div>
       </section>
 

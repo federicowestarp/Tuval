@@ -7,6 +7,8 @@ export type Direccion = {
   alias: string;
   direccion: string;
   zona: Zona;
+  entidad: string | null;
+  municipio: string | null;
   lat: number | null;
   lng: number | null;
   foto_archivo_id: string | null;
@@ -19,7 +21,7 @@ export type Direccion = {
 
 export async function direccionesDe(cuentaId: string): Promise<Direccion[]> {
   return sql<Direccion[]>`
-    select id, tipo, alias, direccion, zona, lat, lng, foto_archivo_id, recibe_nombre, recibe_telefono,
+    select id, tipo, alias, direccion, zona, entidad, municipio, lat, lng, foto_archivo_id, recibe_nombre, recibe_telefono,
            preferencia_contacto, permite_sin_recepcion, indicaciones
     from direcciones where cuenta_id = ${cuentaId} and activa order by creado_en desc`;
 }

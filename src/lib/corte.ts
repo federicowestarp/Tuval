@@ -10,7 +10,7 @@
  *           después de 17:00 → el día hábil posterior
  *  Domingo no hay entregas. Días hábiles de entrega: lunes a sábado.
  */
-export type Zona = "puebla" | "atlixco" | "tlaxcala";
+export type Zona = "puebla" | "atlixco" | "tlaxcala" | "otro";
 export type Ventana = "manana" | "tarde";
 export type Promesa = { fecha: string; ventana: Ventana };
 
@@ -18,7 +18,30 @@ export const ZONAS: { id: Zona; nombre: string }[] = [
   { id: "puebla", nombre: "Ciudad de Puebla" },
   { id: "atlixco", nombre: "Atlixco" },
   { id: "tlaxcala", nombre: "Tlaxcala" },
+  { id: "otro", nombre: "Otro lugar" },
 ];
+
+export const ESTADOS = [
+  "Aguascalientes", "Baja California", "Baja California Sur", "Campeche", "Chiapas", "Chihuahua", "Ciudad de México",
+  "Coahuila", "Colima", "Durango", "Estado de México", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco", "Michoacán",
+  "Morelos", "Nayarit", "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa",
+  "Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz", "Yucatán", "Zacatecas",
+] as const;
+
+/**
+ * Zonas con entrega propia y hora de corte. Todo lo demás = "otro": se cotiza fecha y costo de envío.
+ * Municipios de la zona metropolitana de Puebla incluidos: SUPUESTO por validar con Fede.
+ */
+const MUNICIPIOS_PUEBLA = ["puebla", "san andres cholula", "san pedro cholula", "cuautlancingo"];
+const sinAcentos = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+export function zonaDe(entidad: string, municipio: string): Zona {
+  const e = sinAcentos(entidad), m = sinAcentos(municipio).replace(/^(heroica )?(puebla de zaragoza)$/, "puebla");
+  if (e === "puebla" && MUNICIPIOS_PUEBLA.includes(m)) return "puebla";
+  if (e === "puebla" && m === "atlixco") return "atlixco";
+  if (e === "tlaxcala" && (m === "tlaxcala" || m === "tlaxcala de xicohtencatl")) return "tlaxcala";
+  return "otro";
+}
 
 const TZ = "America/Mexico_City";
 
@@ -48,7 +71,9 @@ function siguienteHabil(fecha: string): string {
   return f;
 }
 
-export function calcularPromesa(zona: Zona, ahora: Date = new Date()): Promesa {
+/** null = fuera de las zonas con entrega propia: fecha y costo se confirman al cotizar. */
+export function calcularPromesa(zona: Zona, ahora: Date = new Date()): Promesa | null {
+  if (zona === "otro") return null;
   const { fecha, minutos } = local(ahora);
   const dia = diaSemana(fecha);
 

@@ -44,3 +44,13 @@ test("Atlixco sábado 11:00 → lunes", () => {
 test("Atlixco sábado 13:00 → martes", () => {
   assert.deepEqual(calcularPromesa("atlixco", mx("2026-11-21T13:00")), { fecha: "2026-11-24", ventana: "manana" });
 });
+import { zonaDe } from "../src/lib/corte.ts";
+test("zona por estado y municipio", () => {
+  assert.equal(zonaDe("Puebla", "Puebla"), "puebla");
+  assert.equal(zonaDe("Puebla", "San Andrés Cholula"), "puebla");
+  assert.equal(zonaDe("Puebla", "Atlixco"), "atlixco");
+  assert.equal(zonaDe("Tlaxcala", "Tlaxcala"), "tlaxcala");
+  assert.equal(zonaDe("Puebla", "Tehuacán"), "otro");
+  assert.equal(zonaDe("Jalisco", "Guadalajara"), "otro");
+  assert.equal(calcularPromesa("otro"), null);
+});

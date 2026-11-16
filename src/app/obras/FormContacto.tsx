@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { areaTexto, campo, clasesBoton, etiqueta } from "@/components/ui";
 import { IconoCheck } from "@/components/Iconos";
 import { enviarContacto, type EstadoContacto } from "./acciones";
+import { ESTADOS } from "@/lib/corte";
 
 export function FormContacto() {
   const [e, accion, enviando] = useActionState<EstadoContacto, FormData>(enviarContacto, {});
@@ -23,6 +24,7 @@ export function FormContacto() {
         <div><label className={etiqueta} htmlFor="nombre">Nombre</label><input id="nombre" name="nombre" defaultValue={v.nombre} className={campo} autoComplete="name" required /></div>
         <div><label className={etiqueta} htmlFor="empresa">Empresa (opcional)</label><input id="empresa" name="empresa" defaultValue={v.empresa} className={campo} autoComplete="organization" /></div>
         <div><label className={etiqueta} htmlFor="telefono">Celular</label><input id="telefono" name="telefono" defaultValue={v.telefono} inputMode="tel" className={campo} autoComplete="tel" required /></div>
+        <div><label className={etiqueta} htmlFor="entidad">Estado de la obra</label><select id="entidad" name="entidad" defaultValue={v.entidad ?? ""} className={campo} required><option value="" disabled>Elige…</option>{ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}</select></div>
         <div><label className={etiqueta} htmlFor="correo">Correo (opcional)</label><input id="correo" name="correo" type="email" defaultValue={v.correo} className={campo} autoComplete="email" /></div>
       </div>
       <div><label className={etiqueta} htmlFor="mensaje">Cuéntanos de tu obra</label><textarea id="mensaje" name="mensaje" defaultValue={v.mensaje} rows={3} className={areaTexto} placeholder="Ubicación, tipo de obra, qué material necesitas y desde cuándo" /></div>

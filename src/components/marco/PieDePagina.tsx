@@ -10,7 +10,7 @@ export function PieDePagina() {
         <div className="sm:col-span-2">
           <Logo />
           <p className="mt-3 max-w-xs">Tubería, equipos y eléctrico. Todo, a tiempo.</p>
-          <p className="mt-1">Puebla · Atlixco · Tlaxcala</p>
+          <p className="mt-1">Envíos a todo México</p>
         </div>
         <div className="space-y-2">
           <p className="font-semibold text-tinta">Comprar</p>
@@ -21,7 +21,7 @@ export function PieDePagina() {
         <div className="space-y-2">
           <p className="font-semibold text-tinta">Ayuda</p>
           <Link href="/cuenta/pedidos" className="block hover:text-azul">Mis pedidos</Link>
-          <Link href="/#entregas" className="block hover:text-azul">Horarios de entrega</Link>
+          <Link href="/#entregas" className="block hover:text-azul">Envíos</Link>
           {wa && <a href={wa} className="block hover:text-azul">WhatsApp</a>}
         </div>
       </div>

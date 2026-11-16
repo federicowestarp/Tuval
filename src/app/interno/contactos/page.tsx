@@ -28,7 +28,7 @@ export default function Contactos() {
 async function Lista() {
   await connection();
   await requerirInterno("operador");
-  const cs = await sql<{ id: string; tipo: string; nombre: string; empresa: string | null; telefono: string; correo: string | null; mensaje: string | null; atendido: boolean; creado_en: Date }[]>`
+  const cs = await sql<{ id: string; tipo: string; nombre: string; empresa: string | null; telefono: string; correo: string | null; mensaje: string | null; entidad: string | null; atendido: boolean; creado_en: Date }[]>`
     select * from contactos_web order by atendido, creado_en desc limit 200`;
   if (cs.length === 0) return <p className="rounded-[20px] bg-white p-6 text-secundario">Aún no hay contactos.</p>;
   return (
@@ -39,7 +39,7 @@ async function Lista() {
             <div>
               <p className="font-semibold">{c.nombre}{c.empresa && <span className="font-normal text-secundario"> · {c.empresa}</span>}</p>
               <p className="text-[13px] text-secundario">
-                {c.tipo === "obra" ? "Obra" : "Contacto"} · {c.telefono}{c.correo && ` · ${c.correo}`} · {new Date(c.creado_en).toLocaleString("es-MX", { timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short" })}
+                {c.tipo === "obra" ? "Obra" : "Contacto"}{c.entidad && ` · ${c.entidad}`} · {c.telefono}{c.correo && ` · ${c.correo}`} · {new Date(c.creado_en).toLocaleString("es-MX", { timeZone: "America/Mexico_City", dateStyle: "medium", timeStyle: "short" })}
               </p>
             </div>
             {!c.atendido && (

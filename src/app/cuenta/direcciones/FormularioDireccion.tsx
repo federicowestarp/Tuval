@@ -6,7 +6,7 @@ import { guardarDireccion, type EstadoDireccion } from "./acciones";
 import { CampoFoto } from "@/components/formularios/CampoFoto";
 import { Segmentado } from "@/components/Segmentado";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
-import { ZONAS } from "@/lib/corte";
+import { ESTADOS } from "@/lib/corte";
 
 const MapaUbicacion = dynamic(() => import("@/components/formularios/MapaUbicacion").then((m) => m.MapaUbicacion), {
   ssr: false,
@@ -18,7 +18,6 @@ export function FormularioDireccion({ volver }: { volver?: string }) {
   const v = estado.campos ?? {};
   const [tipo, setTipo] = useState(v.tipo ?? "obra");
   const [pref, setPref] = useState(v.preferencia_contacto ?? "whatsapp");
-  const [zona, setZona] = useState(v.zona ?? "puebla");
 
   return (
     <form action={accion} className="space-y-8">
@@ -34,9 +33,18 @@ export function FormularioDireccion({ volver }: { volver?: string }) {
           <label className={etiqueta} htmlFor="direccion">Dirección</label>
           <input id="direccion" name="direccion" defaultValue={v.direccion} className={campo} placeholder="Calle, número, colonia, C.P." autoComplete="street-address" required />
         </div>
-        <div>
-          <span className={etiqueta}>Zona</span>
-          <Segmentado name="zona" valor={zona} onCambio={setZona} opciones={ZONAS.map((z) => ({ id: z.id, texto: z.id === "puebla" ? "Puebla" : z.nombre }))} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={etiqueta} htmlFor="entidad">Estado</label>
+            <select id="entidad" name="entidad" defaultValue={v.entidad ?? ""} className={campo} required>
+              <option value="" disabled>Elige…</option>
+              {ESTADOS.map((e) => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={etiqueta} htmlFor="municipio">Municipio o ciudad</label>
+            <input id="municipio" name="municipio" defaultValue={v.municipio} className={campo} autoComplete="address-level2" required />
+          </div>
         </div>
       </div>
 

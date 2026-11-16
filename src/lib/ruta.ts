@@ -5,6 +5,7 @@ export type ParadaRuta = {
   folio: string;
   estado: "surtido" | "en_ruta" | "entregado" | "entregado_con_faltantes";
   zona: string | null;
+  entidad: string | null;
   direccion_entrega: string | null;
   lat: number | null;
   lng: number | null;
@@ -24,7 +25,7 @@ export const hoyMx = () => new Date(Date.now() - 6 * 3600 * 1000).toISOString().
 
 export async function paradasPendientes(): Promise<ParadaRuta[]> {
   return sql<ParadaRuta[]>`
-    select p.id, p.folio, p.estado, p.zona, p.direccion_entrega, p.lat, p.lng, p.foto_fachada_id,
+    select p.id, p.folio, p.estado, p.zona, p.entidad, p.direccion_entrega, p.lat, p.lng, p.foto_fachada_id,
            p.recibe_nombre, p.recibe_telefono, p.preferencia_contacto, p.sin_recepcion_solicitada,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') entrega_fecha, p.entrega_ventana,
            coalesce((select json_agg(json_build_object('nombre', pr.nombre, 'cantidad', pp.cantidad) order by pr.nombre)

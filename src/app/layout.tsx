@@ -10,7 +10,7 @@ const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["lati
 export const metadata: Metadata = {
   metadataBase: new URL(URL_SITIO),
   title: { default: "Tuval · Tubería, equipos y eléctrico. Todo, a tiempo.", template: "%s · Tuval" },
-  description: "Tubería, conexiones, válvulas, equipos y material eléctrico con entrega el mismo día en Puebla. Pide con tu lista o foto; si no lo tenemos, lo conseguimos.",
+  description: "Tubería, conexiones, válvulas, equipos y material eléctrico, entregados en tu obra. Pide con tu lista o foto; si no lo tenemos, lo conseguimos.",
   applicationName: "Tuval",
   openGraph: { type: "website", locale: "es_MX", siteName: "Tuval" },
   appleWebApp: { capable: true, title: "Tuval", statusBarStyle: "default" },

@@ -93,13 +93,13 @@ export async function crearPedido(_prev: EstadoFormulario, fd: FormData): Promis
       returning id`;
     const tipoEntrega = !dir ? "recoger" : dir.tipo === "obra" ? "obra" : "domicilio";
     const [pedido] = await tx<{ id: string }[]>`
-      insert into pedidos (folio, canal, cliente_id, cuenta_id, tipo_entrega, direccion_id, direccion_entrega, zona, lat, lng,
+      insert into pedidos (folio, canal, cliente_id, cuenta_id, tipo_entrega, direccion_id, direccion_entrega, zona, entidad, lat, lng,
                            foto_fachada_id, recibe_nombre, recibe_telefono, preferencia_contacto, comprobante,
                            entrega_fecha, entrega_ventana, contacto_nombre, contacto_telefono,
                            sin_recepcion_solicitada, notas, subtotal, iva, total, token_receptor)
       values ('TV-' || lpad(nextval('folio_pedido_seq')::text, 6, '0'), 'web', ${cliente.id}, ${cuenta.id}, ${tipoEntrega},
-              ${dir?.id ?? null}, ${dir ? [dir.direccion, dir.indicaciones].filter(Boolean).join(" · ") : null},
-              ${dir?.zona ?? null}, ${dir?.lat ?? null}, ${dir?.lng ?? null}, ${dir?.foto_archivo_id ?? null},
+              ${dir?.id ?? null}, ${dir ? [dir.direccion, [dir.municipio, dir.entidad].filter(Boolean).join(", "), dir.indicaciones].filter(Boolean).join(" · ") : null},
+              ${dir?.zona ?? null}, ${dir?.entidad ?? null}, ${dir?.lat ?? null}, ${dir?.lng ?? null}, ${dir?.foto_archivo_id ?? null},
               ${dir?.recibe_nombre ?? nombre}, ${dir?.recibe_telefono ?? telefono}, ${dir?.preferencia_contacto ?? "whatsapp"},
               ${comprobante}, ${promesa?.fecha ?? null}, ${promesa?.ventana ?? null}, ${nombre}, ${telefono},
               ${!!dir && dir.tipo === "obra" && dir.permite_sin_recepcion}, ${texto(fd, "notas") || null},

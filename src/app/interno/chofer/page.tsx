@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
 import { paradasPendientes, rutaDeHoy } from "@/lib/ruta";
-import { describirPromesa, ZONAS } from "@/lib/corte";
-import { ligaMapa, ligaWhatsApp } from "@/lib/pedidos";
+import { describirPromesa } from "@/lib/corte";
+import { ligaMapa, ligaWhatsApp, lugar } from "@/lib/pedidos";
 import { urlArchivo } from "@/lib/url-archivo";
 import { clasesBoton } from "@/components/ui";
 import { NavegacionInterna } from "../Navegacion";
@@ -49,7 +49,7 @@ async function Contenido() {
         <article key={p.id} className="space-y-3 rounded-[20px] bg-white p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-semibold">{p.folio} <span className="text-[13px] font-normal text-secundario">· {p.zona ? ZONAS.find((z) => z.id === p.zona)?.nombre : ""}</span></p>
+              <p className="font-semibold">{p.folio} <span className="text-[13px] font-normal text-secundario">· {lugar(p)}</span></p>
               <p className="text-[13px] text-secundario">
                 {p.entrega_fecha && p.entrega_ventana ? describirPromesa({ fecha: p.entrega_fecha, ventana: p.entrega_ventana }) : ""}
               </p>

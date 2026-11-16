@@ -34,6 +34,8 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D28 | Catálogo de **prueba con el inventario de PurAqua** (origen `puraqua-prueba`), importado por CSV; se puede quitar de la tienda con un clic. Existencias en almacén tipo proveedor: no se anuncia "Disponible hoy". | nov 2026 |
 | D29 | **App del chofer** (rol chofer): ruta del día, salir a entregar, ubicación cada minuto visible para el cliente, entrega con foto y ubicación obligatorias. | nov 2026 |
 | D30 | **Página de Internet**: inicio, tienda, ficha de producto (destino de QR), Tuval Obra con formulario, sitemap, robots, vista previa al compartir e instalable como app. | nov 2026 |
+| D31 | **Pedidos desde cualquier estado.** La dirección pide estado y municipio; la página ya no menciona zonas. Las zonas con entrega propia y corte (Puebla zona metropolitana, Atlixco, Tlaxcala) se calculan del municipio; fuera de ellas, fecha y costo de envío se confirman al cotizar. El panel muestra la demanda por estado (90 días). Municipios de la zona metropolitana de Puebla: supuesto por validar. | nov 2026 |
+| D32 | **admin.tuval.mx** muestra solo el panel interno; las páginas públicas se redirigen a www.tuval.mx. | nov 2026 |
 | D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar

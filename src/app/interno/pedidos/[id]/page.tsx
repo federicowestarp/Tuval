@@ -2,10 +2,10 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { connection } from "next/server";
-import { obtenerPedido, ligaWhatsApp, ligaMapa } from "@/lib/pedidos";
+import { obtenerPedido, ligaWhatsApp, ligaMapa, lugar } from "@/lib/pedidos";
 import { compararPedido, renglonesSinAsignar, ultimaCotizacion } from "@/lib/interno";
 import { NOMBRE_INTERNO, SIGUIENTE } from "@/lib/estados";
-import { describirPromesa, ZONAS } from "@/lib/corte";
+import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { urlArchivo } from "@/lib/url-archivo";
 import { urlBase } from "@/lib/url";
@@ -39,7 +39,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
   const [comparacion, sueltos, base, cotizacionId] = await Promise.all([compararPedido(id), renglonesSinAsignar(id), urlBase(), ultimaCotizacion(id)]);
   const siguiente = SIGUIENTE[pedido.estado];
   const ligaCliente = `${base}/pedido/${pedido.id}`;
-  const promesa = pedido.entrega_fecha && pedido.entrega_ventana ? describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }) : "Recoger";
+  const promesa = pedido.entrega_fecha && pedido.entrega_ventana ? describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }) : pedido.zona === "otro" ? `Envío a ${pedido.entidad ?? "otro estado"}: fecha y costo por confirmar` : "Recoger";
   const pendientes = pedido.especiales.filter((e) => e.estado === "nueva" || e.estado === "buscando");
   const mensajeConfirmacion =
     `Hola ${pedido.contacto_nombre}, tu pedido ${pedido.folio} de Tuval está confirmado. ` +
@@ -77,7 +77,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
           {pedido.notas && <p className="mt-2 text-sm">Notas: {pedido.notas}</p>}
         </section>
         <section className={caja}>
-          <h2 className="font-semibold">Entrega {pedido.zona && `· ${ZONAS.find((z) => z.id === pedido.zona)?.nombre}`}</h2>
+          <h2 className="font-semibold">Entrega {pedido.zona && `· ${lugar(pedido)}`}</h2>
           <div className="mt-1 flex gap-3">
             {pedido.foto_fachada_id && (
               <a href={urlArchivo(pedido.foto_fachada_id)} target="_blank">
