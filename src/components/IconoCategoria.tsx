@@ -1,4 +1,4 @@
-import type { Categoria } from "@/lib/catalogo-demo";
+import type { Categoria } from "@/lib/categorias";
 
 /** Íconos de categoría del manual: trazo redondeado, línea. */
 export function IconoCategoria({ categoria, className = "h-7 w-7" }: { categoria: Categoria; className?: string }) {

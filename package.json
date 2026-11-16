@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test tests/*.test.ts",
+    "db:local": "psql -h /var/run/postgresql -p 5433 -U tuval -d tuval"
   },
   "dependencies": {
     "next": "16.4.6",
+    "postgres": "^3.4.7",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

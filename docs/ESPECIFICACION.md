@@ -18,6 +18,9 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 | D10 | Emmsa: distribuidor mayorista, crédito a 30 días, horario L–V 8:00–18:00 y S 9:00–13:00, mucho inventario de entrega inmediata. Se le pedirá compartir existencias. | nov 2026 |
 | D11 | Zonas de entrega: ciudad de Puebla, Atlixco y Tlaxcala. | nov 2026 |
 | D12 | Señal de potencial: ~2 pedidos diarios (ver métrica en §3). | nov 2026 |
+| D14 | Emmsa tiene dos almacenes: **Bodega ciudad** (C. 25 Sur 1902 B, Sta Cruz los Ángeles, 72400 Puebla · 222 295 9451) y **Corredor Industrial La Ciénega** (Calle L 7b, 72225 Puebla · 222 141 9800), que respalda lo que no haya en la de ciudad. Preparan un pedido en ~20–30 min según tamaño (estimado de Fede). Tienen servicio a domicilio: opción para pedidos grandes. | nov 2026 |
+| D15 | Foráneas (Atlixco, Tlaxcala): pedidos hasta las **17:00**; se confirman existencias con Emmsa esa tarde y salen en la ruta de la mañana siguiente. | nov 2026 |
+| D16 | El cliente **no ve** "comprado a proveedor": ve **"Preparando pedido"**. El estado de compra es solo interno. | nov 2026 |
 | D13 | Tuval Obra: **bodeguero de Tuval en sitio** entrega a personas autorizadas; retiro por pedido confirmado en la app o con **QR personal** dentro de un límite autorizado. | nov 2026 |
 
 ## 2. Riesgos que hay que vigilar
@@ -47,17 +50,23 @@ Documento vivo. Distingue **decisión** (tomada por Fede), **recomendación** (p
 |---|---|---|---|
 | Mañana | del día anterior después del corte y hasta las 8:00 | Puebla | mismo día antes de mediodía* |
 | Tarde | 8:00 a 12:00 L–V | Puebla | mismo día por la tarde* |
-| Foráneas | hasta las 12:00 | Atlixco y Tlaxcala | siguiente día hábil, ruta fija |
+| Foráneas | hasta las 17:00 (sábado 12:00) | Atlixco y Tlaxcala | siguiente día hábil por la mañana |
 | Sábado | hasta las 10:00 | Puebla | mismo día |
+
+Implementado en `src/lib/corte.ts` con pruebas en `tests/corte.test.ts`. La app solo promete día y "mañana/tarde"; horas exactas cuando se mida el horario del chofer.
 
 \* Las horas exactas dependen de dos datos pendientes: cuánto tarda Emmsa en preparar un pedido y el horario del chofer. No se publican hasta medirlos.
 
-Dos recolecciones en Emmsa al día (aprox. 9:00 y 12:30). Atlixco y Tlaxcala al día siguiente (hipótesis: con un solo chofer no da tiempo de cubrir Puebla y foráneas el mismo día; se valida con las primeras rutas); cuando el volumen lo justifique, días fijos o tercero.
+Dos recolecciones en Emmsa al día (aprox. 9:00 y 12:30); las foráneas se recogen en la primera. Si falta algo en Bodega ciudad, Emmsa lo surte desde La Ciénega (más tiempo: el pedido puede pasar a la siguiente recolección). Pedidos grandes: evaluar que Emmsa entregue directo; cuando el volumen lo justifique, días fijos o tercero.
 
 ### Métrica de validación (recomendación)
 "2 pedidos diarios" contado así: **pedidos de clientes que no sean PurAqua**, promedio de días hábiles, **sostenido 4 semanas seguidas**, con margen bruto positivo después del costo de entrega. PurAqua se mide aparte.
 
-Estados: `recibido → comprado_proveedor → surtido → en_ruta → entregado` (+ `entregado_con_faltantes`, `cancelado`).
+Estados internos: `recibido → comprado_proveedor → surtido → en_ruta → entregado` (+ `entregado_con_faltantes`, `cancelado`).
+El cliente ve: **Pedido recibido → Preparando pedido → En ruta → Entregado** (`src/lib/estados.ts`).
+
+### Recomendación: bodega propia cerca de Emmsa
+Cuando haya volumen, una bodega pequeña cerca de Bodega ciudad permite tener lo de alta rotación propio ("Disponible hoy") y consolidar recolecciones. Decisión pendiente hasta ver los datos de las primeras semanas.
 
 ### Módulos fase 1
 - Catálogo con atributos técnicos (diámetro, cédula, material, presión, voltaje, calibre), búsqueda por medida.
@@ -112,8 +121,11 @@ Fiscal a considerar desde el diseño: factura global para ventas con nota; compl
 
 - ¿Qué es exactamente Emmsa para Tuval (distribuidor/mayorista)? ¿Entrega lista de precios/catálogo? ¿En qué formato (Excel, PDF, API)? ¿Comparte existencias?
 - Condiciones con Emmsa: crédito, horarios de recolección, tiempo de surtido.
-- Tiempo de preparación de pedido en Emmsa y ubicación de su almacén.
+- Coordenadas de los almacenes de Emmsa (de las ligas de Google Maps) para calcular rutas.
+- Si Emmsa puede compartir existencias por archivo o sistema, y con qué frecuencia.
+- Costo y condiciones del servicio a domicilio de Emmsa.
 - Horario del chofer.
 - Umbral de consumo mensual para abrir una bodega en obra.
-- Pasarela de pago y PAC elegidos.
+- Pasarela de pago y PAC elegidos (mientras tanto el total y el pago se confirman por WhatsApp).
+- Inicio de sesión para panel interno y clientes (el panel `/interno/pedidos` no tiene autenticación todavía).
 - Razón social y RFC de Tuval para facturar.
