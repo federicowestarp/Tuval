@@ -5,6 +5,7 @@ import { sql } from "@/lib/db";
 import { puede, requerirInterno } from "@/lib/equipo";
 import { hoyMx } from "@/lib/ruta";
 import { horaLimiteSql, ligasDeRuta, parametrosOperacion } from "@/lib/rutas-plan";
+import { sugerirReparto } from "@/lib/sugerir-rutas";
 import { Esqueleto } from "@/components/interno/Esqueleto";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { NavegacionInterna } from "../Navegacion";
@@ -36,9 +37,12 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/r
   const fecha = typeof sp.fecha === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.fecha) ? sp.fecha : hoyMx();
   const p = await parametrosOperacion();
   const [listos, choferes, vehiculos, almacenes, rutas, params] = await Promise.all([
-    sql<{ id: string; folio: string; estado: string; municipio: string | null; direccion: string | null; ventana: string | null; entrega_fecha: string | null; limite: Date | null; con_pin: boolean; piezas: number; asignado: string | null }[]>`
+    sql<{ id: string; folio: string; estado: string; municipio: string | null; direccion: string | null; ventana: string | null; entrega_fecha: string | null; limite: Date | null; con_pin: boolean; piezas: number; asignado: string | null; lat: number | null; lng: number | null; solo_camioneta: boolean; en_sucursal: boolean }[]>`
       select p.id, p.folio, p.estado, coalesce(d.municipio, p.entidad) municipio, p.direccion_entrega direccion, p.entrega_ventana ventana,
-             to_char(p.entrega_fecha, 'YYYY-MM-DD') entrega_fecha, ${horaLimiteSql(p)} limite, (p.lat is not null) con_pin,
+             to_char(p.entrega_fecha, 'YYYY-MM-DD') entrega_fecha, ${horaLimiteSql(p)} limite, (p.lat is not null) con_pin, p.lat::float lat, p.lng::float lng,
+             exists (select 1 from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = p.id and pr.unidad = 'tramo') solo_camioneta,
+             (p.estado = 'comprado_proveedor' and not exists (select 1 from pedido_partidas pp left join existencias e on e.producto_id = pp.producto_id and e.almacen_id = (select id from almacenes where tipo = 'sucursal' and activo order by creado_en limit 1)
+                where pp.pedido_id = p.id and coalesce(e.cantidad, 0) < pp.cantidad)) en_sucursal,
              (select coalesce(sum(cantidad), 0)::float from pedido_partidas where pedido_id = p.id) piezas,
              (select u.nombre from entregas e join rutas r on r.id = e.ruta_id join usuarios_internos u on u.id = r.chofer_id
               where e.pedido_id = p.id and e.estado = 'programada' limit 1) asignado
@@ -47,7 +51,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/r
         and not exists (select 1 from entregas e where e.pedido_id = p.id and e.estado = 'en_ruta')
       order by ${horaLimiteSql(p)} nulls last, p.creado_en`,
     sql<{ id: string; nombre: string; rol: string }[]>`select id, nombre, rol::text rol from usuarios_internos where activo order by (rol = 'chofer') desc, nombre`,
-    sql<{ id: string; nombre: string }[]>`select id, nombre from vehiculos where activo order by nombre`,
+    sql<{ id: string; nombre: string; tipo: string; capacidad: number | null }[]>`select id, nombre, tipo::text tipo, capacidad_piezas::float capacidad from vehiculos where activo order by nombre`,
     sql<{ id: string; nombre: string; lat: number | null; lng: number | null }[]>`
       select id, nombre, lat, lng from almacenes where activo and tipo in ('proveedor', 'sucursal', 'cedis') and nombre not ilike '%prueba%' order by tipo, nombre`,
     sql<{ id: string; chofer: string; vehiculo: string | null; origen: string | null; salida: Date | null; km: number | null; minutos: number | null }[]>`
@@ -62,6 +66,15 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/r
     order by e.orden_en_ruta nulls last` : [];
   const ligas = Object.fromEntries(await Promise.all(rutas.map(async (r) => [r.id, await ligasDeRuta(r.id)] as const)));
   const sinUbicacion = almacenes.filter((a) => a.lat == null);
+  // Sugerencia de reparto entre los choferes con lo que aún no está asignado.
+  const base = almacenes.find((a) => a.lat != null && /sucursal/i.test(a.nombre)) ?? almacenes.find((a) => a.lat != null) ?? null;
+  const pendientes = listos.filter((x) => !x.asignado && (!x.entrega_fecha || x.entrega_fecha <= fecha));
+  const nChoferes = choferes.filter((c) => c.rol === "chofer").length || 1;
+  const sugerencia = sugerirReparto(base && base.lat != null && base.lng != null ? { lat: base.lat, lng: base.lng } : null,
+    pendientes.map((x) => ({ id: x.id, folio: x.folio, punto: x.lat != null && x.lng != null ? { lat: x.lat, lng: x.lng } : null, piezas: x.piezas, soloCamioneta: x.solo_camioneta, limite: x.limite })),
+    vehiculos.map((v) => ({ ...v, capacidad: v.capacidad ?? (v.tipo === "moto" ? p.capacidad_moto_piezas ?? null : null) })), nChoferes);
+  const choferesRuta = choferes.filter((c) => c.rol === "chofer").length ? choferes.filter((c) => c.rol === "chofer") : choferes;
+  const enSucursal = pendientes.filter((x) => x.en_sucursal);
 
   return (
     <>
@@ -81,6 +94,40 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/r
               <button className="rounded-full bg-azul px-4 font-semibold text-white">Guardar</button>
             </form>
           ))}
+        </section>
+      )}
+
+      {pendientes.length > 0 && (
+        <section className="space-y-3 rounded-[20px] bg-white p-5">
+          <div>
+            <h2 className="font-semibold">Sugerencia de reparto</h2>
+            <p className="text-[13px] text-secundario">Por zona (pedidos cercanos juntos), capacidad de cada vehículo y sin tubería en tramos en moto. Revísala y confírmala por chofer.</p>
+          </div>
+          {enSucursal.length > 0 && (
+            <p className="rounded-xl bg-emerald-50 p-3 text-[14px]">Hay existencia en sucursal para {enSucursal.map((x) => <Link key={x.id} href={`/interno/pedidos/${x.id}`} className="font-semibold text-azul underline">{x.folio} </Link>)}— conviene surtir de ahí en lugar de ir con el proveedor.</p>
+          )}
+          <div className="grid gap-3 md:grid-cols-2">
+            {sugerencia.grupos.map((g, i) => (
+              <form key={g.vehiculo.id} action={armarRuta} className="space-y-2 rounded-2xl bg-niebla p-4 text-[14px]">
+                <p className="font-semibold">{g.vehiculo.nombre} · {g.pedidos.length} pedido{g.pedidos.length === 1 ? "" : "s"} · {g.piezas} pzas{g.vehiculo.capacidad ? ` de ${g.vehiculo.capacidad}` : ""} · ~{g.km} km</p>
+                <p className="text-secundario">{g.pedidos.map((x) => x.folio).join(", ")}</p>
+                {g.pedidos.map((x) => <input key={x.id} type="hidden" name="pedido_id" value={x.id} />)}
+                <input type="hidden" name="vehiculo_id" value={g.vehiculo.id} />
+                <input type="hidden" name="fecha" value={fecha} />
+                <input type="hidden" name="hora_salida" value={`${String(p.hora_salida).padStart(2, "0")}:00`} />
+                {base && <input type="hidden" name="origen_id" value={base.id} />}
+                <div className="flex gap-2">
+                  <select name="chofer_id" aria-label={`Chofer para ${g.vehiculo.nombre}`} defaultValue={choferesRuta[i % choferesRuta.length]?.id} className="h-10 min-w-0 flex-1 rounded-full border border-linea bg-white px-3">
+                    {choferes.map((c) => <option key={c.id} value={c.id}>{c.nombre}{c.rol !== "chofer" ? ` (${c.rol})` : ""}</option>)}
+                  </select>
+                  <button className="rounded-full bg-azul px-4 font-semibold text-white">Usar esta sugerencia</button>
+                </div>
+              </form>
+            ))}
+          </div>
+          {sugerencia.sinAsignar.length > 0 && (
+            <ul className="text-[13px] text-red-700">{sugerencia.sinAsignar.map((x) => <li key={x.pedido.id}>{x.pedido.folio}: {x.motivo}</li>)}</ul>
+          )}
         </section>
       )}
 

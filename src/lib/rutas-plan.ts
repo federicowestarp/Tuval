@@ -5,7 +5,7 @@ import { ligasGoogleMaps, planearRuta, type Punto } from "@/lib/planear-ruta";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sql o transacción
 type Tx = postgres.Sql<any> | postgres.TransactionSql<any>;
 
-export type ParamOperacion = { hora_limite_manana: number; hora_limite_tarde: number; hora_salida: number; velocidad_kmh: number; factor_calle: number; minutos_parada: number; minutos_recoleccion: number };
+export type ParamOperacion = { hora_limite_manana: number; hora_limite_tarde: number; hora_salida: number; velocidad_kmh: number; factor_calle: number; minutos_parada: number; minutos_recoleccion: number; capacidad_moto_piezas?: number };
 
 export async function parametrosOperacion(tx: Tx = sql): Promise<ParamOperacion> {
   const f = await tx<{ clave: string; valor: number }[]>`select clave, valor::float valor from parametros_operacion`;

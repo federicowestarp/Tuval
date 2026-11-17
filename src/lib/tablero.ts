@@ -26,6 +26,7 @@ export type Ruta = {
   id: string; fecha: string; chofer: string; vehiculo: string | null; iniciada_en: Date | null; terminada_en: Date | null;
   km: number; horas: number | null; entregas: number; pendientes: number; km_odometro: number | null;
   costo_km: number | null; costo_hora: number | null; costo: number; costo_incompleto: boolean;
+  km_plan: number | null; horas_plan: number | null; tarde: number;
 };
 
 /**
@@ -126,7 +127,10 @@ export async function datosTablero(p: Periodo) {
              case when b.odometro_fin >= b.odometro_inicio then b.odometro_fin - b.odometro_inicio end km_odometro,
              round(ck.por_km::numeric, 2)::float costo_km, round(ch.por_hora::numeric, 2)::float costo_hora,
              round((coalesce(b.km_ruta * ck.por_km, 0) + coalesce(b.horas_ruta * ch.por_hora, 0))::numeric)::float costo,
-             (ck.por_km is null or ch.por_hora is null) costo_incompleto
+             (ck.por_km is null or ch.por_hora is null) costo_incompleto,
+             -- Planeado contra real: lo que calculó el planeador al armar la ruta y entregas que llegaron después de su hora límite.
+             round(b.km_estimados::numeric, 1)::float km_plan, round((b.minutos_estimados / 60.0)::numeric, 1)::float horas_plan,
+             (select count(*)::int from entregas e where e.ruta_id = b.id and e.estado = 'entregada' and e.hora_limite is not null and e.entregada_en > e.hora_limite) tarde
       from base b join usuarios_internos u on u.id = b.chofer_id left join vehiculos v on v.id = b.vehiculo_id
       left join costo_km ck on ck.vehiculo_id = b.vehiculo_id left join costo_hora ch on ch.chofer_id = b.chofer_id
       where b.fecha >= (${d} at time zone 'America/Mexico_City')::date

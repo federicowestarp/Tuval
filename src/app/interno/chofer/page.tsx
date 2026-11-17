@@ -8,6 +8,7 @@ import { ligasDeRuta } from "@/lib/rutas-plan";
 import { describirPromesa } from "@/lib/corte";
 import { ligaMapa, ligaWhatsApp, lugar } from "@/lib/pedidos";
 import { urlArchivo } from "@/lib/url-archivo";
+import { URL_SITIO } from "@/lib/sitio";
 import { clasesBoton } from "@/components/ui";
 import { NavegacionInterna } from "../Navegacion";
 import { iniciarRuta, llegarARecoger, llegueConCliente, salirAEntregar, salirDeRecoger, terminarRuta } from "./acciones";
@@ -158,7 +159,7 @@ async function Contenido() {
             {p.recibe_telefono && (
               p.preferencia_contacto === "telefono"
                 ? <a href={`tel:${p.recibe_telefono}`} className={clasesBoton("secundario", "chico")}>Llamar</a>
-                : <a href={ligaWhatsApp(p.recibe_telefono, `Hola ${p.recibe_nombre ?? ""}, soy el chofer de Tuval con tu pedido ${p.folio}. Voy en camino.`)} target="_blank" className={clasesBoton("secundario", "chico")}>WhatsApp</a>
+                : <a href={ligaWhatsApp(p.recibe_telefono, `Hola ${p.recibe_nombre ?? ""}, soy ${yo.nombre.split(" ")[0]}, chofer de Tuval, con tu pedido ${p.folio}. Voy en camino${p.eta ? ` y llego aprox. a las ${new Date(p.eta).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: "America/Mexico_City" })}` : ""}. Puedes ver por dónde voy aquí: ${URL_SITIO}/pedido/${p.id}`)} target="_blank" className={clasesBoton("secundario", "chico")}>WhatsApp</a>
             )}
           </div>
 
