@@ -17,6 +17,7 @@ export async function guardarMargenes(fd: FormData) {
   await sql.begin(async (tx) => {
     const base = pct(t(fd, "margen_base"));
     if (base !== undefined) await tx`update listas_precio set margen_base = ${base} where id = ${lista}`;
+    await tx`update listas_precio set acumula_puntos = ${fd.get("acumula_puntos") === "on"} where id = ${lista}`;
     for (const [k, v] of fd.entries()) {
       if (!k.startsWith("cat_")) continue;
       const m = pct(String(v).trim()), cat = k.slice(4);

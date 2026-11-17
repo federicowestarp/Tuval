@@ -7,7 +7,7 @@ import { cuentaActual } from "@/lib/sesion";
 import { ligaWhatsAppTuval } from "@/lib/contacto";
 import { sql } from "@/lib/db";
 import { puntosDe } from "@/lib/clientes";
-import { paramLealtad } from "@/lib/lealtad";
+import { acumula, paramLealtad } from "@/lib/lealtad";
 import { URL_SITIO } from "@/lib/sitio";
 
 export default function Cuenta(props: PageProps<"/cuenta">) {
@@ -69,7 +69,9 @@ async function Lealtad() {
       <p className="text-[14px] text-secundario">{c.telefono ? `En tu próxima visita a la tienda di en caja tu celular (${c.telefono}) y quedas dado de alta.` : "En tu próxima visita a la tienda da tu celular en caja y quedas dado de alta."} Desde caja también te pueden dar acceso a tu cuenta en este celular.</p>
     </section>
   );
-  const [puntos, p] = await Promise.all([puntosDe(cl.id), paramLealtad()]);
+  const [puntos, p, siAcumula] = await Promise.all([puntosDe(cl.id), paramLealtad(), acumula(sql, cl.id)]);
+  // Clientes con precio especial (Obra / Constructora) no participan; no se les muestra el programa.
+  if (!siAcumula && puntos <= 0) return null;
   const valor = (puntos * (p.valor_punto ?? 0)).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
   const mensaje = cl.codigo && p.recomendados_activo === 1
     ? `Te recomiendo Tuval para tubería, válvulas y equipo. Usa mi código ${cl.codigo} al hacer tu pedido en ${URL_SITIO}${p.puntos_recomendado ? ` y recibe ${p.puntos_recomendado} puntos en tu primera compra${p.compra_minima_recomendado ? ` de ${p.compra_minima_recomendado.toLocaleString("es-MX", { style: "currency", currency: "MXN", maximumFractionDigits: 0 })} o más` : ""}` : ""}.`

@@ -27,8 +27,8 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/p
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const [listas, categorias, margenes, sinCosto, productos] = await Promise.all([
-    sql<{ id: string; nombre: string; descripcion: string | null; margen_base: number | null; con_precio: number; clientes: number }[]>`
-      select l.id, l.nombre, l.descripcion, l.margen_base::float margen_base,
+    sql<{ id: string; nombre: string; descripcion: string | null; margen_base: number | null; con_precio: number; clientes: number; acumula_puntos: boolean }[]>`
+      select l.id, l.nombre, l.descripcion, l.margen_base::float margen_base, l.acumula_puntos,
              (select count(*)::int from precios p where p.lista_id = l.id) con_precio,
              (select count(*)::int from clientes c where c.lista_precio_id = l.id) clientes
       from listas_precio l where l.activa order by (l.nombre = 'Público') desc, l.nombre`,
@@ -53,6 +53,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/p
             <input type="hidden" name="lista" value={l.id} />
             <h2 className="font-semibold">{l.nombre}</h2>
             <p className="text-[12px] text-secundario">{l.descripcion ?? ""} {l.con_precio} productos con precio · {l.clientes} clientes</p>
+            <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="acumula_puntos" defaultChecked={l.acumula_puntos} className="h-4 w-4" /> Acumula puntos y recomendados</label>
             <label className="flex items-center justify-between gap-2 text-[14px] font-semibold">Margen base <input name="margen_base" defaultValue={l.margen_base != null ? Math.round(l.margen_base * 1000) / 10 : ""} placeholder="%" className="h-9 w-20 rounded-lg border border-linea px-2 text-right" /></label>
             <ul className="divide-y divide-linea text-[14px]">
               {categorias.map((c) => {
