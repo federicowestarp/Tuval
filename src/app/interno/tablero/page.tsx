@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
-import { DIAS_COSTO, datosTablero, PERIODOS, type Periodo } from "@/lib/tablero";
+import { DIAS_COSTO, datosTablero, PERIODOS, rangoDe } from "@/lib/tablero";
+import { SelectorPeriodo } from "./SelectorPeriodo";
 import { Barras, Indicador, horas, pesos } from "@/components/interno/Indicadores";
 import { DatosPrueba } from "./DatosPrueba";
 import { VentaDelDia } from "@/components/interno/VentaDelDia";
@@ -45,8 +46,9 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
   await connection();
   await requerirInterno("admin");
   const sp = await searchParams;
-  const periodo = (PERIODOS.find((x) => x.id === sp.p)?.id ?? "7d") as Periodo;
-  const t = await datosTablero(periodo);
+  const r = rangoDe(typeof sp.p === "string" ? sp.p : undefined, typeof sp.desde === "string" ? sp.desde : undefined, typeof sp.hasta === "string" ? sp.hasta : undefined);
+  const periodo = r.periodo;
+  const t = await datosTablero({ desde: r.desde, hasta: r.hasta });
   const f = t.finanzas, margen = f.ventas - f.costo, resultado = margen - f.gastos;
   const total = t.etapas.find((e) => e.etapa.startsWith("Total"));
 
@@ -54,11 +56,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-3xl font-semibold">Tablero</h1>
-        <nav className="flex gap-1 rounded-full bg-white p-1 text-[14px]">
-          {PERIODOS.map((x) => (
-            <Link key={x.id} href={`/interno/tablero?p=${x.id}`} className={`rounded-full px-3.5 py-1.5 ${x.id === periodo ? "bg-azul text-white" : "text-secundario hover:text-azul"}`}>{x.nombre}</Link>
-          ))}
-        </nav>
+        <SelectorPeriodo key={`${r.desde}_${r.hasta}_${periodo}`} periodos={PERIODOS} actual={periodo} desde={r.desde} hasta={r.hasta} />
       </div>
 
       <DatosPrueba hay={t.hayPrueba} />
@@ -81,7 +79,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
             <Barras filas={t.canales.map((c) => ({ etiqueta: c.canal, valor: c.ventas, texto: pesos(c.ventas), detalle: `${c.pedidos} pedidos` }))} />
           </Caja>
         )}
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid [&>*]:min-w-0 gap-3 md:grid-cols-2">
           <Caja>
             <p className="mb-3 font-semibold">Abiertos ahora, por etapa</p>
             <Barras filas={t.estados.map((e) => ({ etiqueta: e.etapa, valor: e.n, texto: String(e.n) }))} vacio="No hay pedidos abiertos." />
@@ -93,8 +91,8 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         </div>
       </Seccion>
 
-      <Seccion titulo="Tiempos" nota={`Mediana por etapa${periodo === "hoy" ? " · últimos 30 días" : ""}`}>
-        <div className="grid gap-3 md:grid-cols-[1fr_2fr]">
+      <Seccion titulo="Tiempos" nota={`Mediana por etapa${r.desde === r.hasta ? " · últimos 30 días" : ""}`}>
+        <div className="grid [&>*]:min-w-0 gap-3 md:grid-cols-[1fr_2fr]">
           <Indicador etiqueta="Del pedido a la entrega" valor={horas(total?.horas ?? null)} nota={total ? `${total.pedidos} pedido${total.pedidos === 1 ? "" : "s"} entregado${total.pedidos === 1 ? "" : "s"}` : "Sin entregas aún"} />
           <Caja>
             <Barras
@@ -163,7 +161,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         </Caja>
       </Seccion>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid [&>*]:min-w-0 gap-6 lg:grid-cols-2">
         <Seccion titulo="Mostrador">
           <div className="grid grid-cols-2 gap-3">
             <Indicador etiqueta="Ventas de mostrador" valor={pesos(t.mostrador.ventas)} nota={`${t.mostrador.tickets} tickets`} />
@@ -196,7 +194,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         </Seccion>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid [&>*]:min-w-0 gap-6 lg:grid-cols-2">
         <Seccion titulo="Flotilla">
           <Caja>
             {t.flotilla.length === 0 ? <p className="text-[14px] text-secundario">Da de alta tus vehículos en <Link href="/interno/flotilla" className="text-azul">Flotilla</Link>.</p> : (
@@ -215,12 +213,12 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         <Seccion titulo="Nómina">
           <Caja>
             {t.nomina.length === 0 ? <p className="text-[14px] text-secundario">Da de alta a tu personal en <Link href="/interno/flotilla" className="text-azul">Flotilla y personal</Link>.</p> : (
-              <table className="tabla w-full text-left text-[14px]">
+              <div className="overflow-x-auto"><table className="tabla w-full text-left text-[14px]">
                 <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Persona</th><th>Puesto</th><th className="text-right">Pagado en el periodo</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
                   {t.nomina.map((n) => <tr key={n.nombre}><td className="py-2">{n.nombre}</td><td>{n.puesto ?? "—"}</td><td className="text-right">{pesos(n.pagado)}</td></tr>)}
                 </tbody>
-              </table>
+              </table></div>
             )}
           </Caja>
         </Seccion>
