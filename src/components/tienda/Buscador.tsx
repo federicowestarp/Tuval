@@ -14,7 +14,8 @@ import { clasesBoton } from "@/components/ui";
  *  · pegas varios renglones → se vuelve "pedido con lista"
  *  · cámara → foto o PDF de tu lista; la capturamos nosotros
  */
-export function Buscador({ inicial = "", grande = false, autoFocus = false }: { inicial?: string; grande?: boolean; autoFocus?: boolean }) {
+/** `translucido`: cápsula flotante como la barra superior (para cuando se queda fija sobre el contenido). */
+export function Buscador({ inicial = "", grande = false, autoFocus = false, translucido = false }: { inicial?: string; grande?: boolean; autoFocus?: boolean; translucido?: boolean }) {
   const router = useRouter();
   const ruta = usePathname();
   const { agregarAdjunto } = useCarrito();
@@ -65,7 +66,7 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false }: { 
 
   return (
     <div className="w-full">
-      <form onSubmit={enviar} className={`flex items-center gap-2 rounded-full bg-niebla pl-5 pr-1.5 ring-azul/30 transition focus-within:bg-white focus-within:ring-2 ${grande ? "h-16" : "h-12"}`}>
+      <form onSubmit={enviar} className={`flex items-center gap-2 rounded-full pl-5 pr-1.5 transition focus-within:bg-white focus-within:ring-2 focus-within:ring-azul/30 ${translucido ? "bg-white/80 shadow-[0_8px_30px_rgba(29,29,31,0.08)] ring-1 ring-black/5 backdrop-blur-xl backdrop-saturate-150" : "bg-niebla"} ${grande ? "h-16" : "h-12"}`}>
         <IconoBuscar className="h-5 w-5 shrink-0 text-secundario" />
         <input
           value={q}
