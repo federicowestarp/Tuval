@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
-import { DIAS_COSTO, datosTablero, PERIODOS, rangoDe } from "@/lib/tablero";
+import { DIAS_COSTO, medirTablero, PERIODOS, rangoDe } from "@/lib/tablero";
 import { SelectorPeriodo } from "./SelectorPeriodo";
 import { Barras, Indicador, horas, pesos } from "@/components/interno/Indicadores";
 import { DatosPrueba } from "./DatosPrueba";
@@ -48,7 +48,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
   const sp = await searchParams;
   const r = rangoDe(typeof sp.p === "string" ? sp.p : undefined, typeof sp.desde === "string" ? sp.desde : undefined, typeof sp.hasta === "string" ? sp.hasta : undefined);
   const periodo = r.periodo;
-  const t = await datosTablero({ desde: r.desde, hasta: r.hasta });
+  const { t, msDatos, hora } = await medirTablero({ desde: r.desde, hasta: r.hasta });
   const f = t.finanzas, margen = f.ventas - f.costo, resultado = margen - f.gastos;
   const total = t.etapas.find((e) => e.etapa.startsWith("Total"));
 
@@ -223,6 +223,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
           </Caja>
         </Seccion>
       </div>
+      <p className="pt-2 text-center text-[11px] text-secundario">Datos calculados en el servidor en {msDatos} ms · {hora}</p>
     </>
   );
 }

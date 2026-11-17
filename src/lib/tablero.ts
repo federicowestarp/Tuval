@@ -253,3 +253,10 @@ async function datosExtra(r: Rango) {
   ]);
   return { canales, mostrador: mostrador[0], formas, cortes, inventario: inventario[0], recolecciones, traslados: traslados[0], hayPrueba: prueba[0].n > 0 };
 }
+
+/** Datos del tablero y cuánto tardó el servidor en tenerlos (para diagnosticar lentitud desde el celular). */
+export async function medirTablero(r: Rango) {
+  const t0 = performance.now();
+  const t = await datosTablero(r);
+  return { t, msDatos: Math.round(performance.now() - t0), hora: new Date().toLocaleTimeString("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit", second: "2-digit" }) };
+}
