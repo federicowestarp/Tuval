@@ -27,12 +27,12 @@ export function PagarEnCaja() {
   return (
     <section className="rounded-[20px] bg-[#E8F1FB] p-5">
       {codigo ? (
-        <div className="flex flex-col items-center gap-3 text-center">
+        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-3 bg-white p-6 text-center">
           <p className="font-semibold">Enseña este código en caja</p>
           <div className="h-56 w-56 rounded-2xl bg-white p-2 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
           <p className="font-mono text-[32px] font-bold tracking-[0.25em] text-azul">{codigo}</p>
           <p className="text-[13px] text-secundario">En caja confirmamos solo lo que te llevas y pagas ahí. Si agregas algo más, genera otro código.</p>
-          <button type="button" onClick={() => setCodigo(null)} className="text-[14px] text-azul underline">Volver</button>
+          <button type="button" onClick={() => setCodigo(null)} className="mt-2 rounded-full border border-azul px-6 py-3 font-semibold text-azul">Volver al carrito</button>
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-3">
