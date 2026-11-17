@@ -9,7 +9,7 @@ import { CATEGORIAS, esCategoria } from "@/lib/categorias";
 
 type Props = {
   id: string; sku: string; nombre: string; unidad: string; categoria: string;
-  atributos: Record<string, string>; precio: number | null;
+  atributos: Record<string, string>; precio: number | null; imagen?: string | null;
 };
 
 /** Tarjeta (manual v2): fondo niebla, imagen sobre blanco, categoría 13 px, nombre y precio en Inter Tight 600. */
@@ -22,7 +22,10 @@ export function TarjetaProducto(p: Props) {
   return (
     <article className="flex flex-col rounded-[20px] bg-niebla p-3">
       <Link href={`/producto/${encodeURIComponent(p.sku)}`} className="flex aspect-square items-center justify-center rounded-2xl bg-white text-azul">
-        {esCategoria(p.categoria) ? <IconoCategoria categoria={p.categoria} className="h-12 w-12" /> : <span className="text-[13px] text-secundario">Sin foto</span>}
+        {p.imagen
+          // eslint-disable-next-line @next/next/no-img-element -- foto propia servida con caché pública
+          ? <img src={p.imagen} alt={p.nombre} loading="lazy" className="h-full w-full rounded-2xl object-contain p-2" />
+          : esCategoria(p.categoria) ? <IconoCategoria categoria={p.categoria} className="h-12 w-12" /> : <span className="text-[13px] text-secundario">Sin foto</span>}
       </Link>
       <div className="flex flex-1 flex-col px-1 pb-1 pt-3">
         {categoria && <p className="text-[13px] text-secundario">{categoria}</p>}

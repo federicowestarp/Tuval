@@ -5,6 +5,7 @@ import { sql } from "@/lib/db";
 import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
 import { requerirInterno } from "@/lib/equipo";
 import { MOTIVOS_CANCELACION } from "@/lib/motivos";
+import { PLAZOS } from "@/lib/seguimiento";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -23,7 +24,14 @@ export async function cambiarEstado(fd: FormData) {
     if (!actual) throw new Error("Pedido no encontrado");
     const permitido = SIGUIENTE[actual.estado] === estado || (estado === "cancelado" && !["entregado", "entregado_con_faltantes", "cancelado"].includes(actual.estado));
     if (!permitido) throw new Error(`No se puede pasar de ${actual.estado} a ${estado}`);
-    if (estado === "comprado_proveedor") await tx`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id}`;
+    if (estado === "comprado_proveedor") {
+      // No se compra con existencias o precios viejos del proveedor.
+      const [f] = await tx<{ viejo: boolean }[]>`
+        select coalesce(greatest((select max(cargada_en) from cotizaciones_proveedor where pedido_id = ${id}),
+          (select reconfirmado_en from pedidos where id = ${id})) < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}), false) viejo`;
+      if (f?.viejo) throw new Error(`La cotización del proveedor tiene más de ${PLAZOS.reconfirmarHoras} h: reconfirma existencias y precio antes de comprar.`);
+      await tx`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id}`;
+    }
     await tx`update pedidos set estado = ${estado}, motivo_cancelacion = coalesce(${motivoCompleto}, motivo_cancelacion) where id = ${id}`;
     await tx`insert into pedido_eventos (pedido_id, estado, nota) values (${id}, ${estado}, ${motivoCompleto ?? "Panel interno"})`;
   });
@@ -86,4 +94,24 @@ export async function surtirDeSucursal(fd: FormData) {
   });
   refrescar(`/interno/pedidos/${id}`);
   refrescar("/interno/pedidos");
+}
+
+/** El operador ya le escribió al cliente (recordatorio de cotización sin respuesta). */
+export async function registrarRecordatorio(fd: FormData) {
+  await requerirInterno("operador");
+  const id = String(fd.get("id"));
+  if (!UUID.test(id)) return;
+  await sql`update pedidos set recordatorios = recordatorios + 1, recordado_en = now() where id = ${id}`;
+  refrescar("/interno/pedidos");
+}
+
+/** Se reconfirmaron existencia y precio con el proveedor: la cotización vuelve a estar vigente 48 h. */
+export async function reconfirmarProveedor(fd: FormData) {
+  const yo = await requerirInterno("operador");
+  const id = String(fd.get("id"));
+  if (!UUID.test(id)) return;
+  await sql`update pedidos set reconfirmado_en = now() where id = ${id}`;
+  await sql`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) select id, estado, 'Existencias y precio reconfirmados con proveedor', ${yo.id} from pedidos where id = ${id}`;
+  refrescar("/interno/pedidos");
+  refrescar(`/interno/pedidos/${id}`);
 }

@@ -128,6 +128,17 @@ Agrupada por descripción: cuántas veces y cuántos clientes lo han pedido. Est
 ### Datos de prueba
 Botón en el Tablero: carga 30 días inventados (folios PR-/PM-, vehículos y personal "prueba"; a productos sin precio se les inventa uno solo en esos pedidos). Todo queda anotado en `datos_prueba` y se borra completo con otro botón.
 
+### Seguimiento de cotizaciones y archivo (`src/lib/seguimiento.ts`, plazos acordados con Fede)
+- Cliente sin aceptar el total: recordatorio a las **24 h** y a las **72 h** (WhatsApp prellenado + "Ya le escribí"); la cotización **vence a los 7 días** (el cliente lo ve en su seguimiento).
+- Antes de comprar: si la cotización del proveedor tiene más de **48 h**, hay que reconfirmar existencias y precio ("Ya reconfirmé"); el sistema no deja marcar "Comprado" con una cotización vieja.
+- Archivo: cotizaciones no aceptadas y pedidos entregados/cancelados salen de las listas a los **30 días**. Nada se borra; el tablero los sigue contando.
+
+### Costo por ruta (Tablero → Rutas y traslados)
+Costo = km de la ruta × costo/km del vehículo + horas × costo/hora del chofer, con promedios de los **últimos 90 días** (gasolina, servicios, reparaciones, seguro, casetas; nómina del chofer ligado en Flotilla). Km: odómetro si se capturó, si no GPS.
+
+### Fotos de productos (Catálogo)
+Se suben desde Catálogo (se reducen a 1000 px en el navegador) y se sirven en `/fotos/[id]` con caché pública de un año; aparecen en tienda, ficha y mostrador.
+
 ## 4. Tuval Obra · consignación (opinión y reglas propuestas)
 
 **Modelo decidido (D13):** bodeguero Tuval en la obra. Dos formas de retiro:

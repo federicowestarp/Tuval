@@ -46,7 +46,10 @@ async function Contenido({ params }: Pick<PageProps<"/producto/[sku]">, "params"
       </nav>
       <div className="grid gap-8 md:grid-cols-2">
         <div className="flex aspect-square items-center justify-center rounded-[28px] bg-piedra text-azul">
-          {esCategoria(p.categoria_id) ? <IconoCategoria categoria={p.categoria_id} className="h-28 w-28" /> : <span className="text-secundario">Sin foto</span>}
+          {p.imagen_url
+            // eslint-disable-next-line @next/next/no-img-element -- foto propia servida con caché pública
+            ? <img src={p.imagen_url} alt={p.nombre} className="h-full w-full rounded-[28px] object-contain p-6" />
+            : esCategoria(p.categoria_id) ? <IconoCategoria categoria={p.categoria_id} className="h-28 w-28" /> : <span className="text-secundario">Sin foto</span>}
         </div>
         <div className="flex flex-col">
           {cat && <p className="text-[13px] text-secundario">{cat.nombre}</p>}
@@ -81,7 +84,7 @@ async function Contenido({ params }: Pick<PageProps<"/producto/[sku]">, "params"
           <h2 className="mb-4 font-display text-2xl font-semibold">También en {cat?.nombre ?? "la tienda"}</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {otros.map((o) => (
-              <TarjetaProducto key={o.id} id={o.id} sku={o.sku} nombre={o.nombre} unidad={o.unidad} categoria={o.categoria_id} atributos={o.atributos} precio={o.precio} />
+              <TarjetaProducto key={o.id} id={o.id} sku={o.sku} nombre={o.nombre} unidad={o.unidad} categoria={o.categoria_id} atributos={o.atributos} precio={o.precio} imagen={o.imagen_url} />
             ))}
           </div>
         </section>

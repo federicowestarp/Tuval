@@ -6,7 +6,7 @@ import { requerirInterno } from "@/lib/equipo";
 import { campo, clasesBoton } from "@/components/ui";
 import { pesos } from "@/components/interno/Indicadores";
 import { NavegacionInterna } from "../Navegacion";
-import { agregarEmpleado, agregarVehiculo, darDeBaja, ligarRastreador } from "./acciones";
+import { agregarEmpleado, agregarVehiculo, darDeBaja, ligarRastreador, ligarUsuario } from "./acciones";
 
 export default function Flotilla() {
   return (
@@ -23,12 +23,13 @@ export default function Flotilla() {
 async function Contenido() {
   await connection();
   await requerirInterno("admin");
-  const [vehiculos, empleados] = await Promise.all([
+  const [vehiculos, empleados, usuarios] = await Promise.all([
     sql<{ id: string; nombre: string; tipo: string; placas: string | null; rastreador_id: string | null; ultima: string | null }[]>`
       select v.id, v.nombre, v.tipo, v.placas, v.rastreador_id,
              (select to_char(max(registrada_en) at time zone 'America/Mexico_City', 'DD/MM HH24:MI') from posiciones_vehiculo where vehiculo_id = v.id) ultima
       from vehiculos v where v.activo order by v.nombre`,
-    sql<{ id: string; nombre: string; puesto: string | null; sueldo: number | null; periodicidad: string }[]>`select id, nombre, puesto, sueldo::float sueldo, periodicidad from empleados where activo order by nombre`,
+    sql<{ id: string; nombre: string; puesto: string | null; sueldo: number | null; periodicidad: string; usuario_id: string | null }[]>`select id, nombre, puesto, sueldo::float sueldo, periodicidad, usuario_id from empleados where activo order by nombre`,
+    sql<{ id: string; nombre: string; rol: string }[]>`select id, nombre, rol::text rol from usuarios_internos where activo order by nombre`,
   ]);
   const baja = (id: string, tabla: string) => (
     <form action={darDeBaja}><input type="hidden" name="id" value={id} /><input type="hidden" name="tabla" value={tabla} /><button className="text-[13px] text-secundario hover:text-azul">Dar de baja</button></form>
@@ -76,16 +77,32 @@ async function Contenido() {
       <section className="space-y-3 rounded-[20px] bg-white p-5">
         <h2 className="font-semibold">Personal (nómina)</h2>
         <ul className="divide-y divide-linea text-[15px]">
-          {empleados.map((e) => <li key={e.id} className="flex items-center justify-between py-2.5"><span>{e.nombre} <span className="text-[13px] text-secundario">· {e.puesto ?? "sin puesto"}{e.sueldo != null && ` · ${pesos(e.sueldo)} ${e.periodicidad}`}</span></span>{baja(e.id, "empleados")}</li>)}
+          {empleados.map((e) => (
+            <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+              <span>{e.nombre} <span className="text-[13px] text-secundario">· {e.puesto ?? "sin puesto"}{e.sueldo != null && ` · ${pesos(e.sueldo)} ${e.periodicidad}`}</span></span>
+              <span className="flex items-center gap-3">
+                <form action={ligarUsuario} className="flex gap-1">
+                  <input type="hidden" name="id" value={e.id} />
+                  <select name="usuario_id" defaultValue={e.usuario_id ?? ""} aria-label="Acceso al panel" className="h-8 rounded-lg border border-linea px-2 text-[13px]">
+                    <option value="">Sin acceso al panel</option>
+                    {usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>)}
+                  </select>
+                  <button className="text-[13px] text-azul">Guardar</button>
+                </form>
+                {baja(e.id, "empleados")}
+              </span>
+            </li>
+          ))}
         </ul>
         <form action={agregarEmpleado} className="grid gap-2 sm:grid-cols-2">
           <input name="nombre" placeholder="Nombre" className={campo} required />
           <input name="puesto" placeholder="Puesto (chofer, almacén…)" className={campo} />
           <input name="sueldo" placeholder="Sueldo por periodo" inputMode="decimal" className={campo} />
           <select name="periodicidad" className={campo}><option value="quincenal">Quincenal</option><option value="semanal">Semanal</option><option value="mensual">Mensual</option></select>
+          <select name="usuario_id" className={campo} aria-label="Acceso al panel"><option value="">Sin acceso al panel</option>{usuarios.map((u) => <option key={u.id} value={u.id}>{u.nombre} ({u.rol})</option>)}</select>
           <div><button className={clasesBoton("principal", "normal")}>Agregar persona</button></div>
         </form>
-        <p className="text-[13px] text-secundario">Los pagos de nómina se registran en Gastos → categoría Nómina, ligados a la persona.</p>
+        <p className="text-[13px] text-secundario">Los pagos de nómina se registran en Gastos → categoría Nómina, ligados a la persona. Liga a cada chofer con su acceso al panel para que su nómina cuente en el costo de sus rutas.</p>
       </section>
     </>
   );

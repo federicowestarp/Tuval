@@ -20,6 +20,14 @@ const desde = (p: Periodo) => {
 
 export type Etapa = { etapa: string; horas: number | null; pedidos: number };
 
+/** Ventana para promediar el costo por km del vehículo y por hora del chofer. */
+export const DIAS_COSTO = 90;
+export type Ruta = {
+  id: string; fecha: string; chofer: string; vehiculo: string | null; iniciada_en: Date | null; terminada_en: Date | null;
+  km: number; horas: number | null; entregas: number; pendientes: number; km_odometro: number | null;
+  costo_km: number | null; costo_hora: number | null; costo: number; costo_incompleto: boolean;
+};
+
 /**
  * En caché un minuto por periodo; cualquier acción del panel lo invalida al instante (refrescar → updateTag).
  * Todas las consultas salen en una sola tanda en paralelo.
@@ -82,24 +90,47 @@ export async function datosTablero(p: Periodo) {
       )
       select etapa, round((percentile_cont(0.5) within group (order by h))::numeric, 2)::float horas, count(h)::int pedidos
       from t where h is not null and h >= 0 group by o, etapa order by o`,
-    // Rutas del periodo: km por GPS (suma de tramos), duración, entregas
-    sql<{ id: string; fecha: string; chofer: string; vehiculo: string | null; iniciada_en: Date | null; terminada_en: Date | null; km: number; horas: number | null; entregas: number; pendientes: number; km_odometro: number | null }[]>`
+    // Rutas del periodo con su costo: km × costo por km del vehículo + horas × costo por hora del chofer,
+    // ambos con el promedio de los últimos 90 días (gasolina, servicios, reparaciones, seguro, casetas y nómina).
+    sql<Ruta[]>`
       with pos as (
         select ruta_id, lat, lng, lag(lat) over w plat, lag(lng) over w plng
         from posiciones_ruta window w as (partition by ruta_id order by registrada_en)
       ), km as (
         select ruta_id, sum(6371 * 2 * asin(sqrt(power(sin(radians(lat - plat) / 2), 2) + cos(radians(plat)) * cos(radians(lat)) * power(sin(radians(lng - plng) / 2), 2)))) km
         from pos where plat is not null group by ruta_id
+      ), base as (
+        select r.*, coalesce(case when r.odometro_fin >= r.odometro_inicio then r.odometro_fin - r.odometro_inicio end, km.km, 0)::float km_ruta,
+               greatest(extract(epoch from coalesce(r.terminada_en, now()) - r.iniciada_en) / 3600, 0)::float horas_ruta,
+               km.km km_gps
+        from rutas r left join km on km.ruta_id = r.id
+      ), r90 as (select * from base where fecha >= (now() at time zone 'America/Mexico_City')::date - ${DIAS_COSTO}::int),
+      costo_km as (
+        select v.id vehiculo_id,
+               coalesce((select sum(g.monto) from gastos g where g.vehiculo_id = v.id and g.categoria <> 'nomina'
+                         and g.fecha >= (now() at time zone 'America/Mexico_City')::date - ${DIAS_COSTO}::int), 0)
+               / nullif((select sum(km_ruta) from r90 where r90.vehiculo_id = v.id), 0) por_km
+        from vehiculos v
+      ), costo_hora as (
+        select e.usuario_id chofer_id,
+               coalesce(sum(g.monto) filter (where g.fecha >= (now() at time zone 'America/Mexico_City')::date - ${DIAS_COSTO}::int), 0)
+               / nullif((select sum(horas_ruta) from r90 where r90.chofer_id = e.usuario_id), 0) por_hora
+        from empleados e left join gastos g on g.empleado_id = e.id and g.categoria = 'nomina'
+        where e.usuario_id is not null group by e.usuario_id
       )
-      select r.id, to_char(r.fecha, 'YYYY-MM-DD') fecha, u.nombre chofer, v.nombre vehiculo, r.iniciada_en, r.terminada_en,
-             round(coalesce(km.km, 0)::numeric, 1)::float km,
-             round((extract(epoch from coalesce(r.terminada_en, now()) - r.iniciada_en) / 3600)::numeric, 1)::float horas,
-             (select count(*)::int from entregas e where e.ruta_id = r.id and e.estado = 'entregada') entregas,
-             (select count(*)::int from entregas e where e.ruta_id = r.id and e.estado = 'en_ruta') pendientes,
-             case when r.odometro_fin >= r.odometro_inicio then r.odometro_fin - r.odometro_inicio end km_odometro
-      from rutas r join usuarios_internos u on u.id = r.chofer_id left join vehiculos v on v.id = r.vehiculo_id left join km on km.ruta_id = r.id
-      where r.fecha >= (${d} at time zone 'America/Mexico_City')::date
-      order by r.fecha desc, u.nombre`,
+      select b.id, to_char(b.fecha, 'YYYY-MM-DD') fecha, u.nombre chofer, v.nombre vehiculo, b.iniciada_en, b.terminada_en,
+             round(coalesce(b.km_gps, 0)::numeric, 1)::float km,
+             round(b.horas_ruta::numeric, 1)::float horas,
+             (select count(*)::int from entregas e where e.ruta_id = b.id and e.estado = 'entregada') entregas,
+             (select count(*)::int from entregas e where e.ruta_id = b.id and e.estado = 'en_ruta') pendientes,
+             case when b.odometro_fin >= b.odometro_inicio then b.odometro_fin - b.odometro_inicio end km_odometro,
+             round(ck.por_km::numeric, 2)::float costo_km, round(ch.por_hora::numeric, 2)::float costo_hora,
+             round((coalesce(b.km_ruta * ck.por_km, 0) + coalesce(b.horas_ruta * ch.por_hora, 0))::numeric)::float costo,
+             (ck.por_km is null or ch.por_hora is null) costo_incompleto
+      from base b join usuarios_internos u on u.id = b.chofer_id left join vehiculos v on v.id = b.vehiculo_id
+      left join costo_km ck on ck.vehiculo_id = b.vehiculo_id left join costo_hora ch on ch.chofer_id = b.chofer_id
+      where b.fecha >= (${d} at time zone 'America/Mexico_City')::date
+      order by b.fecha desc, u.nombre`,
     sql<{ ventas: number; costo: number; cobrado: number; gastos: number }[]>`
       select
         coalesce((select sum(total) from pedidos where confirmado_en >= ${d} and estado <> 'cancelado'), 0)::float ventas,

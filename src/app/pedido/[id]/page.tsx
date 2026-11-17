@@ -12,6 +12,7 @@ import { etapaCliente } from "@/lib/estados";
 import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { urlBase } from "@/lib/url";
+import { PLAZOS, vigencia } from "@/lib/seguimiento";
 
 export default function SeguimientoPedido(props: PageProps<"/pedido/[id]">) {
   return (
@@ -33,6 +34,8 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
 
   const actual = etapaCliente(pedido.estado);
   const porConfirmar = !pedido.confirmado_en;
+  const vencida = pedido.estado === "recibido" && !!pedido.confirmado_en && !pedido.aceptado_en &&
+    (await vigencia(pedido.id)).vencida;
   const titulo =
     actual === -1 ? "Pedido cancelado." :
     pedido.estado === "entregado_con_faltantes" ? "Entregado con faltantes." :
@@ -58,6 +61,13 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
         <h1 className="mt-1 font-display text-[34px] font-semibold leading-tight">{titulo}</h1>
         {sub && <p className="mt-2 text-[17px] text-secundario">{sub}</p>}
       </div>
+
+      {vencida && (
+        <div className="rounded-[20px] bg-niebla p-5">
+          <p className="font-semibold">Esta cotización venció</p>
+          <p className="mt-1 text-[15px] text-secundario">Los precios y existencias se respetan {PLAZOS.venceDias} días. Escríbenos y te la reconfirmamos hoy.</p>
+        </div>
+      )}
 
       {actual >= 0 && <Progreso actual={actual} />}
 

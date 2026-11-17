@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
-import { datosTablero, PERIODOS, type Periodo } from "@/lib/tablero";
+import { DIAS_COSTO, datosTablero, PERIODOS, type Periodo } from "@/lib/tablero";
 import { Barras, Indicador, horas, pesos } from "@/components/interno/Indicadores";
 import { DatosPrueba } from "./DatosPrueba";
 import { NavegacionInterna } from "../Navegacion";
@@ -119,19 +119,25 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         )}
       </Seccion>
 
-      <Seccion titulo="Rutas y traslados" nota="Km GPS = teléfono del chofer · Km odómetro = captura al iniciar y terminar">
+      <Seccion titulo="Rutas y traslados" nota={`Costo = km × costo/km del vehículo + horas × costo/hora del chofer (promedio ${DIAS_COSTO} días)`}>
         <Caja>
           {t.rutas.length === 0 ? <p className="text-[14px] text-secundario">Sin rutas en este periodo.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-[14px]">
-                <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Fecha</th><th>Chofer</th><th>Vehículo</th><th className="text-right">Entregas</th><th className="text-right">En ruta</th><th className="text-right">Km GPS</th><th className="text-right">Km odómetro</th><th className="text-right">Horas</th></tr></thead>
+                <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Fecha</th><th>Chofer</th><th>Vehículo</th><th className="text-right">Entregas</th><th className="text-right">En ruta</th><th className="text-right">Km GPS</th><th className="text-right">Km odómetro</th><th className="text-right">Horas</th><th className="text-right">Costo</th><th className="text-right">Por entrega</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
                   {t.rutas.slice(0, 15).map((r) => (
-                    <tr key={r.id}><td className="py-2">{r.fecha}</td><td>{r.chofer}</td><td>{r.vehiculo ?? "—"}</td><td className="text-right">{r.entregas}</td><td className="text-right">{r.pendientes}</td><td className="text-right">{r.km}</td><td className="text-right">{r.km_odometro ?? "—"}</td><td className="text-right">{horas(r.horas)}</td></tr>
+                    <tr key={r.id}><td className="py-2">{r.fecha}</td><td>{r.chofer}</td><td>{r.vehiculo ?? "—"}</td><td className="text-right">{r.entregas}</td><td className="text-right">{r.pendientes}</td><td className="text-right">{r.km}</td><td className="text-right">{r.km_odometro ?? "—"}</td><td className="text-right">{horas(r.horas)}</td><td className="text-right" title={`$${r.costo_km ?? "?"}/km · $${r.costo_hora ?? "?"}/h`}>{r.costo ? pesos(r.costo) : "—"}{r.costo_incompleto && r.costo > 0 && "*"}</td><td className="text-right">{r.entregas && r.costo ? pesos(r.costo / r.entregas) : "—"}</td></tr>
                   ))}
                 </tbody>
               </table>
-              {t.rutas.length > 15 && <p className="mt-2 text-[12px] text-secundario">Mostrando las 15 rutas más recientes de {t.rutas.length}.</p>}
+              <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <Indicador etiqueta="Costo de rutas del periodo" valor={pesos(t.rutas.reduce((a, r) => a + r.costo, 0))} />
+                <Indicador etiqueta="Costo por entrega" valor={(() => { const e = t.rutas.reduce((a, r) => a + r.entregas, 0); return e ? pesos(t.rutas.reduce((a, r) => a + r.costo, 0) / e) : "—"; })()} />
+                <Indicador etiqueta="Costo por ruta (promedio)" valor={t.rutas.length ? pesos(t.rutas.reduce((a, r) => a + r.costo, 0) / t.rutas.length) : "—"} />
+                <Indicador etiqueta="Km por ruta (promedio)" valor={t.rutas.length ? `${Math.round(t.rutas.reduce((a, r) => a + (r.km_odometro ?? r.km), 0) / t.rutas.length)} km` : "—"} />
+              </div>
+              <p className="mt-2 text-[12px] text-secundario">Km: odómetro si se capturó, si no GPS. * Falta el costo del vehículo o la nómina del chofer (liga al chofer con su persona en Flotilla).{t.rutas.length > 15 && ` Mostrando las 15 rutas más recientes de ${t.rutas.length}.`}</p>
             </div>
           )}
         </Caja>

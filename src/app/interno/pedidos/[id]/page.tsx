@@ -12,7 +12,8 @@ import { urlArchivo } from "@/lib/url-archivo";
 import { urlBase } from "@/lib/url";
 import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../../Navegacion";
-import { cambiarEstado, clienteAcepto, cotizacionSolicitada, registrarCobro, surtirDeSucursal } from "../acciones";
+import { cambiarEstado, clienteAcepto, cotizacionSolicitada, reconfirmarProveedor, registrarCobro, surtirDeSucursal } from "../acciones";
+import { PLAZOS, vigencia } from "@/lib/seguimiento";
 import { Cancelar } from "../Cancelar";
 import { sql } from "@/lib/db";
 import { agregarRenglonesAlPedido, asignarRenglon } from "./acciones";
@@ -37,18 +38,23 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
   await connection();
   await requerirInterno("operador");
   const { id } = await params;
-  const pedido = await obtenerPedido(id);
-  if (!pedido) notFound();
-  const [comparacion, sueltos, base, cotizacionId] = await Promise.all([compararPedido(id), renglonesSinAsignar(id), urlBase(), ultimaCotizacion(id)]);
-  const siguiente = SIGUIENTE[pedido.estado];
-  const cobros = await sql<{ id: string; fecha: string; forma: string; monto: number; referencia_pasarela: string | null }[]>`
+  if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
+  // Todo en paralelo: una sola espera a la base.
+  const [pedido, comparacion, sueltos, base, cotizacionId, cobros, [stock], vig] = await Promise.all([
+    obtenerPedido(id), compararPedido(id), renglonesSinAsignar(id), urlBase(), ultimaCotizacion(id),
+    sql<{ id: string; fecha: string; forma: string; monto: number; referencia_pasarela: string | null }[]>`
     select id, to_char(pagado_en at time zone 'America/Mexico_City', 'DD/MM/YYYY') fecha, forma, monto::float monto, referencia_pasarela
-    from pagos where pedido_id = ${pedido.id} order by pagado_en`;
-  const [stock] = await sql<{ alcanza: boolean; lineas: number }[]>`
+    from pagos where pedido_id = ${id} order by pagado_en`,
+    sql<{ alcanza: boolean; lineas: number }[]>`
     select count(*)::int lineas, coalesce(bool_and(coalesce(e.cantidad, 0) >= pp.cantidad), false) alcanza
     from pedido_partidas pp left join existencias e on e.producto_id = pp.producto_id
       and e.almacen_id = (select id from almacenes where tipo = 'sucursal' and activo order by creado_en limit 1)
-    where pp.pedido_id = ${pedido.id}`;
+    where pp.pedido_id = ${id}`,
+    vigencia(id),
+  ]);
+  if (!pedido) notFound();
+  const siguiente = SIGUIENTE[pedido.estado];
+  const bloqueadoCompra = siguiente === "comprado_proveedor" && vig.reconfirmar;
   const hora = (d: Date | null) => d ? new Date(d).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null;
   const abierto = !["entregado", "entregado_con_faltantes", "cancelado"].includes(pedido.estado);
   const ligaCliente = `${base}/pedido/${pedido.id}`;
@@ -72,7 +78,12 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
           </p>
         </div>
         <div className="flex gap-2">
-          {siguiente && (
+          {bloqueadoCompra ? (
+            <form action={reconfirmarProveedor}>
+              <input type="hidden" name="id" value={pedido.id} />
+              <button className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white">Ya reconfirmé con proveedor</button>
+            </form>
+          ) : siguiente && (
             <form action={cambiarEstado}>
               <input type="hidden" name="id" value={pedido.id} />
               <input type="hidden" name="estado" value={siguiente} />
@@ -84,6 +95,13 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
       </div>
 
       {pedido.estado === "cancelado" && pedido.motivo_cancelacion && <p className="rounded-xl bg-white p-3 text-sm">Motivo de cancelación: <strong>{pedido.motivo_cancelacion}</strong></p>}
+
+      {pedido.estado === "recibido" && (vig.reconfirmar || vig.vencida) && (
+        <section className="rounded-xl bg-amber-50 p-4 text-sm ring-1 ring-amber-200">
+          {vig.vencida && <p><strong>Cotización al cliente vencida:</strong> lleva {vig.diasCliente} días sin aceptar (vence a los {PLAZOS.venceDias}). Reconfirma con el proveedor y vuelve a mandarle el total, o ciérrala como “Cliente no respondió”.</p>}
+          {vig.reconfirmar && <p><strong>Reconfirma existencias y precio con el proveedor:</strong> su cotización tiene {vig.horasProveedor} h (máximo {PLAZOS.reconfirmarHoras} h para comprar).</p>}
+        </section>
+      )}
 
       {abierto && (
         <section className={`${caja} flex flex-wrap items-center gap-2 text-sm`}>

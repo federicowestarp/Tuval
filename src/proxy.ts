@@ -15,7 +15,7 @@ export function proxy(req: NextRequest) {
 
   if (host.startsWith("admin.")) {
     if (pathname === "/") return NextResponse.redirect(new URL("/interno", req.url));
-    const delPanel = pathname.startsWith("/interno") || pathname.startsWith("/archivos/");
+    const delPanel = pathname.startsWith("/interno") || pathname.startsWith("/archivos/") || pathname.startsWith("/fotos/");
     if (!delPanel) return NextResponse.redirect(`${SITIO}${pathname}${search}`);
   }
 

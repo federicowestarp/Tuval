@@ -81,7 +81,7 @@ async function Resultados({ searchParams }: { searchParams: SP }) {
           <p className="mt-4 text-[13px] text-secundario">{productos.length} producto{productos.length === 1 ? "" : "s"}</p>
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {productos.map((p) => (
-              <TarjetaProducto key={p.id} id={p.id} sku={p.sku} nombre={p.nombre} unidad={p.unidad} categoria={p.categoria_id} atributos={p.atributos} precio={p.precio} />
+              <TarjetaProducto key={p.id} id={p.id} sku={p.sku} nombre={p.nombre} unidad={p.unidad} categoria={p.categoria_id} atributos={p.atributos} precio={p.precio} imagen={p.imagen_url} />
             ))}
           </div>
           <div className="my-12 rounded-[20px] bg-niebla p-6 text-center">

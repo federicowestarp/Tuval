@@ -1,4 +1,5 @@
 import { sql } from "@/lib/db";
+import { PLAZOS, archivado, frescuraProveedor } from "@/lib/seguimiento";
 import type { EstadoPedido } from "@/lib/estados";
 import type { Ventana, Zona } from "@/lib/corte";
 
@@ -83,13 +84,21 @@ export async function obtenerPedidoPorTokenReceptor(token: string) {
 }
 
 export type PedidoResumen = Omit<PedidoDetalle, "partidas" | "especiales" | "adjuntos"> & {
+  reconfirmar: boolean;
   piezas: number;
   sin_precio: number;
   especiales: number;
   adjuntos: number;
 };
 
-export async function listarPedidos(): Promise<PedidoResumen[]> {
+export type VistaPedidos = "proceso" | "cerrados" | "archivo";
+
+/** En proceso: abiertos · Cerrados: entregados/cancelados recientes · Archivo: lo viejo (nada se borra). Sin ventas de mostrador. */
+export async function listarPedidos(vista: VistaPedidos = "proceso"): Promise<PedidoResumen[]> {
+  const filtro =
+    vista === "archivo" ? archivado
+    : vista === "cerrados" ? sql`p.estado in ('entregado', 'entregado_con_faltantes', 'cancelado') and not ${archivado}`
+    : sql`p.estado not in ('entregado', 'entregado_con_faltantes', 'cancelado') and not ${archivado}`;
   return sql<PedidoResumen[]>`
     select p.id, p.folio, p.estado, p.zona, p.entidad, p.tipo_entrega, p.direccion_entrega, p.recibe_nombre, p.recibe_telefono, p.motivo_cancelacion, p.cotizacion_solicitada_en, p.aceptado_en,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') as entrega_fecha, p.entrega_ventana, p.comprobante,
@@ -98,10 +107,11 @@ export async function listarPedidos(): Promise<PedidoResumen[]> {
            (select coalesce(sum(cantidad), 0) from pedido_partidas where pedido_id = p.id) as piezas,
            (select count(*)::int from pedido_partidas where pedido_id = p.id and precio_unitario is null) as sin_precio,
            (select count(*)::int from solicitudes_producto where pedido_id = p.id and origen = 'cliente_fuera_catalogo') as especiales,
-           (select count(*)::int from pedido_archivos where pedido_id = p.id) as adjuntos
+           (select count(*)::int from pedido_archivos where pedido_id = p.id) as adjuntos,
+           coalesce(p.estado = 'recibido' and ${frescuraProveedor} < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}), false) as reconfirmar
     from pedidos p
-    where p.estado not in ('entregado', 'entregado_con_faltantes', 'cancelado') or p.creado_en > now() - interval '2 days'
-    order by p.entrega_fecha nulls last, p.entrega_ventana, p.creado_en
+    where p.canal <> 'mostrador' and ${filtro}
+    order by ${vista === "proceso" ? sql`p.entrega_fecha nulls last, p.entrega_ventana, p.creado_en` : sql`p.creado_en desc`}
     limit 200`;
 }
 

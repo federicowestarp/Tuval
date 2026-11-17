@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
 
 export type EnlaceMenu = { href: string; texto: string; nota?: string };
@@ -28,6 +28,15 @@ export function BarraFlotante({
 }) {
   const [abierto, setAbierto] = useState(false);
   const ruta = usePathname();
+  const router = useRouter();
+
+  // El menú está oculto, así que sus enlaces no se precargan solos: se precargan todas las secciones
+  // al montar la barra para que al tocar una aparezca al instante (con su esqueleto mientras llegan los datos).
+  const destinos = [...enlaces, ...enLinea, ...(grupos ?? []).flatMap((g) => g.enlaces)].map((e) => e.href).join("|");
+  useEffect(() => {
+    const t = setTimeout(() => { for (const h of destinos.split("|")) if (h) router.prefetch(h); }, 300);
+    return () => clearTimeout(t);
+  }, [destinos, router]);
 
   // Cerrar al cambiar de página; bloquear el scroll de fondo mientras está abierto.
   const [rutaPrevia, setRutaPrevia] = useState(ruta);
