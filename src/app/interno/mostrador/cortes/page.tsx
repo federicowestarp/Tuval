@@ -38,7 +38,7 @@ async function Contenido() {
         <Indicador etiqueta="Diferencia acumulada" valor={pesos(sumaDif)} nota={sumaDif < 0 ? "Falta efectivo" : sumaDif > 0 ? "Sobra efectivo" : "Cuadra"} />
       </div>
       <section className="overflow-x-auto rounded-[20px] bg-white p-4">
-        <table className="w-full min-w-[760px] text-left text-[14px]">
+        <table className="tabla w-full min-w-[760px] text-left text-[14px]">
           <thead className="text-[12px] text-secundario">
             <tr><th className="pb-2">Turno</th><th>Cajero</th><th className="text-right">Tickets</th><th className="text-right">Vendido</th><th className="text-right">Efectivo</th><th className="text-right">Tarjeta</th><th className="text-right">Transfer.</th><th className="text-right">Esperado</th><th className="text-right">Contado</th><th className="text-right">Diferencia</th></tr>
           </thead>

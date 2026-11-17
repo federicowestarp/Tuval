@@ -2,6 +2,7 @@
 
 import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
+import { recalcularPrecios } from "@/lib/precios";
 import { requerirInterno } from "@/lib/equipo";
 import { entradaCompra, mover, sucursal } from "@/lib/inventario";
 
@@ -26,6 +27,7 @@ export async function recibirMercancia(r: Recepcion): Promise<{ error?: string; 
         insert into productos_proveedor (producto_id, proveedor_id, costo) values (${l.id}, ${prov}, ${costo})
         on conflict (producto_id, proveedor_id) do update set costo = excluded.costo`;
     }
+    await recalcularPrecios(tx, lineas.map((l) => l.id));
   });
   } catch (e) {
     return { error: `No se guardó: ${(e as Error).message}` };

@@ -11,12 +11,14 @@
     "db:local": "psql -h /var/run/postgresql -p 5433 -U tuval -d tuval"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.9.0",
     "leaflet": "^1.9.4",
     "next": "16.4.6",
     "postgres": "^3.4.7",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "unpdf": "^2.1.0"
+    "unpdf": "^2.1.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",

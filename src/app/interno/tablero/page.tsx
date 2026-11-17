@@ -126,7 +126,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         <Caja>
           {t.rutas.length === 0 ? <p className="text-[14px] text-secundario">Sin rutas en este periodo.</p> : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-[14px]">
+              <table className="tabla w-full min-w-[640px] text-left text-[14px]">
                 <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Fecha</th><th>Chofer</th><th>Vehículo</th><th className="text-right">Entregas</th><th className="text-right">En ruta</th><th className="text-right">Km GPS</th><th className="text-right">Km odómetro</th><th className="text-right">Horas</th><th className="text-right">Costo</th><th className="text-right">Por entrega</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
                   {t.rutas.slice(0, 15).map((r) => (
@@ -199,14 +199,14 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         <Seccion titulo="Flotilla">
           <Caja>
             {t.flotilla.length === 0 ? <p className="text-[14px] text-secundario">Da de alta tus vehículos en <Link href="/interno/flotilla" className="text-azul">Flotilla</Link>.</p> : (
-              <table className="w-full text-left text-[14px]">
+              <div className="overflow-x-auto"><table className="tabla w-full min-w-[560px] text-left text-[14px]">
                 <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Vehículo</th><th className="text-right">Entregas</th><th className="text-right">Km</th><th className="text-right">Km/L</th><th className="text-right">Gasto</th><th className="text-right">$/km</th><th className="text-right">$/entrega</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
                   {t.flotilla.map((v) => (
                     <tr key={v.id}><td className="py-2">{v.nombre}<span className="block text-[12px] text-secundario">{v.tipo}</span></td><td className="text-right">{v.entregas}</td><td className="text-right">{km(v) ?? "—"}</td><td className="text-right">{v.litros && km(v) ? (km(v)! / v.litros).toFixed(1) : "—"}</td><td className="text-right">{pesos(v.gasto)}</td><td className="text-right">{km(v) ? `$${(v.gasto / km(v)!).toFixed(1)}` : "—"}</td><td className="text-right">{v.entregas ? pesos(v.gasto / v.entregas) : "—"}</td></tr>
                   ))}
                 </tbody>
-              </table>
+              </table></div>
             )}
             {t.flotilla.length > 0 && <p className="mt-2 text-[12px] text-secundario">Km: rastreador GPS si lo tiene; si no, odómetro; si no, GPS del teléfono.</p>}
           </Caja>
@@ -214,7 +214,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         <Seccion titulo="Nómina">
           <Caja>
             {t.nomina.length === 0 ? <p className="text-[14px] text-secundario">Da de alta a tu personal en <Link href="/interno/flotilla" className="text-azul">Flotilla y personal</Link>.</p> : (
-              <table className="w-full text-left text-[14px]">
+              <table className="tabla w-full text-left text-[14px]">
                 <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Persona</th><th>Puesto</th><th className="text-right">Pagado en el periodo</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
                   {t.nomina.map((n) => <tr key={n.nombre}><td className="py-2">{n.nombre}</td><td>{n.puesto ?? "—"}</td><td className="text-right">{pesos(n.pagado)}</td></tr>)}

@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { sql } from "@/lib/db";
+import { nuevoCodigoRecomendado } from "@/lib/clientes";
 import { IVA, productosPorId } from "@/lib/catalogo";
 import { calcularPromesa } from "@/lib/corte";
 import { obtenerOCrearCuenta, tokenAleatorio } from "@/lib/sesion";
@@ -86,11 +87,26 @@ export async function crearPedido(_prev: EstadoFormulario, fd: FormData): Promis
 
   const pedidoId = await sql.begin(async (tx) => {
     await tx`update cuentas set nombre = ${nombre}, telefono = ${telefono} where id = ${cuenta.id}`;
-    const [cliente] = await tx<{ id: string }[]>`
-      insert into clientes (tipo, nombre, rfc, razon_social, regimen_fiscal, codigo_postal_fiscal, uso_cfdi)
-      values (${fiscal && fiscal.rfc.length === 12 ? "empresa" : "persona"}, ${nombre},
-              ${fiscal?.rfc ?? null}, ${fiscal?.razon ?? null}, ${fiscal?.regimen ?? null}, ${fiscal?.cp ?? null}, ${fiscal?.uso ?? null})
-      returning id`;
+    // Un cliente por cuenta (ficha única con historial, crédito y puntos); se actualizan sus datos fiscales si los dio.
+    const [ligado] = await tx<{ cliente_id: string | null }[]>`select cliente_id from cuentas where id = ${cuenta.id}`;
+    let cliente: { id: string };
+    if (ligado?.cliente_id) {
+      cliente = { id: ligado.cliente_id };
+      await tx`update clientes set nombre = coalesce(nullif(${nombre}, ''), nombre), telefono = coalesce(${telefono}, telefono),
+                 rfc = coalesce(${fiscal?.rfc ?? null}, rfc), razon_social = coalesce(${fiscal?.razon ?? null}, razon_social),
+                 regimen_fiscal = coalesce(${fiscal?.regimen ?? null}, regimen_fiscal), codigo_postal_fiscal = coalesce(${fiscal?.cp ?? null}, codigo_postal_fiscal),
+                 uso_cfdi = coalesce(${fiscal?.uso ?? null}, uso_cfdi) where id = ${cliente.id}`;
+    } else {
+      const codigo = texto(fd, "codigo_recomendado").toUpperCase();
+      const [quien] = codigo ? await tx<{ id: string }[]>`select id from clientes where codigo_recomendado = ${codigo}` : [];
+      [cliente] = await tx<{ id: string }[]>`
+        insert into clientes (tipo, nombre, telefono, rfc, razon_social, regimen_fiscal, codigo_postal_fiscal, uso_cfdi, codigo_recomendado, recomendado_por)
+        values (${fiscal && fiscal.rfc.length === 12 ? "empresa" : "persona"}, ${nombre}, ${telefono},
+                ${fiscal?.rfc ?? null}, ${fiscal?.razon ?? null}, ${fiscal?.regimen ?? null}, ${fiscal?.cp ?? null}, ${fiscal?.uso ?? null},
+                ${nuevoCodigoRecomendado()}, ${quien?.id ?? null})
+        returning id`;
+      await tx`update cuentas set cliente_id = ${cliente.id} where id = ${cuenta.id}`;
+    }
     const tipoEntrega = !dir ? "recoger" : dir.tipo === "obra" ? "obra" : "domicilio";
     const [pedido] = await tx<{ id: string }[]>`
       insert into pedidos (folio, canal, cliente_id, cuenta_id, tipo_entrega, direccion_id, direccion_entrega, zona, entidad, lat, lng,

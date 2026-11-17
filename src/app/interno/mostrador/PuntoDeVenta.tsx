@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import type { ProductoMostrador } from "@/lib/inventario";
 import { BuscadorProducto } from "@/components/interno/BuscadorProducto";
 import { Segmentado } from "@/components/Segmentado";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { registrarVenta } from "./acciones";
+import { ClienteVenta } from "./ClienteVenta";
+import { preciosDeLista, type InfoCliente } from "./cliente-acciones";
+import { Dictado } from "./Dictado";
 import { sinIva, totalesVenta } from "@/lib/totales";
 import { InventarioFocos, type ProductoInventario } from "./InventarioFocos";
 
@@ -17,7 +20,10 @@ const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currenc
 export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inventario: ProductoInventario[]; categorias: { id: string; nombre: string }[]; terminales?: { id: string; nombre: string }[] }) {
   const [terminal, setTerminal] = useState(terminales.length === 1 ? terminales[0].id : "");
   const [lineas, setLineas] = useState<Linea[]>([]);
-  const [forma, setForma] = useState<"efectivo" | "tarjeta" | "transferencia">("efectivo");
+  const [forma, setForma] = useState<"efectivo" | "tarjeta" | "transferencia" | "credito">("efectivo");
+  const [ficha, setFicha] = useState<InfoCliente | null>(null);
+  const [preciosLista, setPreciosLista] = useState<Record<string, number | null>>({});
+  const [usarPuntos, setUsarPuntos] = useState(false);
   const [comprobante, setComprobante] = useState<"nota" | "factura">("nota");
   const [recibido, setRecibido] = useState("");
   const [referencia, setReferencia] = useState("");
@@ -26,19 +32,29 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
   const [hecha, setHecha] = useState<{ id: string; folio: string; cambio: number; pendiente: boolean } | null>(null);
   const [enviando, iniciar] = useTransition();
 
-  const agregar = (p: ProductoMostrador) => {
+  const agregar = (p: ProductoMostrador, cantidad = 1) => {
     setHecha(null);
     setLineas((ls) => {
       const i = ls.findIndex((l) => l.id === p.id);
-      if (i >= 0) return ls.map((l, j) => (j === i ? { ...l, cantidad: l.cantidad + 1 } : l));
-      return [...ls, { ...p, cantidad: 1, manual: "" }];
+      if (i >= 0) return ls.map((l, j) => (j === i ? { ...l, cantidad: l.cantidad + cantidad } : l));
+      return [...ls, { ...p, cantidad, manual: "" }];
     });
   };
   // Mismo cálculo que el servidor (src/lib/totales.ts): total con IVA por renglón, sin centavos fantasma.
-  const precioSinIva = (l: Linea) => (l.precio != null ? l.precio : sinIva(Number(l.manual) || 0));
+  const precioSinIva = (l: Linea) => { const pl = ficha ? preciosLista[l.id] : undefined; return pl != null ? pl : l.precio != null ? l.precio : sinIva(Number(l.manual) || 0); };
   const precioConIva = (l: Linea) => precioSinIva(l) * (1 + IVA);
   const { total } = totalesVenta(lineas.map((l) => ({ precio: precioSinIva(l), cantidad: l.cantidad })));
-  const cambio = forma === "efectivo" ? (Number(recibido) || 0) - total : 0;
+  const descuentoPuntos = ficha && usarPuntos ? Math.min(ficha.puntos * ficha.valorPunto, total) : 0;
+  const porCobrar = Math.round((total - descuentoPuntos) * 100) / 100;
+  const cambio = forma === "efectivo" ? (Number(recibido) || 0) - porCobrar : 0;
+  // Precios de la lista del cliente para lo que está en la venta.
+  const idsVenta = lineas.map((l) => l.id).join(",");
+  useEffect(() => {
+    if (!ficha || !idsVenta) return;
+    let vivo = true;
+    preciosDeLista(idsVenta.split(","), ficha.listaId).then((p) => { if (vivo) setPreciosLista(p); });
+    return () => { vivo = false; };
+  }, [ficha, idsVenta]);
   const sinExistencia = lineas.filter((l) => l.cantidad > l.existencia);
 
   const cobrar = () => {
@@ -47,18 +63,21 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
       const r = await registrarVenta({
         lineas: lineas.map((l) => ({ id: l.id, cantidad: l.cantidad, precio: l.precio == null ? Number(l.manual) || null : null })),
         forma, terminal: forma === "tarjeta" ? terminal : null, recibido: Number(recibido) || null, referencia, comprobante, cliente,
+        clienteId: ficha?.id ?? null, puntos: usarPuntos && ficha ? ficha.puntos : 0,
       });
       if (r.error) { setError(r.error); return; }
       setHecha({ id: r.id!, folio: r.folio!, cambio, pendiente: !!r.pendiente });
       setLineas([]); setRecibido(""); setReferencia("");
       setCliente({ nombre: "", telefono: "", rfc: "", razon: "", cp: "", regimen: "", uso: "G03" });
+      setFicha(null); setUsarPuntos(false); setForma("efectivo");
     });
   };
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <section className="space-y-3 rounded-[20px] bg-white p-4">
-        <BuscadorProducto onElegir={agregar} />
+        <BuscadorProducto onElegir={(p) => agregar(p)} />
+        <Dictado onAgregar={agregar} />
         {hecha && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-niebla p-4">
             <p className="font-semibold">Venta {hecha.folio} registrada{hecha.cambio > 0 && !hecha.pendiente && <> · Cambio: <span className="text-azul">{mx(hecha.cambio)}</span></>}
@@ -100,9 +119,17 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
           <span className="text-secundario">Total con IVA</span>
           <span className="font-display text-[34px] font-semibold tabular-nums">{mx(total)}</span>
         </div>
+        <ClienteVenta cliente={ficha} onCambio={(c) => { setFicha(c); setUsarPuntos(false); if (!c && forma === "credito") setForma("efectivo"); }} />
+        {ficha && ficha.puntos > 0 && (
+          <label className="flex items-center justify-between gap-2 rounded-xl bg-niebla px-3 py-2 text-[14px]">
+            <span><input type="checkbox" checked={usarPuntos} onChange={(e) => setUsarPuntos(e.target.checked)} className="mr-2" />Usar {ficha.puntos} puntos</span>
+            <strong>− {mx(Math.min(ficha.puntos * ficha.valorPunto, total))}</strong>
+          </label>
+        )}
+        {descuentoPuntos > 0 && <p className="flex justify-between text-[15px] font-semibold"><span>Por cobrar</span><span className="tabular-nums">{mx(porCobrar)}</span></p>}
         <div>
           <p className={etiqueta}>Forma de pago</p>
-          <Segmentado name="forma" valor={forma} onCambio={(v) => setForma(v as typeof forma)} opciones={[{ id: "efectivo", texto: "Efectivo" }, { id: "tarjeta", texto: "Tarjeta" }, { id: "transferencia", texto: "Transfer." }]} />
+          <Segmentado name="forma" valor={forma} onCambio={(v) => setForma(v as typeof forma)} opciones={[{ id: "efectivo", texto: "Efectivo" }, { id: "tarjeta", texto: "Tarjeta" }, { id: "transferencia", texto: "Transfer." }, ...(ficha?.credito.activo ? [{ id: "credito", texto: "Crédito" }] : [])]} />
         </div>
         {forma === "efectivo" ? (
           <div>
@@ -122,6 +149,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
                   </select>
                 </div>)}
             {forma === "transferencia" && <p className="text-[13px] text-secundario">La venta queda pendiente de pago hasta que se confirme la transferencia. No se entrega antes.</p>}
+            {forma === "credito" && <p className="text-[13px] text-secundario">Se carga a su estado de cuenta. El sistema revisa que no tenga saldo vencido y que quepa en su límite.</p>}
             <div>
               <label className={etiqueta} htmlFor="referencia">{forma === "tarjeta" ? "Autorización de la terminal" : "Referencia"}</label>
               <input id="referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} className={campo} />
@@ -133,8 +161,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
           <Segmentado name="comprobante" valor={comprobante} onCambio={(v) => setComprobante(v as typeof comprobante)} opciones={[{ id: "nota", texto: "Nota" }, { id: "factura", texto: "Factura" }]} />
         </div>
         <div className="grid gap-2">
-          <input placeholder="Cliente (opcional)" value={cliente.nombre} onChange={(e) => setCliente({ ...cliente, nombre: e.target.value })} className={campo} />
-          {comprobante === "factura" && (
+          {comprobante === "factura" && !ficha?.rfc && (
             <>
               <input placeholder="RFC" value={cliente.rfc} onChange={(e) => setCliente({ ...cliente, rfc: e.target.value.toUpperCase() })} className={campo} />
               <input placeholder="Razón social" value={cliente.razon} onChange={(e) => setCliente({ ...cliente, razon: e.target.value })} className={campo} />
@@ -148,7 +175,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
         </div>
         {error && <p role="alert" className="font-semibold text-red-700">{error}</p>}
         <button type="button" disabled={enviando || lineas.length === 0} onClick={cobrar} className={clasesBoton("principal", "grande", true)}>
-          {enviando ? "Registrando…" : `Cobrar ${mx(total)}`}
+          {enviando ? "Registrando…" : forma === "credito" ? `Cargar a crédito ${mx(porCobrar)}` : `Cobrar ${mx(porCobrar)}`}
         </button>
       </aside>
     </div>

@@ -2,6 +2,7 @@
 
 import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
+import { recalcularPrecios } from "@/lib/precios";
 import { requerirInterno } from "@/lib/equipo";
 import { leerCotizacion, normalizar } from "@/lib/cotizacion";
 import { leerPdfEmmsa } from "@/lib/emmsa";
@@ -87,6 +88,8 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
                 tiempo_surtido_horas = coalesce(excluded.tiempo_surtido_horas, productos_proveedor.tiempo_surtido_horas), actualizado_en = now()`;
       }
     }
+    // Nuevos costos del proveedor → se recalculan los precios de las listas con margen.
+    await recalcularPrecios(tx, [...usadas].length ? await tx<{ producto_id: string }[]>`select producto_id from pedido_partidas where id = any(${[...usadas]}::uuid[])`.then((x) => x.map((y) => y.producto_id)) : []);
   });
   refrescar(`/interno/pedidos/${pedidoId}`);
   const aviso = meta.cuadra === false ? " ⚠ La suma de partidas no cuadra con el subtotal del PDF: revísala." : "";

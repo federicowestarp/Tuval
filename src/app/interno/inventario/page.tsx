@@ -89,7 +89,7 @@ async function Existencias({ almacen, q, ver }: { almacen: string; q: string; ve
       </form>
       {filas.length === 0 ? <p className="text-[14px] text-secundario">Sin productos con este filtro. Usa “Recibir mercancía” para dar entrada.</p> : (
         <div className="overflow-x-auto">
-          <table className="w-full text-[14px]">
+          <table className="tabla w-full text-[14px]">
             <thead className="text-left text-[12px] text-secundario"><tr><th className="py-2 font-semibold">Producto</th><th className="text-right font-semibold">Existencia</th><th className="text-right font-semibold">Mínimo</th><th className="text-right font-semibold">Costo prom.</th><th className="text-right font-semibold">Valor</th></tr></thead>
             <tbody className="divide-y divide-linea">
               {filas.map((f) => (

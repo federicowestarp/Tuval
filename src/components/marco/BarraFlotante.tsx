@@ -147,7 +147,7 @@ export function BarraFlotante({
                 {grupos.map((g) => {
                   const aqui = g.enlaces.some((e) => activo(e.href));
                   return (
-                    <details key={g.titulo} open={aqui || undefined} className="group/area border-b border-linea [&_summary::-webkit-details-marker]:hidden">
+                    <details key={g.titulo} name="areas-menu" open={aqui || undefined} className="group/area border-b border-linea [&_summary::-webkit-details-marker]:hidden">
                       <summary className="flex cursor-pointer list-none items-center justify-between py-4 font-display text-[22px] font-semibold tracking-[-0.02em]">
                         <span className={aqui ? "text-azul" : ""}>{g.titulo}</span>
                         <span aria-hidden className="text-[22px] font-normal text-secundario transition group-open/area:rotate-45">+</span>

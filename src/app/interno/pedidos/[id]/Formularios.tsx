@@ -59,7 +59,7 @@ export function FormConfirmar({ pedidoId, renglones, confirmado }: { pedidoId: s
     <form action={accion} className="space-y-3">
       <input type="hidden" name="pedido_id" value={pedidoId} />
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
+        <table className="tabla w-full min-w-[760px] text-left text-sm">
           <thead className="bg-piedra text-xs">
             <tr>
               <th className="p-2">Producto</th>

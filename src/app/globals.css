@@ -61,3 +61,8 @@ body {
 @keyframes ocultar-arranque { to { opacity: 0; visibility: hidden; } }
 .arranque { animation: ocultar-arranque 0.3s ease 4s forwards; }
 @media (prefers-reduced-motion: reduce) { .latido { animation: none; } }
+
+/* Tablas del panel: separación entre columnas y celdas en una sola línea (con scroll horizontal en su caja). */
+.tabla th, .tabla td { padding: 0.55rem 0.75rem; white-space: nowrap; vertical-align: middle; }
+.tabla th:first-child, .tabla td:first-child { padding-left: 0; white-space: normal; min-width: 8rem; }
+.tabla th:last-child, .tabla td:last-child { padding-right: 0; }
