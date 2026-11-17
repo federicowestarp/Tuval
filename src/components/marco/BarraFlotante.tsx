@@ -84,17 +84,17 @@ export function BarraFlotante({
             Cerrar <span aria-hidden className="relative h-4 w-4"><span className="absolute left-0 top-1/2 h-[1.5px] w-4 rotate-45 bg-current" /><span className="absolute left-0 top-1/2 h-[1.5px] w-4 -rotate-45 bg-current" /></span>
           </button>
         </div>
-        <nav className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto px-6 pb-10 pt-10 sm:px-9 sm:pt-16">
-          <ul className="space-y-1">
+        <nav className="mx-auto w-full max-w-6xl flex-1 overflow-y-auto px-6 pb-10 pt-8 sm:px-9 sm:pt-12">
+          <ul className="grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
             {enlaces.map((e, i) => (
               <li key={e.href} className={`transition duration-500 ${abierto ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"}`} style={{ transitionDelay: abierto ? `${60 + i * 35}ms` : "0ms" }}>
                 <Link
                   href={e.href}
                   onClick={() => setAbierto(false)}
-                  className={`group flex items-baseline justify-between gap-4 border-b border-linea py-4 font-display text-[32px] font-semibold leading-none tracking-[-0.03em] sm:text-[44px] ${activo(e.href) ? "text-azul" : "text-tinta hover:text-azul"}`}
+                  className={`group flex items-center justify-between gap-4 border-b border-linea py-3 font-display text-[20px] font-semibold leading-tight tracking-[-0.02em] sm:text-[24px] ${activo(e.href) ? "text-azul" : "text-tinta hover:text-azul"}`}
                 >
                   <span>{e.texto}</span>
-                  {e.nota ? <span className="font-sans text-[14px] font-normal tracking-normal text-secundario">{e.nota}</span> : <span aria-hidden className="text-[20px] text-secundario transition group-hover:translate-x-1 group-hover:text-azul">→</span>}
+                  {e.nota ? <span className="font-sans text-[14px] font-normal tracking-normal text-secundario">{e.nota}</span> : <span aria-hidden className="text-[16px] text-secundario transition group-hover:translate-x-1 group-hover:text-azul">→</span>}
                 </Link>
               </li>
             ))}
