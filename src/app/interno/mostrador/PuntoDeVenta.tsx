@@ -4,7 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { EscanerQR, codigoCarritoDeQr, skuDeQr } from "@/components/interno/EscanerQR";
-import { cargarCarritoTienda, productoPorEtiqueta } from "./tienda-acciones";
+import { cargarCarritoTienda, darAccesoCelular, productoPorEtiqueta, verificarCelular } from "./tienda-acciones";
+import QRCode from "qrcode";
 import type { ProductoMostrador } from "@/lib/inventario";
 import { BuscadorProducto } from "@/components/interno/BuscadorProducto";
 import { Segmentado } from "@/components/Segmentado";
@@ -35,7 +36,8 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
   const [hecha, setHecha] = useState<{ id: string; folio: string; cambio: number; pendiente: boolean } | null>(null);
   const [enviando, iniciar] = useTransition();
   // Carrito armado por el cliente en la tienda (QR o código) y lector de QR (carrito o etiqueta de anaquel).
-  const [carrito, setCarrito] = useState<{ id: string; codigo: string } | null>(null);
+  const [carrito, setCarrito] = useState<{ id: string; codigo: string; telefono: string | null; verificado: boolean } | null>(null);
+  const [accesoQr, setAccesoQr] = useState<string | null>(null);
   const [escaneando, setEscaneando] = useState(false);
   const [codigoCarrito, setCodigoCarrito] = useState("");
   const [avisoQr, setAvisoQr] = useState<string | null>(null);
@@ -44,9 +46,9 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
     setAvisoQr(null);
     const r = await cargarCarritoTienda(codigo);
     if (r.error || !r.id) { setAvisoQr(r.error ?? "No se pudo cargar."); return; }
-    setHecha(null);
+    setHecha(null); setAccesoQr(null);
     setLineas(r.lineas!.map((x) => ({ ...x.producto, cantidad: x.cantidad, manual: "" })));
-    setCarrito({ id: r.id, codigo: codigo.toUpperCase() });
+    setCarrito({ id: r.id, codigo: codigo.toUpperCase(), telefono: r.telefono ?? null, verificado: !!r.verificado });
     if (r.clienteId) { const f = await infoCliente(r.clienteId); if (f) setFicha(f); }
     setAvisoQr(`Carrito ${codigo.toUpperCase()} cargado${r.vendedor ? ` (lo armó ${r.vendedor})` : ""}: confirma con el cliente lo que se lleva y ajusta cantidades antes de cobrar.`);
   };
@@ -120,6 +122,18 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
           {carrito && <span className="rounded-full bg-[#E8F1FB] px-3 py-1 text-[13px] font-semibold text-azul">Carrito {carrito.codigo}</span>}
         </div>
         {avisoQr && <p className="rounded-xl bg-niebla px-3 py-2 text-[14px]">{avisoQr}</p>}
+        {carrito?.telefono && !carrito.verificado && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-[#E8F1FB] px-3 py-2 text-[14px]">
+            <span>Celular que dejó: <strong className="font-mono">{carrito.telefono}</strong>. Pídele que te lo diga y su nombre para darlo de alta.</span>
+            <button type="button" onClick={async () => {
+              const r = await verificarCelular(carrito.id);
+              if (r.error || !r.clienteId) { setAvisoQr(r.error ?? "No se pudo."); return; }
+              const f = await infoCliente(r.clienteId); if (f) setFicha(f);
+              setCarrito({ ...carrito, verificado: true });
+              setAvisoQr("Celular confirmado: queda dado de alta y esta compra le suma puntos. Revisa que el nombre de la ficha sea el suyo.");
+            }} className="rounded-full bg-azul px-3 py-1.5 font-semibold text-white">Confirmé su celular</button>
+          </div>
+        )}
         {escaneando && <EscanerQR titulo="Escanea el carrito del cliente o una etiqueta" onLeer={leerQr} onCerrar={() => setEscaneando(false)} />}
         <Dictado onAgregar={agregar} />
         {hecha && (
@@ -164,6 +178,20 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
           <span className="font-display text-[34px] font-semibold tabular-nums">{mx(total)}</span>
         </div>
         <ClienteVenta cliente={ficha} onCambio={(c) => { setFicha(c); setUsarPuntos(false); if (!c && forma === "credito") setForma("efectivo"); }} />
+        {ficha && (
+          <button type="button" onClick={async () => {
+            const r = await darAccesoCelular(ficha.id);
+            if (r.url) setAccesoQr(await QRCode.toString(r.url, { type: "svg", margin: 1 })); else setAvisoQr(r.error ?? "No se pudo.");
+          }} className="text-[13px] text-azul underline">Dar acceso a su cuenta en su celular</button>
+        )}
+        {accesoQr && (
+          <div className="fixed inset-0 z-[85] flex flex-col items-center justify-center gap-3 bg-white/95 p-6 text-center" role="dialog" aria-label="Acceso del cliente">
+            <p className="text-[18px] font-semibold">Que el cliente escanee esto con la cámara de su celular</p>
+            <div className="h-64 w-64 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: accesoQr }} />
+            <p className="max-w-sm text-[14px] text-secundario">Abre su cuenta con sus puntos, pedidos y su código para recomendar. Sirve una sola vez y vence en 10 minutos.</p>
+            <button type="button" onClick={() => setAccesoQr(null)} className="rounded-full bg-azul px-6 py-3 font-semibold text-white">Listo</button>
+          </div>
+        )}
         {ficha && ficha.puntos > 0 && (
           <label className="flex items-center justify-between gap-2 rounded-xl bg-niebla px-3 py-2 text-[14px]">
             <span><input type="checkbox" checked={usarPuntos} onChange={(e) => setUsarPuntos(e.target.checked)} className="mr-2" />Usar {ficha.puntos} puntos</span>

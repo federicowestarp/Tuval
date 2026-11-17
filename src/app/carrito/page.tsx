@@ -5,6 +5,7 @@ import { cuentaActual } from "@/lib/sesion";
 import { direccionesDe } from "@/lib/direcciones";
 import { haySucursales } from "@/lib/pedidos";
 import { FormularioPedido } from "./FormularioPedido";
+import { paramLealtad } from "@/lib/lealtad";
 
 export default function Carrito() {
   return (
@@ -21,6 +22,6 @@ export default function Carrito() {
 
 async function Contenido() {
   const cuenta = await cuentaActual();
-  const [direcciones, sucursales] = await Promise.all([cuenta ? direccionesDe(cuenta.id) : [], haySucursales()]);
-  return <FormularioPedido direcciones={direcciones} haySucursal={sucursales} nombre={cuenta?.nombre ?? ""} telefono={cuenta?.telefono ?? ""} />;
+  const [direcciones, sucursales, lealtad] = await Promise.all([cuenta ? direccionesDe(cuenta.id) : [], haySucursales(), paramLealtad()]);
+  return <FormularioPedido direcciones={direcciones} haySucursal={sucursales} nombre={cuenta?.nombre ?? ""} telefono={cuenta?.telefono ?? ""} recomendados={lealtad.recomendados_activo === 1} />;
 }

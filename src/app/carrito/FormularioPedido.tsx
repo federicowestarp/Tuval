@@ -28,7 +28,7 @@ const USOS = [
   ["I01", "I01 · Construcciones"],
 ];
 
-type Props = { direcciones: Direccion[]; haySucursal: boolean; nombre: string; telefono: string };
+type Props = { direcciones: Direccion[]; haySucursal: boolean; nombre: string; telefono: string; recomendados?: boolean };
 
 function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
@@ -39,7 +39,7 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
   );
 }
 
-export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }: Props) {
+export function FormularioPedido({ direcciones, haySucursal, nombre, telefono, recomendados = false }: Props) {
   const { lineas, adjuntos, piezas, cambiar, quitarAdjunto } = useCarrito();
   const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(crearPedido, {});
   const v = estado.campos ?? {};
@@ -96,7 +96,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
           </li>
         ))}
       </ul>
-      <PagarEnCaja />
+      <PagarEnCaja telefono={telefono} />
       <p className="-mt-4 text-[13px] text-secundario">Confirmamos precios y existencias antes de surtir. <Link href="/tienda" className="text-azul underline">Seguir comprando</Link></p>
 
       <Seccion titulo="Tus datos">
@@ -147,10 +147,10 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
           <label className={etiqueta} htmlFor="notas">Notas (opcional)</label>
           <input id="notas" name="notas" defaultValue={v.notas} className={campo} placeholder="Ej. orden de compra 1234" />
         </div>
-        <div className="mt-4">
+        {recomendados && <div className="mt-4">
           <label className={etiqueta} htmlFor="codigo_recomendado">¿Te recomendó alguien? Código (opcional)</label>
           <input id="codigo_recomendado" name="codigo_recomendado" className={campo} placeholder="TUV-XXXXX" autoCapitalize="characters" />
-        </div>
+        </div>}
       </Seccion>
 
       <Seccion titulo="Comprobante">

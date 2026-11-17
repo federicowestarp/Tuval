@@ -7,18 +7,19 @@ import { urlPanel } from "@/lib/etiqueta";
 import { carritoParaCaja } from "./tienda-acciones";
 
 /** En la tienda: el cliente enseña este QR (o dicta el código) en caja y el cajero carga su carrito para cobrar. */
-export function PagarEnCaja() {
+export function PagarEnCaja({ telefono: telInicial = "" }: { telefono?: string }) {
   const { lineas } = useCarrito();
   const catalogo = lineas.filter((l) => !l.especial);
   const [codigo, setCodigo] = useState<string | null>(null);
   const [qr, setQr] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [telefono, setTelefono] = useState(telInicial);
   const [enviando, iniciar] = useTransition();
   if (catalogo.length === 0) return null;
 
   const generar = () => iniciar(async () => {
     setError(null);
-    const r = await carritoParaCaja(catalogo.map((l) => ({ id: l.id, cantidad: l.cantidad })));
+    const r = await carritoParaCaja(catalogo.map((l) => ({ id: l.id, cantidad: l.cantidad })), telefono.trim() || undefined);
     if (r.error || !r.codigo) { setError(r.error ?? "Intenta de nuevo."); return; }
     setQr(await QRCode.toString(urlPanel(`/interno/mostrador?carrito=${r.codigo}`), { type: "svg", margin: 1, errorCorrectionLevel: "M" }));
     setCodigo(r.codigo);
@@ -40,7 +41,11 @@ export function PagarEnCaja() {
             <p className="font-semibold">¿Estás en la tienda?</p>
             <p className="text-[14px] text-secundario">Toma tus piezas y paga en caja con un código. Sin envío.</p>
           </div>
-          <button type="button" disabled={enviando} onClick={generar} className="rounded-full bg-azul px-5 py-3 font-semibold text-white">{enviando ? "Generando…" : "Pagar en caja"}</button>
+          <div className="flex w-full flex-wrap items-center gap-2">
+            <input value={telefono} onChange={(e) => setTelefono(e.target.value)} inputMode="tel" placeholder="Tu celular (para tus puntos)" aria-label="Tu celular" className="h-12 min-w-0 flex-1 rounded-full border border-linea bg-white px-4" />
+            <button type="button" disabled={enviando} onClick={generar} className="h-12 rounded-full bg-azul px-5 font-semibold text-white">{enviando ? "Generando…" : "Pagar en caja"}</button>
+          </div>
+          <p className="w-full text-[12px] text-secundario">Con tu celular quedas dado de alta en caja y juntas puntos en cada compra.</p>
           {error && <p className="w-full text-[14px] font-semibold text-red-700">{error}</p>}
         </div>
       )}

@@ -4,12 +4,12 @@ import { sql } from "@/lib/db";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- sql o transacción
 type Tx = postgres.Sql<any> | postgres.TransactionSql<any>;
 
-export type ParamLealtad = { puntos_por_cada_100: number; valor_punto: number; puntos_recomienda: number; puntos_recomendado: number; compra_minima_recomendado: number };
+export type ParamLealtad = { puntos_por_cada_100: number; valor_punto: number; puntos_recomienda: number; puntos_recomendado: number; compra_minima_recomendado: number; recomendados_activo: number; recomendados_max_mes: number };
 
 export async function paramLealtad(tx: Tx = sql): Promise<ParamLealtad> {
   const f = await tx<{ clave: string; valor: number }[]>`
     select clave, valor::float valor from parametros_operacion
-    where clave in ('puntos_por_cada_100', 'valor_punto', 'puntos_recomienda', 'puntos_recomendado', 'compra_minima_recomendado')`;
+    where clave in ('puntos_por_cada_100', 'valor_punto', 'puntos_recomienda', 'puntos_recomendado', 'compra_minima_recomendado', 'recomendados_activo', 'recomendados_max_mes')`;
   return Object.fromEntries(f.map((x) => [x.clave, x.valor])) as ParamLealtad;
 }
 
@@ -24,7 +24,11 @@ export async function otorgarPuntos(tx: Tx, clienteId: string, pedidoId: string,
   if (puntos > 0 && !ya) await tx`insert into movimientos_puntos (cliente_id, pedido_id, puntos, motivo) values (${clienteId}, ${pedidoId}, ${puntos}, 'compra')`;
   const [c] = await tx<{ recomendado_por: string | null; recompensa: Date | null }[]>`
     select recomendado_por, recompensa_recomendado_en recompensa from clientes where id = ${clienteId} for update`;
-  if (c?.recomendado_por && !c.recompensa && montoPagado >= (p.compra_minima_recomendado ?? 0)) {
+  // Recomendados: solo con el programa activo y hasta el tope mensual de quien recomienda.
+  const [mes] = c?.recomendado_por ? await tx<{ n: number }[]>`
+    select count(*)::int n from movimientos_puntos where cliente_id = ${c.recomendado_por} and motivo = 'recomendado'
+      and creado_en >= date_trunc('month', now() at time zone 'America/Mexico_City') at time zone 'America/Mexico_City'` : [{ n: 0 }];
+  if (c?.recomendado_por && !c.recompensa && p.recomendados_activo === 1 && mes.n < (p.recomendados_max_mes ?? 0) && montoPagado >= (p.compra_minima_recomendado ?? 0)) {
     await tx`insert into movimientos_puntos (cliente_id, pedido_id, puntos, motivo, nota) values
              (${clienteId}, ${pedidoId}, ${p.puntos_recomendado}, 'bienvenida', 'Primera compra como recomendado'),
              (${c.recomendado_por}, ${pedidoId}, ${p.puntos_recomienda}, 'recomendado', 'Su recomendado hizo su primera compra')`;

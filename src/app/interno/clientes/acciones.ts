@@ -93,3 +93,15 @@ export async function ajustarPuntos(fd: FormData) {
   await sql`insert into movimientos_puntos (cliente_id, puntos, motivo, nota, creado_por) values (${id}, ${puntos}, 'ajuste', ${o(fd, "nota")}, ${yo.id})`;
   refrescar(`/interno/clientes/${id}`);
 }
+
+/** Programa de recomendados: activar o pausar y tope mensual de recompensas por cliente (admin). */
+export async function guardarRecomendados(fd: FormData) {
+  await requerirInterno("admin");
+  const activo = fd.get("activo") === "1" ? 1 : 0;
+  const tope = Math.min(Math.max(Math.round(Number(fd.get("tope")) || 0), 0), 100);
+  await sql`update parametros_operacion set valor = ${activo}, supuesto = false where clave = 'recomendados_activo'`;
+  await sql`update parametros_operacion set valor = ${tope}, supuesto = false where clave = 'recomendados_max_mes'`;
+  refrescar("/interno/clientes");
+  refrescar("/cuenta");
+  refrescar("/carrito");
+}

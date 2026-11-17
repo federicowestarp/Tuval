@@ -2,12 +2,13 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { sql } from "@/lib/db";
-import { requerirInterno } from "@/lib/equipo";
+import { puede, requerirInterno } from "@/lib/equipo";
+import { paramLealtad } from "@/lib/lealtad";
 import { Esqueleto } from "@/components/interno/Esqueleto";
 import { pesos } from "@/components/interno/Indicadores";
 import { campo } from "@/components/ui";
 import { NavegacionInterna } from "../Navegacion";
-import { crearCliente } from "./acciones";
+import { crearCliente, guardarRecomendados } from "./acciones";
 
 export default function Clientes(props: PageProps<"/interno/clientes">) {
   return (
@@ -15,6 +16,7 @@ export default function Clientes(props: PageProps<"/interno/clientes">) {
       <NavegacionInterna actual="clientes" />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6">
         <h1 className="font-display text-2xl font-semibold">Clientes</h1>
+        <Suspense fallback={null}><ProgramaRecomendados /></Suspense>
         <Suspense fallback={<Esqueleto />}><Contenido searchParams={props.searchParams} /></Suspense>
       </main>
     </div>
@@ -84,5 +86,24 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/c
         )}
       </section>
     </>
+  );
+}
+
+/** Interruptor del programa de recomendados (solo admin). */
+async function ProgramaRecomendados() {
+  await connection();
+  const yo = await requerirInterno("operador");
+  if (!puede(yo.rol, "admin")) return null;
+  const p = await paramLealtad();
+  const activo = p.recomendados_activo === 1;
+  return (
+    <form action={guardarRecomendados} className="flex flex-wrap items-center gap-3 rounded-[20px] bg-white p-4 text-[14px]">
+      <span className="font-semibold">Programa de recomendados</span>
+      <span className={`rounded-full px-3 py-1 text-[13px] font-semibold ${activo ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{activo ? "Activo" : "En pausa"}</span>
+      <input type="hidden" name="activo" value={activo ? "0" : "1"} />
+      <label className="flex items-center gap-1 text-secundario">Máximo por cliente al mes <input name="tope" type="number" min={0} max={100} defaultValue={p.recomendados_max_mes ?? 5} className="h-9 w-16 rounded-full border border-linea px-2 text-center" /></label>
+      <button className={`rounded-full px-4 py-1.5 font-semibold ${activo ? "border border-amber-600 text-amber-700" : "bg-azul text-white"}`}>{activo ? "Pausar" : "Activar"}</button>
+      <span className="w-full text-[12px] text-secundario">En pausa: no se piden ni se muestran códigos y no se dan recompensas por recomendar. Los puntos por compra siguen igual.</span>
+    </form>
   );
 }
