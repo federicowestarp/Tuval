@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { entradaCompra, mover, sucursal } from "@/lib/inventario";
@@ -30,7 +30,7 @@ export async function recibirMercancia(r: Recepcion): Promise<{ error?: string; 
   } catch (e) {
     return { error: `No se guardó: ${(e as Error).message}` };
   }
-  revalidatePath("/interno/inventario");
+  refrescar("/interno/inventario");
   return { ok: lineas.length };
 }
 
@@ -61,7 +61,7 @@ export async function guardarConteo(c: Conteo): Promise<{ error?: string; ajuste
       }
     }
   });
-  revalidatePath("/interno/inventario");
+  refrescar("/interno/inventario");
   return { ajustes };
 }
 
@@ -74,5 +74,5 @@ export async function fijarMinimo(fd: FormData) {
   await sql`
     insert into existencias (producto_id, almacen_id, cantidad, minimo) values (${id}, ${s.id}, 0, ${min})
     on conflict (producto_id, almacen_id) do update set minimo = ${min}`;
-  revalidatePath("/interno/inventario");
+  refrescar("/interno/inventario");
 }

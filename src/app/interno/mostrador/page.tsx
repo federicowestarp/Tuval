@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -8,6 +9,7 @@ import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { pesos } from "@/components/interno/Indicadores";
 import { NavegacionInterna } from "../Navegacion";
 import { PuntoDeVenta } from "./PuntoDeVenta";
+import type { ProductoInventario } from "./InventarioFocos";
 import { abrirCaja, cerrarCaja } from "./acciones";
 
 export default function Mostrador() {
@@ -15,7 +17,7 @@ export default function Mostrador() {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="mostrador" />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}><Contenido /></Suspense>
+        <Suspense fallback={<Esqueleto />}><Contenido /></Suspense>
       </main>
     </div>
   );
@@ -42,12 +44,20 @@ async function Contenido() {
     );
   }
 
-  const [porForma, ventas] = await Promise.all([
+  const [porForma, ventas, inventario, categorias] = await Promise.all([
     sql<{ forma: string; total: number; n: number }[]>`
       select forma, sum(monto)::float total, count(*)::int n from pagos where caja_id = ${caja.id} group by forma order by forma`,
     sql<{ id: string; folio: string; total: number; hora: string; comprobante: string }[]>`
       select p.id, p.folio, p.total::float total, to_char(p.creado_en at time zone 'America/Mexico_City', 'HH24:MI') hora, p.comprobante
       from pedidos p join pagos g on g.pedido_id = p.id where g.caja_id = ${caja.id} order by p.creado_en desc limit 15`,
+    sql<ProductoInventario[]>`
+      select p.id, p.sku, p.nombre, p.unidad, pr.precio::float precio, coalesce(e.cantidad, 0)::float existencia, p.codigo_barras,
+             p.costo_promedio::float costo, p.categoria_id, e.minimo::float minimo
+      from productos p
+      left join precios pr on pr.producto_id = p.id and pr.lista_id = (select id from listas_precio where nombre = 'Público')
+      left join existencias e on e.producto_id = p.id and e.almacen_id = ${s.id}
+      where p.activo order by p.nombre`,
+    sql<{ id: string; nombre: string }[]>`select id, nombre from categorias order by orden, nombre`,
   ]);
   const efectivo = porForma.find((f) => f.forma === "efectivo")?.total ?? 0;
   const esperado = caja.fondo + efectivo;
@@ -58,7 +68,7 @@ async function Contenido() {
         <h1 className="font-display text-2xl font-semibold">Mostrador · {s.nombre}</h1>
         <p className="text-[13px] text-secundario">Caja abierta por {caja.quien} · fondo {pesos(caja.fondo)}</p>
       </div>
-      <PuntoDeVenta />
+      <PuntoDeVenta inventario={inventario} categorias={categorias} />
       <div className="grid gap-4 md:grid-cols-2">
         <section className="rounded-[20px] bg-white p-5">
           <h2 className="mb-2 font-semibold">Ventas de este turno</h2>

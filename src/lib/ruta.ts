@@ -45,12 +45,19 @@ export async function rutaDeHoy(choferId: string) {
 }
 
 /** Última posición del chofer que lleva el pedido (para el seguimiento del cliente). */
+/** Última ubicación del pedido en ruta: la más reciente entre el teléfono del chofer y el GPS (o app) del vehículo. */
 export async function ultimaPosicion(pedidoId: string) {
   const [p] = await sql<{ lat: number; lng: number; minutos: number }[]>`
-    select pr.lat, pr.lng, floor(extract(epoch from now() - pr.registrada_en) / 60)::int as minutos
-    from entregas e join posiciones_ruta pr on pr.ruta_id = e.ruta_id
-    where e.pedido_id = ${pedidoId} and e.estado = 'en_ruta'
-    order by pr.registrada_en desc limit 1`;
+    with r as (
+      select ru.id, ru.vehiculo_id from entregas e join rutas ru on ru.id = e.ruta_id
+      where e.pedido_id = ${pedidoId} and e.estado = 'en_ruta' limit 1
+    ), pos as (
+      (select pr.lat, pr.lng, pr.registrada_en from posiciones_ruta pr join r on pr.ruta_id = r.id order by pr.registrada_en desc limit 1)
+      union all
+      (select pv.lat, pv.lng, pv.registrada_en from posiciones_vehiculo pv join r on pv.vehiculo_id = r.vehiculo_id
+       where pv.registrada_en > now() - interval '12 hours' order by pv.registrada_en desc limit 1)
+    )
+    select lat, lng, floor(extract(epoch from now() - registrada_en) / 60)::int as minutos from pos order by registrada_en desc limit 1`;
   return p ?? null;
 }
 

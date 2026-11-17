@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { sql } from "@/lib/db";
@@ -15,7 +16,7 @@ export default function Gastos() {
       <NavegacionInterna actual="gastos" />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6">
         <h1 className="font-display text-2xl font-semibold">Gastos</h1>
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}><Contenido /></Suspense>
+        <Suspense fallback={<Esqueleto />}><Contenido /></Suspense>
       </main>
     </div>
   );

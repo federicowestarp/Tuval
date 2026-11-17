@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { createHash, randomBytes, scrypt as scryptCb, timingSafeEqual } from "node:crypto";
@@ -50,7 +51,8 @@ export async function iniciarSesion(usuarioId: string) {
   });
 }
 
-export async function usuarioInterno(): Promise<UsuarioInterno | null> {
+/** Una sola consulta por petición aunque la llamen la barra y la página (React cache). */
+export const usuarioInterno = cache(async (): Promise<UsuarioInterno | null> => {
   const token = (await cookies()).get(COOKIE_INTERNA)?.value;
   if (!token) return null;
   const [u] = await sql<UsuarioInterno[]>`
@@ -58,7 +60,7 @@ export async function usuarioInterno(): Promise<UsuarioInterno | null> {
     from sesiones_internas s join usuarios_internos u on u.id = s.usuario_id
     where s.token_hash = ${hash(token)} and s.expira_en > now() and u.activo`;
   return u ?? null;
-}
+});
 
 /**
  * Qué puede ver cada rol. admin: todo · operador: pedidos, demanda, mostrador, inventario y ruta ·

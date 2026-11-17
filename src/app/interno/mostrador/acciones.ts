@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { mover, sucursal } from "@/lib/inventario";
@@ -16,7 +16,7 @@ export async function abrirCaja(fd: FormData) {
   const fondo = num(fd.get("fondo"));
   const [abierta] = await sql`select 1 from cajas where almacen_id = ${s.id} and cerrada_en is null`;
   if (!abierta) await sql`insert into cajas (almacen_id, abierta_por, fondo) values (${s.id}, ${yo.id}, ${fondo >= 0 ? fondo : 0})`;
-  revalidatePath("/interno/mostrador");
+  refrescar("/interno/mostrador");
 }
 
 export async function cerrarCaja(fd: FormData) {
@@ -27,8 +27,8 @@ export async function cerrarCaja(fd: FormData) {
   await sql`
     update cajas set cerrada_en = now(), cerrada_por = ${yo.id}, efectivo_contado = ${contado}, notas = ${String(fd.get("notas") ?? "").trim() || null}
     where id = ${id} and cerrada_en is null`;
-  revalidatePath("/interno/mostrador");
-  revalidatePath("/interno/tablero");
+  refrescar("/interno/mostrador");
+  refrescar("/interno/tablero");
 }
 
 export type LineaVenta = { id: string; cantidad: number; precio?: number | null };
@@ -115,6 +115,6 @@ export async function registrarVenta(v: Venta): Promise<{ error?: string; id?: s
   } catch (e) {
     return { error: (e as Error).message };
   } finally {
-    revalidatePath("/interno/mostrador");
+    refrescar("/interno/mostrador");
   }
 }

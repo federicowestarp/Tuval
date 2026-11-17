@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -25,7 +26,7 @@ export default function Inventario(props: PageProps<"/interno/inventario">) {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="inventario" />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}><Contenido searchParams={props.searchParams} /></Suspense>
+        <Suspense fallback={<Esqueleto />}><Contenido searchParams={props.searchParams} /></Suspense>
       </main>
     </div>
   );

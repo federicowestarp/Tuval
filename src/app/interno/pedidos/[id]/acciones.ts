@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { leerCotizacion, normalizar } from "@/lib/cotizacion";
@@ -88,7 +88,7 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
       }
     }
   });
-  revalidatePath(`/interno/pedidos/${pedidoId}`);
+  refrescar(`/interno/pedidos/${pedidoId}`);
   const aviso = meta.cuadra === false ? " ⚠ La suma de partidas no cuadra con el subtotal del PDF: revísala." : "";
   return {
     mensaje: `Cotización ${meta.folio ?? ""} cargada: ${renglones.length} renglones, ${emparejados} emparejados con el pedido.${aviso}`,
@@ -131,7 +131,7 @@ export async function agregarRenglonesAlPedido(fd: FormData) {
       await tx`update cotizacion_partidas set pedido_partida_id = ${partida.id} where id = ${r.id}`;
     }
   });
-  revalidatePath(`/interno/pedidos/${pedidoId}`);
+  refrescar(`/interno/pedidos/${pedidoId}`);
 }
 
 export async function asignarRenglon(fd: FormData) {
@@ -142,7 +142,7 @@ export async function asignarRenglon(fd: FormData) {
   await sql`
     update cotizacion_partidas set pedido_partida_id = ${partidaId}
     where id = ${renglonId} and exists (select 1 from pedido_partidas where id = ${partidaId} and pedido_id = ${pedidoId})`;
-  revalidatePath(`/interno/pedidos/${pedidoId}`);
+  refrescar(`/interno/pedidos/${pedidoId}`);
 }
 
 /**
@@ -189,6 +189,6 @@ export async function confirmarPedido(_prev: Resultado, fd: FormData): Promise<R
       insert into pedido_eventos (pedido_id, estado, nota)
       values (${pedidoId}, ${pedido.estado}, ${`Confirmado. ${quitar.length} partida(s) sin existencia registradas como demanda.`})`;
   });
-  revalidatePath(`/interno/pedidos/${pedidoId}`);
+  refrescar(`/interno/pedidos/${pedidoId}`);
   return { mensaje: "Pedido confirmado. Avisa al cliente con el botón de WhatsApp." };
 }

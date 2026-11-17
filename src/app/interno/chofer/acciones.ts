@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { guardarArchivo, TIPOS_IMAGEN } from "@/lib/archivos";
@@ -25,7 +25,7 @@ export async function iniciarRuta(fd: FormData) {
   let foto: string | null = null;
   try { foto = await guardarArchivo(fd.get("foto_odometro"), TIPOS_IMAGEN); } catch { foto = null; }
   if (odo > 0) await sql`update rutas set odometro_inicio = coalesce(odometro_inicio, ${odo}), foto_odometro_inicio = coalesce(foto_odometro_inicio, ${foto}) where id = ${id}`;
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
 }
 
 export async function terminarRuta(fd: FormData) {
@@ -38,7 +38,7 @@ export async function terminarRuta(fd: FormData) {
       odometro_fin = case when ${odo > 0} and ${odo} >= coalesce(odometro_inicio, 0) then ${odo > 0 ? odo : null}::int else odometro_fin end,
       foto_odometro_fin = coalesce(${foto}, foto_odometro_fin)
     where chofer_id = ${yo.id} and fecha = ${hoyMx()}`;
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
 }
 
 /** El chofer toma el pedido: queda "en ruta" y el cliente ve su ubicación. */
@@ -56,7 +56,7 @@ export async function salirAEntregar(fd: FormData) {
     else await tx`insert into entregas (pedido_id, ruta_id, estado) values (${pedidoId}, ${rutaId}, 'en_ruta')`;
     if (p.estado !== "en_ruta") await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${pedidoId}, 'en_ruta', 'Salió a entregar', ${yo.id})`;
   });
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
 }
 
 export async function registrarPosicion(lat: number, lng: number, precision: number | null) {
@@ -109,7 +109,7 @@ export async function entregar(_prev: EstadoEntrega, fd: FormData): Promise<Esta
       insert into pedido_eventos (pedido_id, estado, nota, usuario_id)
       values (${pedidoId}, 'entregado', ${sinRecepcion ? "Entregado sin recepción (con foto)" : `Recibió ${recibio}`}, ${yo.id})`;
   });
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
   return { ok: true };
 }
 
@@ -121,7 +121,7 @@ export async function llegarARecoger(fd: FormData) {
   const rutaId = await asegurarRuta(yo.id);
   const [abierta] = await sql`select 1 from paradas_ruta where ruta_id = ${rutaId} and salida_en is null`;
   if (!abierta) await sql`insert into paradas_ruta (ruta_id, tipo, almacen_id, lat, lng) values (${rutaId}, 'recoleccion', ${almacen}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null})`;
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
 }
 
 /** Recogió: los pedidos marcados pasan a "surtido" y la parada se cierra (tiempo de espera en bodega). */
@@ -143,7 +143,7 @@ export async function salirDeRecoger(fd: FormData) {
       await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${id}, 'surtido', ${"Recolectado en " + p.almacen}, ${yo.id})`;
     }
   });
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
 }
 
 /** Llegó con el cliente: desde aquí corre el tiempo de espera en obra. */
@@ -154,7 +154,7 @@ export async function llegueConCliente(fd: FormData) {
   const rutaId = await asegurarRuta(yo.id);
   const [ya] = await sql`select 1 from paradas_ruta where pedido_id = ${pedidoId} and tipo = 'entrega' and salida_en is null`;
   if (!ya) await sql`insert into paradas_ruta (ruta_id, tipo, pedido_id, lat, lng) values (${rutaId}, 'entrega', ${pedidoId}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null})`;
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
 }
 
 export type EstadoCarga = { error?: string; ok?: number };
@@ -175,6 +175,6 @@ export async function cargarCombustible(prev: EstadoCarga, fd: FormData): Promis
   await sql`
     insert into gastos (fecha, categoria, concepto, monto, vehiculo_id, forma_pago, comprobante_id, creado_por, litros, odometro)
     values (${hoyMx()}, 'combustible', ${`Gasolina ${litros} L`}, ${monto}, ${ruta.vehiculo_id}, ${String(fd.get("forma_pago") || "Efectivo")}, ${foto}, ${yo.id}, ${litros}, ${odo > 0 ? odo : null})`;
-  revalidatePath("/interno/chofer");
+  refrescar("/interno/chofer");
   return { ok: (prev.ok ?? 0) + 1 };
 }

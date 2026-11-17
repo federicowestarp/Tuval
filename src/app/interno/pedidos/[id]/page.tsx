@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -22,7 +23,7 @@ export default function DetallePedido(props: PageProps<"/interno/pedidos/[id]">)
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="pedidos" />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}>
+        <Suspense fallback={<Esqueleto />}>
           <Contenido params={props.params} />
         </Suspense>
       </main>

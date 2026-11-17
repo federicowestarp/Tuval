@@ -1,3 +1,4 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { sql } from "@/lib/db";
 
 /** Periodos del tablero (hora de México, UTC-6). */
@@ -19,8 +20,16 @@ const desde = (p: Periodo) => {
 
 export type Etapa = { etapa: string; horas: number | null; pedidos: number };
 
+/**
+ * En caché un minuto por periodo; cualquier acción del panel lo invalida al instante (refrescar → updateTag).
+ * Todas las consultas salen en una sola tanda en paralelo.
+ */
 export async function datosTablero(p: Periodo) {
+  "use cache";
+  cacheLife({ stale: 60, revalidate: 60, expire: 600 });
+  cacheTag("tablero");
   const d = desde(p);
+  const extra = datosExtra(p);
   const [estados, flujo, cancelados, etapas, rutas, finanzas, gastos, flotilla, nomina, pendientes] = await Promise.all([
     // Pedidos abiertos hoy, por etapa (foto del momento, no del periodo)
     sql<{ etapa: string; n: number }[]>`
@@ -131,7 +140,7 @@ export async function datosTablero(p: Periodo) {
         (select max(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado = 'comprado_proveedor'), p.creado_en)) / 3600)::numeric, 1)::float horas
       from pedidos p where p.estado = 'comprado_proveedor' order by horas desc limit 20`,
   ]);
-  return { estados, flujo: flujo[0], cancelados, etapas, rutas, finanzas: finanzas[0], gastos, flotilla, nomina, pendientes, ...(await datosExtra(p)) };
+  return { estados, flujo: flujo[0], cancelados, etapas, rutas, finanzas: finanzas[0], gastos, flotilla, nomina, pendientes, ...(await extra) };
 }
 
 /** Mostrador, inventario, canales y paradas del chofer. */

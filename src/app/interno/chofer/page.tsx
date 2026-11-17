@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { sql } from "@/lib/db";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -19,7 +20,7 @@ export default function Chofer() {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="chofer" />
       <main className="mx-auto w-full max-w-xl flex-1 space-y-4 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}>
+        <Suspense fallback={<Esqueleto />}>
           <Contenido />
         </Suspense>
       </main>

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
 import { requerirInterno } from "@/lib/equipo";
@@ -27,8 +27,8 @@ export async function cambiarEstado(fd: FormData) {
     await tx`update pedidos set estado = ${estado}, motivo_cancelacion = coalesce(${motivoCompleto}, motivo_cancelacion) where id = ${id}`;
     await tx`insert into pedido_eventos (pedido_id, estado, nota) values (${id}, ${estado}, ${motivoCompleto ?? "Panel interno"})`;
   });
-  revalidatePath("/interno/pedidos");
-  revalidatePath(`/interno/pedidos/${id}`);
+  refrescar("/interno/pedidos");
+  refrescar(`/interno/pedidos/${id}`);
 }
 
 /** Cobro recibido de un pedido (anticipo o total). Alimenta "Cobrado" en el tablero. */
@@ -42,8 +42,8 @@ export async function registrarCobro(fd: FormData) {
     insert into pagos (cliente_id, pedido_id, monto, forma, referencia_pasarela, registrado_por)
     select cliente_id, id, ${monto}, ${forma}, ${String(fd.get("referencia") ?? "").trim().slice(0, 100) || null}, ${yo.id} from pedidos where id = ${id}`;
   await sql`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id} and confirmado_en is not null`;
-  revalidatePath(`/interno/pedidos/${id}`);
-  revalidatePath("/interno/tablero");
+  refrescar(`/interno/pedidos/${id}`);
+  refrescar("/interno/tablero");
 }
 
 /** Marca de tiempo que mide "pedimos cotización → el proveedor responde". */
@@ -52,7 +52,7 @@ export async function cotizacionSolicitada(fd: FormData) {
   const id = String(fd.get("id"));
   if (!UUID.test(id)) return;
   await sql`update pedidos set cotizacion_solicitada_en = coalesce(cotizacion_solicitada_en, now()) where id = ${id}`;
-  revalidatePath(`/interno/pedidos/${id}`);
+  refrescar(`/interno/pedidos/${id}`);
 }
 
 /** El cliente aceptó el total confirmado: desde aquí corre "aceptado → surtido". */
@@ -61,7 +61,7 @@ export async function clienteAcepto(fd: FormData) {
   const id = String(fd.get("id"));
   if (!UUID.test(id)) return;
   await sql`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id} and confirmado_en is not null`;
-  revalidatePath(`/interno/pedidos/${id}`);
+  refrescar(`/interno/pedidos/${id}`);
 }
 
 /** Surtir con existencias de la sucursal en vez de comprar al proveedor. */
@@ -84,6 +84,6 @@ export async function surtirDeSucursal(fd: FormData) {
     await tx`update pedidos set estado = 'surtido', almacen_surtido = ${s.id}, aceptado_en = coalesce(aceptado_en, now()) where id = ${id}`;
     await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${id}, 'surtido', ${"Surtido de " + s.nombre}, ${yo.id})`;
   });
-  revalidatePath(`/interno/pedidos/${id}`);
-  revalidatePath("/interno/pedidos");
+  refrescar(`/interno/pedidos/${id}`);
+  refrescar("/interno/pedidos");
 }

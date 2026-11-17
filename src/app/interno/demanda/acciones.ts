@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { esCategoria } from "@/lib/categorias";
@@ -21,7 +21,7 @@ export async function actualizarSolicitud(fd: FormData) {
     set estado = ${estado}, proveedor_alterno = ${String(fd.get("proveedor_alterno") ?? "").trim() || null},
         notas = ${String(fd.get("notas") ?? "").trim() || null}, actualizado_en = now()
     where id = any(${grupo}::uuid[])`;
-  revalidatePath("/interno/demanda");
+  refrescar("/interno/demanda");
 }
 
 export type ResultadoAlta = { error?: string; mensaje?: string };
@@ -66,7 +66,7 @@ export async function darDeAlta(_prev: ResultadoAlta, fd: FormData): Promise<Res
         values (${s.pedido_id}, ${prod.id}, ${s.cantidad ?? 1}, ${precio})`;
     }
   });
-  revalidatePath("/interno/demanda");
+  refrescar("/interno/demanda");
   const agregados = solicitudes.filter((x) => x.abierto).length;
   return { mensaje: agregados ? `Alta hecha y agregado a ${agregados} pedido(s) por confirmar.` : "Alta hecha en catálogo." };
 }

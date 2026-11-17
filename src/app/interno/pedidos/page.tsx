@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -15,7 +16,7 @@ export default function PanelPedidos() {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="pedidos" />
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}>
+        <Suspense fallback={<Esqueleto />}>
           <Lista />
         </Suspense>
       </main>

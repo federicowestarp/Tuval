@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { guardarArchivo, TIPOS_LISTA } from "@/lib/archivos";
@@ -32,8 +32,8 @@ export async function registrarGasto(prev: EstadoGasto, fd: FormData): Promise<E
     insert into gastos (fecha, categoria, concepto, monto, vehiculo_id, empleado_id, forma_pago, comprobante_id, creado_por)
     values (${fecha}, ${categoria}, ${t("concepto").slice(0, 200)}, ${monto}, ${UUID.test(vehiculo) ? vehiculo : null},
             ${UUID.test(empleado) ? empleado : null}, ${t("forma_pago") || null}, ${comprobante}, ${yo.id})`;
-  revalidatePath("/interno/gastos");
-  revalidatePath("/interno/tablero");
+  refrescar("/interno/gastos");
+  refrescar("/interno/tablero");
   return { ok: (prev.ok ?? 0) + 1 };
 }
 
@@ -41,5 +41,5 @@ export async function borrarGasto(fd: FormData) {
   await requerirInterno("admin");
   const id = String(fd.get("id"));
   if (UUID.test(id)) await sql`delete from gastos where id = ${id}`;
-  revalidatePath("/interno/gastos");
+  refrescar("/interno/gastos");
 }

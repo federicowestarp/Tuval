@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { obtenerPedidoPorTokenReceptor } from "@/lib/pedidos";
 
@@ -36,6 +36,6 @@ export async function confirmarRecepcion(_prev: EstadoRecepcion, fd: FormData): 
       insert into pedido_eventos (pedido_id, estado, nota)
       values (${pedido.id}, ${estado}, ${"Recepción confirmada por " + (pedido.recibe_nombre ?? "quien recibe") + (comentario ? `: ${comentario}` : "")})`;
   });
-  revalidatePath(`/entrega/${token}`);
+  refrescar(`/entrega/${token}`);
   return { ok: true };
 }

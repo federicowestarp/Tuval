@@ -1,3 +1,4 @@
+import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { sql } from "@/lib/db";
@@ -13,7 +14,7 @@ export default function Flotilla() {
       <NavegacionInterna actual="flotilla" />
       <main className="mx-auto w-full max-w-3xl flex-1 space-y-4 px-4 py-6">
         <h1 className="font-display text-2xl font-semibold">Flotilla y personal</h1>
-        <Suspense fallback={<p className="text-sm text-secundario">Cargando…</p>}><Contenido /></Suspense>
+        <Suspense fallback={<Esqueleto />}><Contenido /></Suspense>
       </main>
     </div>
   );
@@ -43,7 +44,7 @@ async function Contenido() {
               <span className="flex items-center gap-3">
                 <form action={ligarRastreador} className="flex gap-1">
                   <input type="hidden" name="id" value={v.id} />
-                  <input name="rastreador_id" defaultValue={v.rastreador_id ?? ""} placeholder="IMEI del GPS" className="h-8 w-36 rounded-lg border border-linea px-2 text-[13px]" />
+                  <input name="rastreador_id" defaultValue={v.rastreador_id ?? ""} placeholder="ID del GPS o celular" className="h-8 w-36 rounded-lg border border-linea px-2 text-[13px]" />
                   <button className="text-[13px] text-azul">Guardar</button>
                 </form>
                 {baja(v.id, "vehiculos")}
@@ -55,10 +56,23 @@ async function Contenido() {
           <input name="nombre" placeholder="Nombre (ej. Camioneta 1)" className={campo} required />
           <select name="tipo" className={campo}><option value="camioneta">Camioneta</option><option value="moto">Moto</option><option value="camion">Camión</option><option value="auto">Auto</option></select>
           <input name="placas" placeholder="Placas" className={campo} />
-          <input name="rastreador_id" placeholder="IMEI del GPS (opcional)" className={campo} />
+          <input name="rastreador_id" placeholder="ID del GPS o celular (opcional)" className={campo} />
           <button className={clasesBoton("principal", "normal")}>Agregar</button>
         </form>
       </section>
+      <section className="space-y-2 rounded-[20px] bg-white p-5 text-[14px]">
+        <h2 className="text-[16px] font-semibold">Celular del chofer como GPS (gratis, aun con el teléfono bloqueado)</h2>
+        <ol className="list-decimal space-y-1 pl-5">
+          <li>En el celular del chofer instala <strong>Traccar Client</strong> (gratis en Play Store y App Store).</li>
+          <li>En la app, en <em>Identificador del dispositivo</em> escribe un nombre corto, p. ej. <code>camioneta1</code>, y ponlo igual arriba en “ID del GPS o celular” del vehículo.</li>
+          <li>En <em>URL del servidor</em> pon: {process.env.RASTREO_TOKEN
+            ? <code className="break-all rounded bg-niebla px-1">https://www.tuval.mx/api/rastreo?token={process.env.RASTREO_TOKEN}</code>
+            : <span className="font-semibold text-red-700">falta crear la variable RASTREO_TOKEN en Vercel (Settings → Environment Variables) y volver a publicar.</span>}</li>
+          <li>Precisión alta, frecuencia 30 s, y permite ubicación “Siempre” y sin ahorro de batería para la app.</li>
+        </ol>
+        <p className="text-secundario">Las posiciones se ligan al vehículo, cuentan los km en el Tablero y el cliente ve el camión en su seguimiento.</p>
+      </section>
+
       <section className="space-y-3 rounded-[20px] bg-white p-5">
         <h2 className="font-semibold">Personal (nómina)</h2>
         <ul className="divide-y divide-linea text-[15px]">

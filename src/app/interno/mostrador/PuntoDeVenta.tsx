@@ -7,12 +7,13 @@ import { BuscadorProducto } from "@/components/interno/BuscadorProducto";
 import { Segmentado } from "@/components/Segmentado";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { registrarVenta } from "./acciones";
+import { InventarioFocos, type ProductoInventario } from "./InventarioFocos";
 
 type Linea = ProductoMostrador & { cantidad: number; manual: string };
 const IVA = 0.16;
 const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
-export function PuntoDeVenta() {
+export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoInventario[]; categorias: { id: string; nombre: string }[] }) {
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [forma, setForma] = useState<"efectivo" | "tarjeta" | "transferencia">("efectivo");
   const [comprobante, setComprobante] = useState<"nota" | "factura">("nota");
@@ -90,6 +91,7 @@ export function PuntoDeVenta() {
           </ul>
         )}
         {sinExistencia.length > 0 && <p className="rounded-xl bg-niebla p-3 text-[13px]">Ojo: {sinExistencia.length} producto(s) con más cantidad que la existencia en sistema. Se puede vender; la existencia quedará negativa y aparecerá en Inventario para revisar.</p>}
+        <InventarioFocos productos={inventario} categorias={categorias} onAgregar={agregar} />
       </section>
 
       <aside className="space-y-4 rounded-[20px] bg-white p-4">
