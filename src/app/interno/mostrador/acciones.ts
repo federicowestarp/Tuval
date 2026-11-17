@@ -5,11 +5,10 @@ import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { mover, sucursal } from "@/lib/inventario";
-import { IVA } from "@/lib/catalogo";
+import { sinIva, totalesVenta } from "@/lib/totales";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const num = (v: unknown) => Number(String(v ?? "").replace(/[$,\s]/g, ""));
-const r2 = (n: number) => Math.round(n * 100) / 100;
 
 export async function abrirCaja(fd: FormData) {
   const yo = await requerirInterno("mostrador");
@@ -72,14 +71,12 @@ export async function registrarVenta(v: Venta): Promise<{ error?: string; id?: s
       const partidas = lineas.map((l) => {
         const p = mapa.get(l.id);
         if (!p) throw new Error("Un producto ya no existe.");
-        const manual = l.precio != null && num(l.precio) > 0 ? r2(num(l.precio) / (1 + IVA)) : null;
+        const manual = l.precio != null && num(l.precio) > 0 ? sinIva(num(l.precio)) : null;
         const precio = p.precio ?? manual;
         if (precio == null) throw new Error(`Escribe el precio de: ${p.nombre}`);
         return { ...p, cantidad: num(l.cantidad), precio };
       });
-      const subtotal = r2(partidas.reduce((a, p) => a + p.precio * p.cantidad, 0));
-      const iva = r2(subtotal * IVA);
-      const total = r2(subtotal + iva);
+      const { subtotal, iva, total } = totalesVenta(partidas);
       const recibido = v.forma === "efectivo" ? num(v.recibido) : null;
       if (v.forma === "efectivo" && !(recibido! >= total)) throw new Error("El efectivo recibido no cubre el total.");
 

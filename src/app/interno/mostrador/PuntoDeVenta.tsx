@@ -7,6 +7,7 @@ import { BuscadorProducto } from "@/components/interno/BuscadorProducto";
 import { Segmentado } from "@/components/Segmentado";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { registrarVenta } from "./acciones";
+import { sinIva, totalesVenta } from "@/lib/totales";
 import { InventarioFocos, type ProductoInventario } from "./InventarioFocos";
 
 type Linea = ProductoMostrador & { cantidad: number; manual: string };
@@ -32,12 +33,10 @@ export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoI
       return [...ls, { ...p, cantidad: 1, manual: "" }];
     });
   };
-  // Mismo cálculo que el servidor: precio sin IVA a 2 decimales, subtotal, IVA redondeado.
-  const r2 = (n: number) => Math.round(n * 100) / 100;
-  const precioSinIva = (l: Linea) => (l.precio != null ? l.precio : r2((Number(l.manual) || 0) / (1 + IVA)));
+  // Mismo cálculo que el servidor (src/lib/totales.ts): total con IVA por renglón, sin centavos fantasma.
+  const precioSinIva = (l: Linea) => (l.precio != null ? l.precio : sinIva(Number(l.manual) || 0));
   const precioConIva = (l: Linea) => precioSinIva(l) * (1 + IVA);
-  const subtotal = r2(lineas.reduce((a, l) => a + precioSinIva(l) * l.cantidad, 0));
-  const total = r2(subtotal + r2(subtotal * IVA));
+  const { total } = totalesVenta(lineas.map((l) => ({ precio: precioSinIva(l), cantidad: l.cantidad })));
   const cambio = forma === "efectivo" ? (Number(recibido) || 0) - total : 0;
   const sinExistencia = lineas.filter((l) => l.cantidad > l.existencia);
 
