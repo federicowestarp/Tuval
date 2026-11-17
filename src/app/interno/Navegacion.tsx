@@ -4,7 +4,7 @@ import { BarraProvisional } from "@/components/marco/BarraProvisional";
 import { puede, usuarioInterno, type Minimo } from "@/lib/equipo";
 import { salir } from "./sesion-acciones";
 
-type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes" | "supervision";
+type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes" | "supervision" | "rutas";
 const AREAS = ["Dirección", "Pedidos en línea", "Sucursal", "Reparto"] as const;
 const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS)[number]; minimo?: Minimo }[] = [
   { id: "tablero", texto: "Tablero", href: "/interno/tablero", area: "Dirección", minimo: "admin" },
@@ -18,6 +18,7 @@ const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS
   { id: "supervision", texto: "Supervisión de caja", href: "/interno/caja", area: "Sucursal", minimo: "supervisor" },
   { id: "cortes", texto: "Cortes de caja", href: "/interno/mostrador/cortes", area: "Sucursal", minimo: "supervisor" },
   { id: "inventario", texto: "Inventario", href: "/interno/inventario", area: "Sucursal", minimo: "mostrador" },
+  { id: "rutas", texto: "Planear rutas", href: "/interno/rutas", area: "Reparto", minimo: "operador" },
   { id: "chofer", texto: "Ruta del día", href: "/interno/chofer", area: "Reparto" },
   { id: "flotilla", texto: "Flotilla y personal", href: "/interno/flotilla", area: "Reparto", minimo: "admin" },
 ];

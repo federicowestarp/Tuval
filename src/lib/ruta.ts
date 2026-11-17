@@ -19,12 +19,20 @@ export type ParadaRuta = {
   entrega_ventana: "manana" | "tarde" | null;
   partidas: { nombre: string; cantidad: number }[];
   especiales: number;
+  eta: Date | null;
 };
 
 /** Hoy en México (UTC-6, sin horario de verano). */
 export const hoyMx = () => new Date(Date.now() - 6 * 3600 * 1000).toISOString().slice(0, 10);
 
-export async function paradasPendientes(): Promise<ParadaRuta[]> {
+/**
+ * Entregas pendientes. Si el chofer tiene ruta planeada hoy, solo las suyas y en el orden planeado;
+ * si no (o sin chofer), todas las que están listas, como antes.
+ */
+export async function paradasPendientes(choferId?: string): Promise<ParadaRuta[]> {
+  const [plan] = choferId ? await sql<{ id: string }[]>`
+    select r.id from rutas r where r.chofer_id = ${choferId} and r.fecha = ${hoyMx()}
+      and exists (select 1 from entregas e where e.ruta_id = r.id and e.estado in ('programada', 'en_ruta'))` : [];
   return sql<ParadaRuta[]>`
     select p.id, p.folio, p.estado, p.zona, p.entidad, p.direccion_entrega, p.lat, p.lng, p.foto_fachada_id,
            p.recibe_nombre, p.recibe_telefono, p.preferencia_contacto, p.sin_recepcion_solicitada,
@@ -33,9 +41,11 @@ export async function paradasPendientes(): Promise<ParadaRuta[]> {
                      from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = p.id), '[]') partidas,
            (select count(*)::int from solicitudes_producto s where s.pedido_id = p.id and s.estado = 'conseguida') especiales,
            exists (select 1 from paradas_ruta x where x.pedido_id = p.id and x.tipo = 'entrega' and x.salida_en is null) llegado
+           , (select e.eta from entregas e where e.pedido_id = p.id and e.estado in ('programada', 'en_ruta') limit 1) eta
     from pedidos p
+    ${plan ? sql`join entregas en on en.pedido_id = p.id and en.ruta_id = ${plan.id} and en.estado in ('programada', 'en_ruta')` : sql``}
     where p.estado in ('surtido', 'en_ruta') and p.tipo_entrega <> 'recoger'
-    order by p.estado desc, p.entrega_fecha nulls last, p.entrega_ventana, p.zona, p.creado_en`;
+    order by ${plan ? sql`en.orden_en_ruta nulls last,` : sql`p.estado desc,`} p.entrega_fecha nulls last, p.entrega_ventana, p.zona, p.creado_en`;
 }
 
 export async function rutaDeHoy(choferId: string) {

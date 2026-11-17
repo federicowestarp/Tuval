@@ -3,7 +3,8 @@ import { sql } from "@/lib/db";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
-import { paradasPendientes, rutaDeHoy } from "@/lib/ruta";
+import { hoyMx, paradasPendientes, rutaDeHoy } from "@/lib/ruta";
+import { ligasDeRuta } from "@/lib/rutas-plan";
 import { describirPromesa } from "@/lib/corte";
 import { ligaMapa, ligaWhatsApp, lugar } from "@/lib/pedidos";
 import { urlArchivo } from "@/lib/url-archivo";
@@ -32,14 +33,19 @@ async function Contenido() {
   await connection();
   const yo = await requerirInterno();
   const [ruta, paradas, vehiculos, bodegas, porRecoger] = await Promise.all([
-    rutaDeHoy(yo.id), paradasPendientes(),
+    rutaDeHoy(yo.id), paradasPendientes(yo.id),
     sql<{ id: string; nombre: string }[]>`select id, nombre from vehiculos where activo order by nombre`,
     sql<{ id: string; nombre: string }[]>`select id, nombre from almacenes where activo and tipo in ('proveedor', 'sucursal', 'cedis') and nombre not ilike '%prueba%' order by (tipo = 'proveedor') desc, nombre`,
     sql<{ id: string; folio: string; piezas: number; lugar: string | null }[]>`
       select p.id, p.folio, (select coalesce(sum(cantidad), 0)::float from pedido_partidas where pedido_id = p.id) piezas, p.entidad lugar
-      from pedidos p where p.estado = 'comprado_proveedor' order by p.creado_en`,
+      from pedidos p where p.estado = 'comprado_proveedor'
+        -- Con ruta planeada, solo lo asignado a este chofer.
+        and (not exists (select 1 from rutas r join entregas e on e.ruta_id = r.id where r.chofer_id = ${yo.id} and r.fecha = ${hoyMx()})
+             or exists (select 1 from rutas r join entregas e on e.ruta_id = r.id where r.chofer_id = ${yo.id} and r.fecha = ${hoyMx()} and e.pedido_id = p.id))
+      order by p.creado_en`,
   ]);
   const activa = !!ruta?.iniciada_en && !ruta.terminada_en;
+  const ligas = ruta ? await ligasDeRuta(ruta.id) : [];
   const [abierta] = ruta ? await sql<{ id: string; almacen: string; desde: string }[]>`
     select pr.id, a.nombre almacen, to_char(pr.llegada_en at time zone 'America/Mexico_City', 'HH24:MI') desde
     from paradas_ruta pr join almacenes a on a.id = pr.almacen_id
@@ -72,6 +78,12 @@ async function Contenido() {
           </form>
         )}
         {activa && <Rastreo />}
+        {ligas.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {ligas.map((l, i) => <a key={l} href={l} target="_blank" className={clasesBoton("principal", "chico")}>Abrir ruta en Google Maps{ligas.length > 1 ? ` · tramo ${i + 1}` : ""}</a>)}
+            {ruta && <a href={`/interno/rutas/${ruta.id}/orden`} target="_blank" className={clasesBoton("secundario", "chico")}>Orden de recolección</a>}
+          </div>
+        )}
       </div>
 
       {(porRecoger.length > 0 || abierta) && (
@@ -111,7 +123,7 @@ async function Contenido() {
             <div>
               <p className="font-semibold">{p.folio} <span className="text-[13px] font-normal text-secundario">· {lugar(p)}</span></p>
               <p className="text-[13px] text-secundario">
-                {p.entrega_fecha && p.entrega_ventana ? describirPromesa({ fecha: p.entrega_fecha, ventana: p.entrega_ventana }) : ""}
+                {p.entrega_fecha && p.entrega_ventana ? describirPromesa({ fecha: p.entrega_fecha, ventana: p.entrega_ventana }) : ""}{p.eta && ` · llegada estimada ${new Date(p.eta).toLocaleTimeString("es-MX", { timeZone: "America/Mexico_City", hour: "2-digit", minute: "2-digit" })}`}
               </p>
             </div>
             <span className={`rounded-full px-2.5 py-0.5 text-[12px] font-semibold ${p.estado === "en_ruta" ? "bg-cian text-sobrecian" : "bg-niebla text-tinta"}`}>
