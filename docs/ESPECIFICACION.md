@@ -178,6 +178,29 @@ Reglas propuestas (recomendación, por validar con abogado y contador):
 
 Fiscal a considerar desde el diseño: factura global para ventas con nota; complemento de pago (REP) para ventas a crédito (PPD).
 
+## 6b. Módulos operativos construidos (noviembre 2026)
+
+**Proceso del pedido con el proveedor** (detalle del pedido → "Proceso con Emmsa"):
+1. Pedir cotización por WhatsApp (mensaje con folio, se registra la hora). 2. Subir la cotización y compararla. 3. Confirmar al cliente.
+4. El cliente acepta (botón en su liga o el operador marca "aceptó por teléfono/WhatsApp").
+5. Aprobación automática: **pago** (cobrado ≥ total) o **crédito** (aceptado y dentro del límite disponible de su cuenta). El admin puede aprobar manualmente; queda registrado.
+6. Se crea sola la orden de compra (OC-000001…) con el costo de la cotización; se envía por WhatsApp con un toque.
+7. En la bodega del proveedor el chofer sube la factura: con el XML del CFDI el sistema la concilia contra la orden (cantidades y precio >1 %) y avisa diferencias antes de salir.
+8. Entrega: el chofer revisa partida por partida con quien recibe, captura lo recibido, firma en pantalla, foto y ubicación. Si falta algo queda "entregado con faltantes".
+Sin la API de WhatsApp Business los envíos son de un toque (liga wa.me); la automatización total requiere esa API.
+
+**Caja simple:** el fondo se queda en la caja; solo se retira lo demás con ticket de corte firmado. Cambio de usuario con PIN. Terminal integrada = sin cierre de lote. Aviso aun dentro de la tolerancia.
+
+**Mostrador:** registro de material pedido que no tenemos (demanda no surtida), con dictado por voz e IA para nombres coloquiales (sin clave de IA usa un intérprete local).
+
+**Clientes:** ficha con estado de cuenta, historial, datos fiscales, direcciones, contactos, antigüedad y preferencias de comunicación. Listas de precio por margen (precio = costo ÷ (1 − margen)).
+
+**Lealtad y recomendados:** puntos por compra pagada, canje en mostrador, código de recomendado (bono a quien recomienda y al nuevo cliente en su primera compra mínima). El cliente ve sus puntos y comparte su código desde "Tu cuenta". Parámetros marcados como supuestos hasta que se confirmen.
+
+**Rutas:** sugerencia de reparto por zona (barrido alrededor de la bodega), capacidad del vehículo (moto ≤ parámetro de piezas, sin tubería en tramos) y aviso cuando conviene surtir de sucursal. WhatsApp al cliente con hora estimada y liga de seguimiento. En el tablero: km y horas planeados contra reales y entregas tarde.
+
+**Inventario físico por tarjetas:** se abre por almacén (congela lo que dice el sistema), se imprimen tarjetas con folio y QR, dos conteos ciegos por personas distintas, tercero si no coinciden, lista de folios sin contar, y al cerrar se ajustan existencias con su valuación a costo promedio. Mientras se cuenta no conviene mover mercancía de ese almacén.
+
 ## 7. Pendientes (no inventar)
 
 - ¿Qué es exactamente Emmsa para Tuval (distribuidor/mayorista)? ¿Entrega lista de precios/catálogo? ¿En qué formato (Excel, PDF, API)? ¿Comparte existencias?
@@ -193,3 +216,7 @@ Fiscal a considerar desde el diseño: factura global para ventas con nota; compl
 - Pasarela de pago y PAC elegidos (mientras tanto el total y el pago se confirman por WhatsApp).
 - Inicio de sesión de clientes con celular (código por WhatsApp) o correo.
 - Razón social y RFC de Tuval para facturar.
+- WhatsApp de Emmsa (capturarlo en el detalle de un pedido) y, a futuro, la API de WhatsApp Business para envíos automáticos.
+- Datos bancarios de Tuval para indicar al cliente cómo pagar.
+- Confirmar parámetros supuestos: puntos por cada $100, valor del punto, bonos de recomendado, compra mínima, capacidad de la moto, horarios de entrega.
+- Clave de la API de Claude en Vercel (ANTHROPIC_API_KEY) para el dictado con IA.
