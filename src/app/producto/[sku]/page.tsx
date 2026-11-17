@@ -9,6 +9,7 @@ import { BotonAgregarFicha } from "@/components/tienda/BotonAgregarFicha";
 import { Pastilla } from "@/components/ui";
 import { CATEGORIAS, esCategoria } from "@/lib/categorias";
 import { formatoMoneda, IVA, productoPorSku, relacionados } from "@/lib/catalogo";
+import { urlPanel } from "@/lib/etiqueta";
 
 export async function generateMetadata(props: PageProps<"/producto/[sku]">): Promise<Metadata> {
   const { sku } = await props.params;
@@ -24,15 +25,16 @@ export default function Ficha(props: PageProps<"/producto/[sku]">) {
     <Marco>
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <Suspense fallback={<div className="h-96 animate-pulse rounded-[28px] bg-niebla" />}>
-          <Contenido params={props.params} />
+          <Contenido params={props.params} searchParams={props.searchParams} />
         </Suspense>
       </main>
     </Marco>
   );
 }
 
-async function Contenido({ params }: Pick<PageProps<"/producto/[sku]">, "params">) {
+async function Contenido({ params, searchParams }: Pick<PageProps<"/producto/[sku]">, "params" | "searchParams">) {
   const { sku } = await params;
+  const desdeEtiqueta = (await searchParams).e === "1";
   const p = await productoPorSku(sku);
   if (!p) notFound();
   const cat = CATEGORIAS.find((c) => c.id === p.categoria_id);
@@ -76,6 +78,11 @@ async function Contenido({ params }: Pick<PageProps<"/producto/[sku]">, "params"
           <div className="mt-4"><Pastilla tono="borde">Entrega programada</Pastilla></div>
           <div className="mt-6"><BotonAgregarFicha producto={{ id: p.id, sku: p.sku, nombre: p.nombre, unidad: p.unidad }} /></div>
           <p className="mt-4 text-[13px] text-secundario">Confirmamos existencias y hora de entrega antes de surtir.</p>
+          {desdeEtiqueta && (
+            <a href={urlPanel(`/interno/escanear/${encodeURIComponent(p.sku)}`)} className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-linea px-4 py-2 text-[13px] text-secundario">
+              Equipo Tuval: contar o ver existencias →
+            </a>
+          )}
         </div>
       </div>
 
