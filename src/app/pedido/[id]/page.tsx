@@ -13,6 +13,7 @@ import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { urlBase } from "@/lib/url";
 import { PLAZOS, vigencia } from "@/lib/seguimiento";
+import { Aceptar } from "./Aceptar";
 
 export default function SeguimientoPedido(props: PageProps<"/pedido/[id]">) {
   return (
@@ -70,6 +71,8 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
       )}
 
       {actual >= 0 && <Progreso actual={actual} />}
+
+      {pedido.estado === "recibido" && pedido.confirmado_en && !pedido.aceptado_en && !vencida && <Aceptar pedidoId={pedido.id} />}
 
       <EnCamino pedidoId={pedido.id} estado={pedido.estado} />
 

@@ -6,6 +6,7 @@ import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
 import { requerirInterno } from "@/lib/equipo";
 import { MOTIVOS_CANCELACION } from "@/lib/motivos";
 import { PLAZOS } from "@/lib/seguimiento";
+import { crearOrdenCompra, intentarAprobar, mensajeOrdenCompra, mensajeSolicitud, proveedorDelPedido } from "@/lib/proceso";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -50,6 +51,7 @@ export async function registrarCobro(fd: FormData) {
     insert into pagos (cliente_id, pedido_id, monto, forma, referencia_pasarela, registrado_por)
     select cliente_id, id, ${monto}, ${forma}, ${String(fd.get("referencia") ?? "").trim().slice(0, 100) || null}, ${yo.id} from pedidos where id = ${id}`;
   await sql`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id} and confirmado_en is not null`;
+  await sql.begin((tx) => intentarAprobar(tx, id));
   refrescar(`/interno/pedidos/${id}`);
   refrescar("/interno/tablero");
 }
@@ -69,6 +71,7 @@ export async function clienteAcepto(fd: FormData) {
   const id = String(fd.get("id"));
   if (!UUID.test(id)) return;
   await sql`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id} and confirmado_en is not null`;
+  await sql.begin((tx) => intentarAprobar(tx, id));
   refrescar(`/interno/pedidos/${id}`);
 }
 
@@ -114,4 +117,59 @@ export async function reconfirmarProveedor(fd: FormData) {
   await sql`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) select id, estado, 'Existencias y precio reconfirmados con proveedor', ${yo.id} from pedidos where id = ${id}`;
   refrescar("/interno/pedidos");
   refrescar(`/interno/pedidos/${id}`);
+}
+
+// ───────── Proceso con el proveedor por WhatsApp ─────────
+
+const ligaWa = (tel: string, texto: string) => `https://wa.me/52${tel.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(texto)}`;
+
+/** Prepara el WhatsApp de solicitud de cotización al proveedor y marca la hora (para medir cuánto tarda en responder). */
+export async function solicitarCotizacionWA(pedidoId: string): Promise<{ url?: string; error?: string }> {
+  await requerirInterno("operador");
+  if (!UUID.test(pedidoId)) return { error: "Pedido no válido." };
+  const prov = await proveedorDelPedido(pedidoId);
+  if (!prov?.whatsapp) return { error: `Falta el WhatsApp de ${prov?.nombre ?? "Emmsa"}: captúralo abajo en “WhatsApp del proveedor”.` };
+  await sql`update pedidos set cotizacion_solicitada_en = coalesce(cotizacion_solicitada_en, now()) where id = ${pedidoId}`;
+  refrescar(`/interno/pedidos/${pedidoId}`);
+  return { url: ligaWa(prov.whatsapp, await mensajeSolicitud(pedidoId)) };
+}
+
+/** Manda la orden de compra por WhatsApp: el pedido queda "comprado a proveedor" automáticamente. */
+export async function enviarOrdenWA(ocId: string): Promise<{ url?: string; error?: string }> {
+  const yo = await requerirInterno("operador");
+  if (!UUID.test(ocId)) return { error: "Orden no válida." };
+  const [oc] = await sql<{ pedido_id: string; whatsapp: string | null; nombre: string }[]>`
+    select oc.pedido_id, pr.whatsapp, pr.nombre from ordenes_compra oc join proveedores pr on pr.id = oc.proveedor_id where oc.id = ${ocId}`;
+  if (!oc) return { error: "Orden no encontrada." };
+  if (!oc.whatsapp) return { error: `Falta el WhatsApp de ${oc.nombre}.` };
+  await sql.begin(async (tx) => {
+    await tx`update ordenes_compra set enviada_en = coalesce(enviada_en, now()), estado = case when estado = 'borrador' then 'enviada'::estado_oc else estado end where id = ${ocId}`;
+    const [p] = await tx`update pedidos set estado = 'comprado_proveedor' where id = ${oc.pedido_id} and estado = 'recibido' returning id`;
+    if (p) await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${oc.pedido_id}, 'comprado_proveedor', 'Orden de compra enviada por WhatsApp', ${yo.id})`;
+  });
+  refrescar(`/interno/pedidos/${oc.pedido_id}`);
+  refrescar("/interno/rutas");
+  return { url: ligaWa(oc.whatsapp, await mensajeOrdenCompra(ocId)) };
+}
+
+/** Excepción del administrador: aprobar sin pago ni crédito (queda registrado). */
+export async function aprobarManual(fd: FormData) {
+  const yo = await requerirInterno("admin");
+  const id = String(fd.get("id"));
+  if (!UUID.test(id)) return;
+  await sql.begin(async (tx) => {
+    const [p] = await tx<{ estado: EstadoPedido }[]>`update pedidos set aprobado_en = now(), aprobado_por = 'manual' where id = ${id} and aprobado_por is null returning estado`;
+    if (!p) return;
+    await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${id}, ${p.estado}, 'Aprobado manualmente por administrador', ${yo.id})`;
+    if (p.estado === "recibido") await crearOrdenCompra(tx, id);
+  });
+  refrescar(`/interno/pedidos/${id}`);
+}
+
+export async function guardarWhatsAppProveedor(fd: FormData) {
+  await requerirInterno("operador");
+  const id = String(fd.get("proveedor")), tel = String(fd.get("whatsapp") ?? "").replace(/\D/g, "").slice(-10);
+  if (!UUID.test(id) || tel.length !== 10) return;
+  await sql`update proveedores set whatsapp = ${tel} where id = ${id}`;
+  refrescar("/interno/pedidos");
 }

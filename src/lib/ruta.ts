@@ -17,7 +17,7 @@ export type ParadaRuta = {
   sin_recepcion_solicitada: boolean;
   entrega_fecha: string | null;
   entrega_ventana: "manana" | "tarde" | null;
-  partidas: { nombre: string; cantidad: number }[];
+  partidas: { id: string; nombre: string; cantidad: number }[];
   especiales: number;
   eta: Date | null;
 };
@@ -37,7 +37,7 @@ export async function paradasPendientes(choferId?: string): Promise<ParadaRuta[]
     select p.id, p.folio, p.estado, p.zona, p.entidad, p.direccion_entrega, p.lat, p.lng, p.foto_fachada_id,
            p.recibe_nombre, p.recibe_telefono, p.preferencia_contacto, p.sin_recepcion_solicitada,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') entrega_fecha, p.entrega_ventana,
-           coalesce((select json_agg(json_build_object('nombre', pr.nombre, 'cantidad', pp.cantidad) order by pr.nombre)
+           coalesce((select json_agg(json_build_object('id', pp.id, 'nombre', pr.nombre, 'cantidad', pp.cantidad) order by pr.nombre)
                      from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = p.id), '[]') partidas,
            (select count(*)::int from solicitudes_producto s where s.pedido_id = p.id and s.estado = 'conseguida') especiales,
            exists (select 1 from paradas_ruta x where x.pedido_id = p.id and x.tipo = 'entrega' and x.salida_en is null) llegado

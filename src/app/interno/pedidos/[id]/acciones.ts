@@ -3,6 +3,7 @@
 import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { recalcularPrecios } from "@/lib/precios";
+import { intentarAprobar } from "@/lib/proceso";
 import { requerirInterno } from "@/lib/equipo";
 import { leerCotizacion, normalizar } from "@/lib/cotizacion";
 import { leerPdfEmmsa } from "@/lib/emmsa";
@@ -192,6 +193,8 @@ export async function confirmarPedido(_prev: Resultado, fd: FormData): Promise<R
       insert into pedido_eventos (pedido_id, estado, nota)
       values (${pedidoId}, ${pedido.estado}, ${`Confirmado. ${quitar.length} partida(s) sin existencia registradas como demanda.`})`;
   });
+  // Si ya pagó o tiene crédito y aceptó, queda aprobado y sale la orden de compra.
+  await sql.begin((tx) => intentarAprobar(tx, pedidoId));
   refrescar(`/interno/pedidos/${pedidoId}`);
   return { mensaje: "Pedido confirmado. Avisa al cliente con el botón de WhatsApp." };
 }

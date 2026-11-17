@@ -5,6 +5,8 @@ import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { guardarArchivo, TIPOS_IMAGEN } from "@/lib/archivos";
 import { hoyMx, rutaDeHoy } from "@/lib/ruta";
+import { conciliarFactura } from "@/lib/proceso";
+import { leerCfdi } from "@/lib/cfdi";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -86,12 +88,26 @@ export async function entregar(_prev: EstadoEntrega, fd: FormData): Promise<Esta
   const lat = Number(fd.get("lat")) || null;
   const lng = Number(fd.get("lng")) || null;
 
+  // Revisión casilla por casilla: lo que realmente se recibió de cada partida.
+  let checklist: { id: string; recibida: number }[] = [];
+  try { checklist = JSON.parse(String(fd.get("checklist") ?? "[]")); } catch { checklist = []; }
+  const partidas = await sql<{ id: string; cantidad: number }[]>`select id, cantidad::float cantidad from pedido_partidas where pedido_id = ${pedidoId}`;
+  const recibido = partidas.map((x) => {
+    const c = checklist.find((k) => k.id === x.id);
+    const r = c ? Number(c.recibida) : x.cantidad;
+    return { id: x.id, cantidad: x.cantidad, recibida: Number.isFinite(r) && r >= 0 ? Math.min(r, x.cantidad) : x.cantidad };
+  });
+  const conFaltantes = recibido.some((x) => x.recibida < x.cantidad);
+
   let ids: string[];
+  let firma: string | null = null;
   try {
     ids = (await Promise.all(fotos.map((f) => guardarArchivo(f, TIPOS_IMAGEN)))).filter((x): x is string => !!x);
+    firma = await guardarArchivo(fd.get("firma"), ["image/png"]);
   } catch (e) {
     return { error: (e as Error).message };
   }
+  if (!sinRecepcion && !firma) return { error: "Falta la firma de quien recibe." };
 
   const rutaId = await asegurarRuta(yo.id);
   await sql.begin(async (tx) => {
@@ -100,14 +116,17 @@ export async function entregar(_prev: EstadoEntrega, fd: FormData): Promise<Esta
     await tx`
       update entregas set estado = 'entregada', entregada_en = now(), sin_recepcion = ${sinRecepcion},
         recibio_nombre = ${sinRecepcion ? null : recibio}, recibio_telefono = ${String(fd.get("recibio_telefono") ?? "").replace(/\D/g, "") || null},
-        notas = ${String(fd.get("notas") ?? "").trim() || null}, lat = ${lat}, lng = ${lng}
+        notas = ${String(fd.get("notas") ?? "").trim() || null}, lat = ${lat}, lng = ${lng},
+        firma_archivo_id = ${firma}, checklist = ${tx.json(recibido as never)}
       where id = ${e.id}`;
+    for (const x of recibido) await tx`update pedido_partidas set cantidad_recibida = ${x.recibida} where id = ${x.id}`;
     for (const a of ids) await tx`insert into entrega_fotos (entrega_id, url, lat, lng) values (${e.id}, ${"/archivos/" + a}, ${lat}, ${lng})`;
-    await tx`update pedidos set estado = 'entregado' where id = ${pedidoId} and estado in ('en_ruta', 'surtido')`;
+    await tx`update pedidos set estado = ${conFaltantes ? "entregado_con_faltantes" : "entregado"} where id = ${pedidoId} and estado in ('en_ruta', 'surtido')`;
     await tx`update paradas_ruta set salida_en = now() where pedido_id = ${pedidoId} and tipo = 'entrega' and salida_en is null`;
     await tx`
       insert into pedido_eventos (pedido_id, estado, nota, usuario_id)
-      values (${pedidoId}, 'entregado', ${sinRecepcion ? "Entregado sin recepción (con foto)" : `Recibió ${recibio}`}, ${yo.id})`;
+      values (${pedidoId}, ${conFaltantes ? "entregado_con_faltantes" : "entregado"},
+              ${(sinRecepcion ? "Entregado sin recepción (con foto)" : `Recibió y firmó ${recibio}`) + (conFaltantes ? ` · faltó: ${recibido.filter((x) => x.recibida < x.cantidad).length} partida(s)` : "")}, ${yo.id})`;
   });
   refrescar("/interno/chofer");
   return { ok: true };
@@ -119,7 +138,7 @@ export async function llegarARecoger(fd: FormData) {
   const almacen = String(fd.get("almacen_id"));
   if (!UUID.test(almacen)) return;
   const rutaId = await asegurarRuta(yo.id);
-  const [abierta] = await sql`select 1 from paradas_ruta where ruta_id = ${rutaId} and salida_en is null`;
+  const [abierta] = await sql`select 1 from paradas_ruta where ruta_id = ${rutaId} and tipo = 'recoleccion' and salida_en is null`;
   if (!abierta) await sql`insert into paradas_ruta (ruta_id, tipo, almacen_id, lat, lng) values (${rutaId}, 'recoleccion', ${almacen}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null})`;
   refrescar("/interno/chofer");
 }
@@ -177,4 +196,34 @@ export async function cargarCombustible(prev: EstadoCarga, fd: FormData): Promis
     values (${hoyMx()}, 'combustible', ${`Gasolina ${litros} L`}, ${monto}, ${ruta.vehiculo_id}, ${String(fd.get("forma_pago") || "Efectivo")}, ${foto}, ${yo.id}, ${litros}, ${odo > 0 ? odo : null})`;
   refrescar("/interno/chofer");
   return { ok: (prev.ok ?? 0) + 1 };
+}
+
+export type EstadoFactura = { error?: string; mensaje?: string };
+
+/** En la bodega del proveedor: el chofer sube la factura (XML del CFDI de preferencia) y el sistema la concilia contra la orden de compra. */
+export async function subirFactura(_prev: EstadoFactura, fd: FormData): Promise<EstadoFactura> {
+  const yo = await requerirInterno();
+  const pedidoId = String(fd.get("pedido_id"));
+  if (!UUID.test(pedidoId)) return { error: "Pedido no válido." };
+  const [oc] = await sql<{ id: string; folio: string }[]>`select id, folio from ordenes_compra where pedido_id = ${pedidoId} and estado <> 'cancelada' order by creado_en desc limit 1`;
+  if (!oc) return { error: "Este pedido no tiene orden de compra." };
+  const f = fd.get("factura");
+  if (!f || typeof f === "string" || f.size === 0) return { error: "Elige el archivo de la factura." };
+  let archivo: string | null;
+  try { archivo = await guardarArchivo(f, ["text/xml", "application/xml", "application/pdf", ...TIPOS_IMAGEN]); } catch (e) { return { error: (e as Error).message }; }
+  await sql`update ordenes_compra set factura_archivo_id = ${archivo} where id = ${oc.id}`;
+  if (!/xml/.test(f.type) && !f.name.toLowerCase().endsWith(".xml")) {
+    refrescar(`/interno/pedidos/${pedidoId}`);
+    return { mensaje: "Factura guardada. Para conciliarla sola sube el XML; con PDF o foto la revisa el operador." };
+  }
+  const dif = await sql.begin(async (tx) => {
+    const d = await conciliarFactura(tx, oc.id, leerCfdi(await f.text()));
+    await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id)
+             select id, estado, ${d.length ? `Factura con ${d.length} diferencia(s) contra ${oc.folio}` : `Factura conciliada contra ${oc.folio}`}, ${yo.id} from pedidos where id = ${pedidoId}`;
+    return d;
+  });
+  refrescar(`/interno/pedidos/${pedidoId}`);
+  return dif.length
+    ? { error: `La factura no cuadra con la orden: ${dif.map((x) => `${x.producto} (pedido ${x.esperado}, factura ${x.facturado})`).join("; ")}. Revísalo en bodega antes de salir.` }
+    : { mensaje: "Factura conciliada ✓ Todo cuadra con la orden de compra." };
 }

@@ -29,8 +29,11 @@ export async function compararPedido(pedidoId: string): Promise<RenglonComparaci
       select id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by cargada_en desc limit 1
     )
     select pp.id as partida_id, pr.id as producto_id, pr.nombre, pr.sku, pp.cantidad, pp.precio_unitario,
-           (select precio from precios where producto_id = pr.id
-              and lista_id = (select id from listas_precio where nombre = 'Público')) as precio_lista,
+           -- Lista del cliente si tiene; si no, Público.
+           coalesce((select precio from precios where producto_id = pr.id
+                       and lista_id = (select c.lista_precio_id from pedidos pe join clientes c on c.id = pe.cliente_id where pe.id = pp.pedido_id)),
+                    (select precio from precios where producto_id = pr.id
+                       and lista_id = (select id from listas_precio where nombre = 'Público'))) as precio_lista,
            coalesce((select sum(e.cantidad) from existencias e join almacenes a on a.id = e.almacen_id
                      where e.producto_id = pr.id and a.tipo in ('cedis', 'sucursal')), 0) as existencia_propia,
            cp.precio_unitario as cot_precio, cp.disponible as cot_disponible, cp.tiempo_entrega as cot_tiempo,
