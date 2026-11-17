@@ -8,6 +8,7 @@ import { sucursal } from "@/lib/inventario";
 import { efectivoVentasEnCaja, parametros } from "@/lib/caja";
 import { clasesBoton } from "@/components/ui";
 import { NavegacionInterna } from "../Navegacion";
+import { etiquetasDesactualizadas } from "@/lib/etiquetas-db";
 import { PuntoDeVenta } from "./PuntoDeVenta";
 import type { ProductoInventario } from "./InventarioFocos";
 import { AperturaTurno, CambiarUsuario, RetiroParcial, type CajaParaAbrir } from "./Turno";
@@ -17,6 +18,7 @@ export default function Mostrador() {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="mostrador" />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6">
+        <Suspense fallback={null}><AvisoEtiquetas /></Suspense>
         <Suspense fallback={<Esqueleto />}><Contenido /></Suspense>
       </main>
     </div>
@@ -115,5 +117,19 @@ async function Contenido() {
         <RetiroParcial />
       </div>
     </>
+  );
+}
+
+/** Aviso al cajero: etiquetas de anaquel con precio desactualizado. */
+async function AvisoEtiquetas() {
+  await connection();
+  await requerirInterno("mostrador");
+  const n = (await etiquetasDesactualizadas()).length;
+  if (!n) return null;
+  return (
+    <a href="/interno/etiquetas?cambios=1" className="flex items-center justify-between gap-2 rounded-[20px] bg-amber-50 p-3 text-[14px] ring-1 ring-amber-200">
+      <span><strong>{n} etiqueta{n === 1 ? "" : "s"} de anaquel</strong> con precio que cambió. Reimprímelas para que el anaquel y la caja cobren igual.</span>
+      <span className="shrink-0 font-semibold text-amber-800">Reimprimir →</span>
+    </a>
   );
 }

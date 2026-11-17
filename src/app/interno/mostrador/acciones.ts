@@ -24,6 +24,7 @@ export type Venta = {
   clienteId?: string | null;
   puntos?: number;
   cliente?: { nombre?: string; telefono?: string; rfc?: string; razon?: string; cp?: string; regimen?: string; uso?: string };
+  carritoId?: string | null;
 };
 
 /**
@@ -136,6 +137,8 @@ export async function registrarVenta(v: Venta): Promise<{ error?: string; id?: s
                values (${p.id}, ${pendiente ? "recibido" : "entregado"}, ${pendiente ? "Venta de mostrador: pendiente de pago por transferencia (no entregar)" : credito ? "Venta de mostrador a crédito" : "Venta de mostrador"}, ${yo.id})`;
       // Puntos por la compra pagada (no por lo pagado con puntos ni lo que queda a crédito).
       const puntos = clienteId && !pendiente && !credito ? await otorgarPuntos(tx, clienteId, p.id, porCobrar) : 0;
+      // Carrito armado por el cliente en la tienda: queda cobrado (se cobra solo lo que se lleva).
+      if (v.carritoId && UUID.test(v.carritoId)) await tx`update carritos_tienda set cobrado_en = now(), pedido_id = ${p.id} where id = ${v.carritoId} and cobrado_en is null`;
       return { id: p.id, folio: p.folio, pendiente, puntos };
     });
   } catch (e) {

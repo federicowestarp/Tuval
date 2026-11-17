@@ -1,5 +1,7 @@
 "use client";
 
+import { PagarEnCaja } from "./PagarEnCaja";
+
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useCarrito } from "@/components/carrito/CarritoProvider";
@@ -94,6 +96,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono }:
           </li>
         ))}
       </ul>
+      <PagarEnCaja />
       <p className="-mt-4 text-[13px] text-secundario">Confirmamos precios y existencias antes de surtir. <Link href="/tienda" className="text-azul underline">Seguir comprando</Link></p>
 
       <Seccion titulo="Tus datos">

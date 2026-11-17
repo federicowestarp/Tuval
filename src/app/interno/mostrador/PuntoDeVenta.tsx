@@ -2,13 +2,16 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { EscanerQR, codigoCarritoDeQr, skuDeQr } from "@/components/interno/EscanerQR";
+import { cargarCarritoTienda, productoPorEtiqueta } from "./tienda-acciones";
 import type { ProductoMostrador } from "@/lib/inventario";
 import { BuscadorProducto } from "@/components/interno/BuscadorProducto";
 import { Segmentado } from "@/components/Segmentado";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { registrarVenta } from "./acciones";
 import { ClienteVenta } from "./ClienteVenta";
-import { preciosDeLista, type InfoCliente } from "./cliente-acciones";
+import { infoCliente, preciosDeLista, type InfoCliente } from "./cliente-acciones";
 import { Dictado } from "./Dictado";
 import { sinIva, totalesVenta } from "@/lib/totales";
 import { InventarioFocos, type ProductoInventario } from "./InventarioFocos";
@@ -31,6 +34,37 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
   const [error, setError] = useState<string | null>(null);
   const [hecha, setHecha] = useState<{ id: string; folio: string; cambio: number; pendiente: boolean } | null>(null);
   const [enviando, iniciar] = useTransition();
+  // Carrito armado por el cliente en la tienda (QR o código) y lector de QR (carrito o etiqueta de anaquel).
+  const [carrito, setCarrito] = useState<{ id: string; codigo: string } | null>(null);
+  const [escaneando, setEscaneando] = useState(false);
+  const [codigoCarrito, setCodigoCarrito] = useState("");
+  const [avisoQr, setAvisoQr] = useState<string | null>(null);
+  const params = useSearchParams();
+  const cargarCarrito = async (codigo: string) => {
+    setAvisoQr(null);
+    const r = await cargarCarritoTienda(codigo);
+    if (r.error || !r.id) { setAvisoQr(r.error ?? "No se pudo cargar."); return; }
+    setHecha(null);
+    setLineas(r.lineas!.map((x) => ({ ...x.producto, cantidad: x.cantidad, manual: "" })));
+    setCarrito({ id: r.id, codigo: codigo.toUpperCase() });
+    if (r.clienteId) { const f = await infoCliente(r.clienteId); if (f) setFicha(f); }
+    setAvisoQr(`Carrito ${codigo.toUpperCase()} cargado: confirma con el cliente lo que se lleva y ajusta cantidades antes de cobrar.`);
+  };
+  const leerQr = async (texto: string) => {
+    setEscaneando(false);
+    const codigo = codigoCarritoDeQr(texto);
+    if (codigo) { await cargarCarrito(codigo); return; }
+    const sku = skuDeQr(texto);
+    if (sku) { const p = await productoPorEtiqueta(sku); if (p) { agregar(p); setAvisoQr(`Agregado: ${p.nombre}`); } else setAvisoQr(`No encontré el producto ${sku}.`); return; }
+    setAvisoQr("Ese QR no es de un carrito ni de una etiqueta de Tuval.");
+  };
+  const desdeUrl = params.get("carrito");
+  useEffect(() => {
+    // Si la tablet abrió la liga del QR con la cámara normal: …/interno/mostrador?carrito=ABC123
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- carga única desde la liga
+    if (desdeUrl) cargarCarrito(desdeUrl);
+     
+  }, [desdeUrl]);
 
   const agregar = (p: ProductoMostrador, cantidad = 1) => {
     setHecha(null);
@@ -63,11 +97,11 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
       const r = await registrarVenta({
         lineas: lineas.map((l) => ({ id: l.id, cantidad: l.cantidad, precio: l.precio == null ? Number(l.manual) || null : null })),
         forma, terminal: forma === "tarjeta" ? terminal : null, recibido: Number(recibido) || null, referencia, comprobante, cliente,
-        clienteId: ficha?.id ?? null, puntos: usarPuntos && ficha ? ficha.puntos : 0,
+        clienteId: ficha?.id ?? null, puntos: usarPuntos && ficha ? ficha.puntos : 0, carritoId: carrito?.id ?? null,
       });
       if (r.error) { setError(r.error); return; }
       setHecha({ id: r.id!, folio: r.folio!, cambio, pendiente: !!r.pendiente });
-      setLineas([]); setRecibido(""); setReferencia("");
+      setLineas([]); setRecibido(""); setReferencia(""); setCarrito(null); setAvisoQr(null);
       setCliente({ nombre: "", telefono: "", rfc: "", razon: "", cp: "", regimen: "", uso: "G03" });
       setFicha(null); setUsarPuntos(false); setForma("efectivo");
     });
@@ -77,6 +111,16 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
     <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
       <section className="space-y-3 rounded-[20px] bg-white p-4">
         <BuscadorProducto onElegir={(p) => agregar(p)} />
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => setEscaneando(true)} className="rounded-full bg-azul px-4 py-2 text-[14px] font-semibold text-white">Escanear QR (carrito o etiqueta)</button>
+          <form onSubmit={(e) => { e.preventDefault(); if (codigoCarrito.trim()) cargarCarrito(codigoCarrito); setCodigoCarrito(""); }} className="flex items-center gap-1">
+            <input value={codigoCarrito} onChange={(e) => setCodigoCarrito(e.target.value.toUpperCase())} maxLength={6} placeholder="Código" aria-label="Código de carrito" className="h-9 w-32 rounded-full border border-linea px-3 font-mono uppercase" />
+            <button className="h-9 rounded-full border border-azul px-3 text-[14px] font-semibold text-azul">Cargar</button>
+          </form>
+          {carrito && <span className="rounded-full bg-[#E8F1FB] px-3 py-1 text-[13px] font-semibold text-azul">Carrito {carrito.codigo}</span>}
+        </div>
+        {avisoQr && <p className="rounded-xl bg-niebla px-3 py-2 text-[14px]">{avisoQr}</p>}
+        {escaneando && <EscanerQR titulo="Escanea el carrito del cliente o una etiqueta" onLeer={leerQr} onCerrar={() => setEscaneando(false)} />}
         <Dictado onAgregar={agregar} />
         {hecha && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-niebla p-4">

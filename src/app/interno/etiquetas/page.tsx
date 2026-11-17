@@ -4,10 +4,11 @@ import QRCode from "qrcode";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
 import { urlEtiqueta } from "@/lib/etiqueta";
+import { etiquetasDesactualizadas } from "@/lib/etiquetas-db";
 import { TASA_IVA } from "@/lib/totales";
 import { CATEGORIAS } from "@/lib/categorias";
 import { NavegacionInterna } from "../Navegacion";
-import { Imprimir } from "../mostrador/ticket/[id]/Imprimir";
+import { ImprimirEtiquetas } from "./ImprimirEtiquetas";
 
 const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
@@ -31,7 +32,9 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/e
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
   const cat = typeof sp.cat === "string" ? sp.cat : "";
   const todos = sp.todos === "1";
-  const buscar = sp.ver === "1";
+  const cambios = sp.cambios === "1";
+  const buscar = sp.ver === "1" || cambios;
+  const desactualizadas = await etiquetasDesactualizadas();
   const productos = buscar ? await sql<{ id: string; sku: string; nombre: string; unidad: string | null; precio: number | null }[]>`
     select p.id, p.sku, p.nombre, p.unidad, pr.precio::float precio
     from productos p
@@ -39,7 +42,8 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/e
     where p.activo
       and (${q} = '' or p.nombre ilike ${"%" + q + "%"} or p.sku ilike ${"%" + q + "%"})
       and (${cat} = '' or p.categoria_id = ${cat})
-      and (${todos} or exists (select 1 from existencias e join almacenes a on a.id = e.almacen_id where e.producto_id = p.id and a.tipo = 'sucursal' and e.cantidad > 0))
+      and (not ${cambios} or p.id = any(${desactualizadas.map((d) => d.id)}::uuid[]))
+      and (${todos} or ${cambios} or exists (select 1 from existencias e join almacenes a on a.id = e.almacen_id where e.producto_id = p.id and a.tipo = 'sucursal' and e.cantidad > 0))
     order by p.nombre limit 300` : [];
   const qrs = await Promise.all(productos.map((p) => QRCode.toString(urlEtiqueta(p.sku), { type: "svg", margin: 0, errorCorrectionLevel: "M" })));
   const hoy = new Date().toLocaleDateString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "2-digit", year: "2-digit" });
@@ -60,11 +64,18 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/e
         </label>
       </form>
 
+      {desactualizadas.length > 0 && !cambios && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[20px] bg-amber-50 p-4 ring-1 ring-amber-200 print:hidden">
+          <p className="text-[14px]"><strong>{desactualizadas.length} etiqueta{desactualizadas.length === 1 ? "" : "s"} con precio o nombre que cambió</strong> desde que se imprimió{desactualizadas.length === 1 ? "" : "eron"}.</p>
+          <a href="/interno/etiquetas?cambios=1" className="rounded-full bg-amber-600 px-4 py-2 text-[14px] font-semibold text-white">Ver y reimprimir</a>
+        </div>
+      )}
+      {cambios && <p className="rounded-[20px] bg-amber-50 p-3 text-[14px] print:hidden">Mostrando solo las etiquetas que cambiaron: {desactualizadas.slice(0, 12).map((d) => `${d.nombre} (${d.impreso != null ? mx(d.impreso) : "sin precio"} → ${d.actual != null ? mx(d.actual) : "sin precio"})`).join(" · ")}{desactualizadas.length > 12 ? "…" : ""}</p>}
       {buscar && (
         <div className="space-y-2 print:hidden">
           <p className="text-[14px]">{productos.length} etiqueta{productos.length === 1 ? "" : "s"}{productos.length === 300 ? " (máximo 300 por impresión; filtra por categoría)" : ""}. Tres por renglón en hoja carta; recórtalas por la línea punteada.</p>
           {sinPrecio > 0 && <p className="text-[14px] font-semibold text-amber-800">{sinPrecio} sin precio en la lista Público: salen con “Precio en caja”.</p>}
-          {productos.length > 0 && <Imprimir />}
+          {productos.length > 0 && <ImprimirEtiquetas ids={productos.map((p) => p.id)} />}
         </div>
       )}
 
