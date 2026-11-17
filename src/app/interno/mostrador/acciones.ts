@@ -110,12 +110,15 @@ export async function registrarVenta(v: Venta): Promise<{ error?: string; id?: s
           returning id`;
         clienteId = c.id;
       }
+      // Venta asistida: si el carrito lo armó un vendedor en su tablet, la venta queda a su nombre (el cajero queda en el pago).
+      const [deCarrito] = v.carritoId && UUID.test(v.carritoId) ? await tx<{ vendedor_id: string | null }[]>`select vendedor_id from carritos_tienda where id = ${v.carritoId}` : [];
+      const vendedor = deCarrito?.vendedor_id ?? yo.id;
       const [p] = await tx<{ id: string; folio: string }[]>`
         insert into pedidos (folio, canal, cliente_id, tipo_entrega, almacen_surtido, estado, comprobante, contacto_nombre, contacto_telefono,
                              subtotal, iva, total, confirmado_en, aceptado_en, aprobado_en, aprobado_por, a_credito, vendedor_id)
         values ('MO-' || lpad(nextval('folio_pedido_seq')::text, 6, '0'), 'mostrador', ${clienteId}, 'recoger', ${s.id}, ${pendiente ? "recibido" : "entregado"},
                 ${v.comprobante === "factura" ? "factura" : "nota"}, ${nombre}, ${ficha?.telefono ?? (v.cliente?.telefono?.replace(/\D/g, "").slice(0, 15) || null)},
-                ${subtotal}, ${iva}, ${total}, now(), now(), ${pendiente ? null : new Date()}, ${pendiente ? null : credito ? "credito" : "pago"}, ${credito}, ${yo.id})
+                ${subtotal}, ${iva}, ${total}, now(), now(), ${pendiente ? null : new Date()}, ${pendiente ? null : credito ? "credito" : "pago"}, ${credito}, ${vendedor})
         returning id, folio`;
       for (const x of partidas) {
         await tx`

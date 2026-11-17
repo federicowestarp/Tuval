@@ -48,7 +48,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
     setLineas(r.lineas!.map((x) => ({ ...x.producto, cantidad: x.cantidad, manual: "" })));
     setCarrito({ id: r.id, codigo: codigo.toUpperCase() });
     if (r.clienteId) { const f = await infoCliente(r.clienteId); if (f) setFicha(f); }
-    setAvisoQr(`Carrito ${codigo.toUpperCase()} cargado: confirma con el cliente lo que se lleva y ajusta cantidades antes de cobrar.`);
+    setAvisoQr(`Carrito ${codigo.toUpperCase()} cargado${r.vendedor ? ` (lo armó ${r.vendedor})` : ""}: confirma con el cliente lo que se lleva y ajusta cantidades antes de cobrar.`);
   };
   const leerQr = async (texto: string) => {
     setEscaneando(false);
