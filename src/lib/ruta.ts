@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 export type ParadaRuta = {
   id: string;
   folio: string;
+  llegado: boolean;
   estado: "surtido" | "en_ruta" | "entregado" | "entregado_con_faltantes";
   zona: string | null;
   entidad: string | null;
@@ -30,7 +31,8 @@ export async function paradasPendientes(): Promise<ParadaRuta[]> {
            to_char(p.entrega_fecha, 'YYYY-MM-DD') entrega_fecha, p.entrega_ventana,
            coalesce((select json_agg(json_build_object('nombre', pr.nombre, 'cantidad', pp.cantidad) order by pr.nombre)
                      from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = p.id), '[]') partidas,
-           (select count(*)::int from solicitudes_producto s where s.pedido_id = p.id and s.estado = 'conseguida') especiales
+           (select count(*)::int from solicitudes_producto s where s.pedido_id = p.id and s.estado = 'conseguida') especiales,
+           exists (select 1 from paradas_ruta x where x.pedido_id = p.id and x.tipo = 'entrega' and x.salida_en is null) llegado
     from pedidos p
     where p.estado in ('surtido', 'en_ruta') and p.tipo_entrega <> 'recoger'
     order by p.estado desc, p.entrega_fecha nulls last, p.entrega_ventana, p.zona, p.creado_en`;

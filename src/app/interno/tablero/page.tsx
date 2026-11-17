@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { requerirInterno } from "@/lib/equipo";
 import { datosTablero, PERIODOS, type Periodo } from "@/lib/tablero";
 import { Barras, Indicador, horas, pesos } from "@/components/interno/Indicadores";
+import { DatosPrueba } from "./DatosPrueba";
 import { NavegacionInterna } from "../Navegacion";
 
 const CATEGORIA: Record<string, string> = {
@@ -35,6 +36,9 @@ const Seccion = ({ titulo, nota, children }: { titulo: string; nota?: string; ch
 );
 const Caja = ({ children }: { children: React.ReactNode }) => <div className="rounded-[20px] bg-white p-5">{children}</div>;
 
+/** Km de un vehículo: rastreador > odómetro > teléfono. */
+const km = (v: { km_rastreador: number | null; km_odometro: number | null; km: number }) => v.km_rastreador || v.km_odometro || v.km || null;
+
 async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/tablero">["searchParams"] }) {
   await connection();
   await requerirInterno("admin");
@@ -55,9 +59,11 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         </nav>
       </div>
 
+      <DatosPrueba hay={t.hayPrueba} />
+
       <Seccion titulo="Pedidos">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
-          <Indicador etiqueta="Recibidos" valor={String(t.flujo.recibidos)} />
+          <Indicador etiqueta="Recibidos en línea" valor={String(t.flujo.recibidos)} />
           <Indicador etiqueta="Cotizaciones de proveedor" valor={String(t.flujo.cotizaciones)} />
           <Indicador etiqueta="Confirmados" valor={String(t.flujo.confirmados)} />
           <Indicador etiqueta="Entregados" valor={String(t.flujo.entregados)} nota={t.flujo.con_faltantes ? `${t.flujo.con_faltantes} con faltantes` : undefined} />
@@ -65,6 +71,12 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
           <Indicador etiqueta="Piezas por buscar" valor={String(t.flujo.demanda)} />
           <Indicador etiqueta="Contactos web" valor={String(t.flujo.contactos)} />
         </div>
+        {t.canales.length > 0 && (
+          <Caja>
+            <p className="mb-3 font-semibold">Ventas por canal</p>
+            <Barras filas={t.canales.map((c) => ({ etiqueta: c.canal, valor: c.ventas, texto: pesos(c.ventas), detalle: `${c.pedidos} pedidos` }))} />
+          </Caja>
+        )}
         <div className="grid gap-3 md:grid-cols-2">
           <Caja>
             <p className="mb-3 font-semibold">Abiertos ahora, por etapa</p>
@@ -87,6 +99,13 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
             />
           </Caja>
         </div>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <Indicador etiqueta="Traslado al cliente (mediana)" valor={t.traslados.min_mediana != null ? `${t.traslados.min_mediana} min` : "—"} nota={`${t.traslados.tramos} tramos`} />
+          <Indicador etiqueta="Distancia por tramo (mediana)" valor={t.traslados.km_mediana != null ? `${t.traslados.km_mediana} km` : "—"} nota="GPS del teléfono" />
+          {t.recolecciones.slice(0, 2).map((r) => (
+            <Indicador key={r.lugar} etiqueta={`Espera en ${r.lugar.replace("Emmsa · ", "Emmsa ")}`} valor={r.espera_min != null ? `${r.espera_min} min` : "—"} nota={`${r.visitas} visitas`} />
+          ))}
+        </div>
         {t.pendientes.length > 0 && (
           <Caja>
             <p className="mb-2 font-semibold">Por recoger con el proveedor</p>
@@ -99,18 +118,19 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
         )}
       </Seccion>
 
-      <Seccion titulo="Rutas y traslados" nota="Kilómetros según el GPS del chofer">
+      <Seccion titulo="Rutas y traslados" nota="Km GPS = teléfono del chofer · Km odómetro = captura al iniciar y terminar">
         <Caja>
           {t.rutas.length === 0 ? <p className="text-[14px] text-secundario">Sin rutas en este periodo.</p> : (
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] text-left text-[14px]">
-                <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Fecha</th><th>Chofer</th><th>Vehículo</th><th className="text-right">Entregas</th><th className="text-right">En ruta</th><th className="text-right">Km</th><th className="text-right">Horas</th></tr></thead>
+                <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Fecha</th><th>Chofer</th><th>Vehículo</th><th className="text-right">Entregas</th><th className="text-right">En ruta</th><th className="text-right">Km GPS</th><th className="text-right">Km odómetro</th><th className="text-right">Horas</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
-                  {t.rutas.map((r) => (
-                    <tr key={r.id}><td className="py-2">{r.fecha}</td><td>{r.chofer}</td><td>{r.vehiculo ?? "—"}</td><td className="text-right">{r.entregas}</td><td className="text-right">{r.pendientes}</td><td className="text-right">{r.km}</td><td className="text-right">{horas(r.horas)}</td></tr>
+                  {t.rutas.slice(0, 15).map((r) => (
+                    <tr key={r.id}><td className="py-2">{r.fecha}</td><td>{r.chofer}</td><td>{r.vehiculo ?? "—"}</td><td className="text-right">{r.entregas}</td><td className="text-right">{r.pendientes}</td><td className="text-right">{r.km}</td><td className="text-right">{r.km_odometro ?? "—"}</td><td className="text-right">{horas(r.horas)}</td></tr>
                   ))}
                 </tbody>
               </table>
+              {t.rutas.length > 15 && <p className="mt-2 text-[12px] text-secundario">Mostrando las 15 rutas más recientes de {t.rutas.length}.</p>}
             </div>
           )}
         </Caja>
@@ -133,18 +153,52 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
       </Seccion>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <Seccion titulo="Mostrador">
+          <div className="grid grid-cols-2 gap-3">
+            <Indicador etiqueta="Ventas de mostrador" valor={pesos(t.mostrador.ventas)} nota={`${t.mostrador.tickets} tickets`} />
+            <Indicador etiqueta="Ticket promedio" valor={t.mostrador.tickets ? pesos(t.mostrador.ventas / t.mostrador.tickets) : "—"} nota={t.mostrador.ventas ? `Margen ${Math.round(((t.mostrador.ventas / 1.16 - t.mostrador.costo) / (t.mostrador.ventas / 1.16)) * 100)}% sin IVA` : undefined} />
+          </div>
+          <Caja>
+            <p className="mb-3 font-semibold">Cobrado por forma de pago</p>
+            <Barras filas={t.formas.map((x) => ({ etiqueta: x.forma, valor: x.total, texto: pesos(x.total) }))} vacio="Sin ventas de mostrador." />
+            {t.cortes.length > 0 && (
+              <>
+                <p className="mb-2 mt-5 font-semibold">Cortes de caja</p>
+                <ul className="divide-y divide-linea text-[14px]">
+                  {t.cortes.map((c) => {
+                    const dif = c.contado - c.esperado;
+                    return <li key={c.id} className="flex justify-between py-1.5"><span>{c.fecha} · {c.quien}</span><span className={`tabular-nums ${Math.abs(dif) >= 1 ? "font-semibold text-red-700" : "text-secundario"}`}>{Math.abs(dif) < 1 ? "Cuadró" : `${dif > 0 ? "Sobran" : "Faltan"} ${pesos(Math.abs(dif))}`}</span></li>;
+                  })}
+                </ul>
+              </>
+            )}
+          </Caja>
+        </Seccion>
+        <Seccion titulo="Inventario">
+          <div className="grid grid-cols-2 gap-3">
+            <Indicador etiqueta="Valor a costo" valor={pesos(t.inventario.valor)} />
+            <Indicador etiqueta="Bajo mínimo" valor={String(t.inventario.bajo)} nota={t.inventario.negativos ? `${t.inventario.negativos} en negativo` : undefined} />
+            <Indicador etiqueta="Ajustes por conteo" valor={String(t.inventario.ajustes)} nota="en el periodo" />
+            <Indicador etiqueta="Faltante por conteo" valor={pesos(t.inventario.perdida)} nota="A costo promedio" />
+          </div>
+          <Link href="/interno/inventario" className="inline-block text-[14px] font-semibold text-azul">Ver inventario ›</Link>
+        </Seccion>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
         <Seccion titulo="Flotilla">
           <Caja>
             {t.flotilla.length === 0 ? <p className="text-[14px] text-secundario">Da de alta tus vehículos en <Link href="/interno/flotilla" className="text-azul">Flotilla</Link>.</p> : (
               <table className="w-full text-left text-[14px]">
-                <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Vehículo</th><th className="text-right">Entregas</th><th className="text-right">Km</th><th className="text-right">Gasto</th><th className="text-right">Por entrega</th></tr></thead>
+                <thead className="text-[12px] text-secundario"><tr><th className="pb-2">Vehículo</th><th className="text-right">Entregas</th><th className="text-right">Km</th><th className="text-right">Km/L</th><th className="text-right">Gasto</th><th className="text-right">$/km</th><th className="text-right">$/entrega</th></tr></thead>
                 <tbody className="divide-y divide-linea tabular-nums">
                   {t.flotilla.map((v) => (
-                    <tr key={v.id}><td className="py-2">{v.nombre}<span className="block text-[12px] text-secundario">{v.tipo}</span></td><td className="text-right">{v.entregas}</td><td className="text-right">{v.km}</td><td className="text-right">{pesos(v.gasto)}</td><td className="text-right">{v.entregas ? pesos(v.gasto / v.entregas) : "—"}</td></tr>
+                    <tr key={v.id}><td className="py-2">{v.nombre}<span className="block text-[12px] text-secundario">{v.tipo}</span></td><td className="text-right">{v.entregas}</td><td className="text-right">{km(v) ?? "—"}</td><td className="text-right">{v.litros && km(v) ? (km(v)! / v.litros).toFixed(1) : "—"}</td><td className="text-right">{pesos(v.gasto)}</td><td className="text-right">{km(v) ? `$${(v.gasto / km(v)!).toFixed(1)}` : "—"}</td><td className="text-right">{v.entregas ? pesos(v.gasto / v.entregas) : "—"}</td></tr>
                   ))}
                 </tbody>
               </table>
             )}
+            {t.flotilla.length > 0 && <p className="mt-2 text-[12px] text-secundario">Km: rastreador GPS si lo tiene; si no, odómetro; si no, GPS del teléfono.</p>}
           </Caja>
         </Seccion>
         <Seccion titulo="Nómina">

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * 1. admin.tuval.mx (o cualquier host que empiece con "admin.") muestra solo el panel interno:
- *    "/" → /interno/pedidos; las páginas públicas se mandan al sitio principal.
+ *    "/" → /interno (cada rol a su pantalla); las páginas públicas se mandan al sitio principal.
  * 2. Panel interno sin cookie de sesión → a la entrada. La validación real (sesión vigente,
  *    usuario activo, rol) se hace en el servidor con requerirInterno().
  */
@@ -14,7 +14,7 @@ export function proxy(req: NextRequest) {
   const host = req.headers.get("host") ?? "";
 
   if (host.startsWith("admin.")) {
-    if (pathname === "/") return NextResponse.redirect(new URL("/interno/pedidos", req.url));
+    if (pathname === "/") return NextResponse.redirect(new URL("/interno", req.url));
     const delPanel = pathname.startsWith("/interno") || pathname.startsWith("/archivos/");
     if (!delPanel) return NextResponse.redirect(`${SITIO}${pathname}${search}`);
   }

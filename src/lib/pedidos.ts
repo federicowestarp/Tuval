@@ -40,6 +40,8 @@ export type PedidoDetalle = {
   token_receptor: string;
   confirmado_en: Date | null;
   motivo_cancelacion: string | null;
+  cotizacion_solicitada_en: Date | null;
+  aceptado_en: Date | null;
   recepcion_confirmada_en: Date | null;
   creado_en: Date;
   partidas: PartidaPedido[];
@@ -55,7 +57,7 @@ async function detalle(where: ReturnType<typeof sql>): Promise<PedidoDetalle | n
            p.recibe_nombre, p.recibe_telefono, p.preferencia_contacto,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') as entrega_fecha, p.entrega_ventana, p.comprobante,
            p.contacto_nombre, p.contacto_telefono, p.sin_recepcion_solicitada, p.notas,
-           p.subtotal, p.iva, p.total, p.token_receptor, p.confirmado_en, p.motivo_cancelacion, p.recepcion_confirmada_en, p.creado_en,
+           p.subtotal, p.iva, p.total, p.token_receptor, p.confirmado_en, p.motivo_cancelacion, p.cotizacion_solicitada_en, p.aceptado_en, p.recepcion_confirmada_en, p.creado_en,
            coalesce((select json_agg(json_build_object('id', pp.id, 'producto_id', pr.id, 'nombre', pr.nombre, 'sku', pr.sku,
                       'cantidad', pp.cantidad, 'precio_unitario', pp.precio_unitario, 'costo_unitario', pp.costo_unitario,
                       'cantidad_recibida', pp.cantidad_recibida) order by pr.nombre)
@@ -89,7 +91,7 @@ export type PedidoResumen = Omit<PedidoDetalle, "partidas" | "especiales" | "adj
 
 export async function listarPedidos(): Promise<PedidoResumen[]> {
   return sql<PedidoResumen[]>`
-    select p.id, p.folio, p.estado, p.zona, p.entidad, p.tipo_entrega, p.direccion_entrega, p.recibe_nombre, p.recibe_telefono, p.motivo_cancelacion,
+    select p.id, p.folio, p.estado, p.zona, p.entidad, p.tipo_entrega, p.direccion_entrega, p.recibe_nombre, p.recibe_telefono, p.motivo_cancelacion, p.cotizacion_solicitada_en, p.aceptado_en,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') as entrega_fecha, p.entrega_ventana, p.comprobante,
            p.contacto_nombre, p.contacto_telefono, p.sin_recepcion_solicitada, p.subtotal, p.iva, p.total,
            p.confirmado_en, p.creado_en,

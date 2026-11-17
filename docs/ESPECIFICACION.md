@@ -111,6 +111,23 @@ Agrupada por descripción: cuántas veces y cuántos clientes lo han pedido. Est
 - **Ingresos y gastos:** ventas = pedidos confirmados con IVA; costo = cotizaciones del proveedor; cobrado = cobros registrados en cada pedido; gastos en `/interno/gastos` (con comprobante, ligados a vehículo o persona).
 - **Flotilla y nómina:** `/interno/flotilla` da de alta vehículos y personal; el chofer elige vehículo al iniciar ruta; la nómina pagada se registra como gasto de categoría Nómina.
 
+### Sucursal: mostrador e inventario (`/interno/mostrador`, `/interno/inventario`; rol Mostrador, Operador o Admin)
+- **Un solo inventario.** Cada cambio es un movimiento en el libro (`movimientos_inventario`): entrada de compra, venta, traspaso, ajuste por conteo. La existencia siempre se puede recalcular del libro.
+- **Mostrador:** abrir caja con fondo → escanear (lector USB = teclado + Enter) o buscar → cobrar en efectivo (con cambio), tarjeta (autorización de la terminal) o transferencia → ticket de 80 mm → corte de caja con efectivo contado vs esperado. La venta queda como pedido `MO-` (canal mostrador, entregado) y descuenta la sucursal.
+- Un código de barras que no existe se liga al producto al escanearlo la primera vez.
+- Se puede vender sin existencia en sistema: queda en negativo y aparece en Inventario para revisar (no frena al cliente en mostrador).
+- **Inventario:** existencias con mínimo, recibir mercancía (actualiza costo promedio y costo del proveedor), conteo cíclico con ajuste automático, movimientos.
+- Pedido en línea con existencia en sucursal: botón "Surtir desde sucursal" (no se compra a Emmsa).
+- Factura en mostrador: se capturan datos fiscales y queda **pendiente de timbrar** hasta contratar PAC.
+
+### Captura por perfil para medir tiempos
+- **Operador:** "Ya pedí cotización al proveedor" → carga cotización → confirma → "Cliente aceptó" (o se marca solo al cobrar o comprar).
+- **Chofer:** odómetro (y foto opcional) al iniciar y terminar ruta; "Llegué" / "Recogí, ya salgo" en la bodega (espera en proveedor); "Llegué con el cliente" antes de entregar (traslado y espera en obra); carga de gasolina con litros, odómetro y foto del ticket (km/L).
+- **Rastreador GPS (opcional):** IMEI en Flotilla; posiciones entran por `POST /api/rastreo` (flespi HTTP stream o Traccar forward) con `Authorization: Bearer RASTREO_TOKEN`.
+
+### Datos de prueba
+Botón en el Tablero: carga 30 días inventados (folios PR-/PM-, vehículos y personal "prueba"; a productos sin precio se les inventa uno solo en esos pedidos). Todo queda anotado en `datos_prueba` y se borra completo con otro botón.
+
 ## 4. Tuval Obra · consignación (opinión y reglas propuestas)
 
 **Modelo decidido (D13):** bodeguero Tuval en la obra. Dos formas de retiro:

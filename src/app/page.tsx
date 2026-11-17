@@ -12,10 +12,10 @@ import { ligaWhatsAppTuval } from "@/lib/contacto";
 export default function Inicio() {
   const wa = ligaWhatsAppTuval();
   return (
-    <Marco>
+    <Marco bajoBarra>
       {/* Portada */}
       <section className="bg-piedra">
-      <div className="mx-auto max-w-4xl px-4 pb-20 pt-14 text-center sm:px-6 sm:pt-24">
+      <div className="mx-auto max-w-4xl px-4 pb-20 pt-32 text-center sm:px-6 sm:pt-44">
         <h1 className="mt-4 font-display text-[44px] font-semibold leading-[0.98] tracking-[-0.04em] sm:text-7xl">
           Tubería, equipos y eléctrico.
           <span className="block text-secundario">Todo, a tiempo.</span>
@@ -94,7 +94,7 @@ export default function Inicio() {
       </section>
 
       {/* Para obras */}
-      <section id="obras" className="scroll-mt-14 bg-azul text-white">
+      <section id="obras" className="scroll-mt-24 bg-azul text-white">
         <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
           <p className="text-[13px] font-semibold uppercase tracking-[0.18em] text-cian">Para obras y constructoras</p>
           <h2 className="mt-4 max-w-2xl font-display text-4xl font-semibold sm:text-5xl">Material en tu obra, sin perseguir a nadie.</h2>
@@ -145,7 +145,7 @@ export default function Inicio() {
       </section>
 
       {/* Envíos */}
-      <section id="entregas" className="scroll-mt-14 bg-piedra">
+      <section id="entregas" className="scroll-mt-24 bg-piedra">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-24 sm:px-6 md:grid-cols-2">
           <div>
             <h2 className="font-display text-4xl font-semibold sm:text-5xl">Pide desde donde estés.</h2>

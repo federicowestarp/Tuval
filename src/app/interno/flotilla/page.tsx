@@ -5,7 +5,7 @@ import { requerirInterno } from "@/lib/equipo";
 import { campo, clasesBoton } from "@/components/ui";
 import { pesos } from "@/components/interno/Indicadores";
 import { NavegacionInterna } from "../Navegacion";
-import { agregarEmpleado, agregarVehiculo, darDeBaja } from "./acciones";
+import { agregarEmpleado, agregarVehiculo, darDeBaja, ligarRastreador } from "./acciones";
 
 export default function Flotilla() {
   return (
@@ -23,7 +23,10 @@ async function Contenido() {
   await connection();
   await requerirInterno("admin");
   const [vehiculos, empleados] = await Promise.all([
-    sql<{ id: string; nombre: string; tipo: string; placas: string | null }[]>`select id, nombre, tipo, placas from vehiculos where activo order by nombre`,
+    sql<{ id: string; nombre: string; tipo: string; placas: string | null; rastreador_id: string | null; ultima: string | null }[]>`
+      select v.id, v.nombre, v.tipo, v.placas, v.rastreador_id,
+             (select to_char(max(registrada_en) at time zone 'America/Mexico_City', 'DD/MM HH24:MI') from posiciones_vehiculo where vehiculo_id = v.id) ultima
+      from vehiculos v where v.activo order by v.nombre`,
     sql<{ id: string; nombre: string; puesto: string | null; sueldo: number | null; periodicidad: string }[]>`select id, nombre, puesto, sueldo::float sueldo, periodicidad from empleados where activo order by nombre`,
   ]);
   const baja = (id: string, tabla: string) => (
@@ -34,12 +37,25 @@ async function Contenido() {
       <section className="space-y-3 rounded-[20px] bg-white p-5">
         <h2 className="font-semibold">Vehículos</h2>
         <ul className="divide-y divide-linea text-[15px]">
-          {vehiculos.map((v) => <li key={v.id} className="flex items-center justify-between py-2.5"><span>{v.nombre} <span className="text-[13px] text-secundario">· {v.tipo}{v.placas && ` · ${v.placas}`}</span></span>{baja(v.id, "vehiculos")}</li>)}
+          {vehiculos.map((v) => (
+            <li key={v.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+              <span>{v.nombre} <span className="text-[13px] text-secundario">· {v.tipo}{v.placas && ` · ${v.placas}`}{v.ultima ? ` · GPS: última señal ${v.ultima}` : v.rastreador_id ? " · GPS sin señal aún" : ""}</span></span>
+              <span className="flex items-center gap-3">
+                <form action={ligarRastreador} className="flex gap-1">
+                  <input type="hidden" name="id" value={v.id} />
+                  <input name="rastreador_id" defaultValue={v.rastreador_id ?? ""} placeholder="IMEI del GPS" className="h-8 w-36 rounded-lg border border-linea px-2 text-[13px]" />
+                  <button className="text-[13px] text-azul">Guardar</button>
+                </form>
+                {baja(v.id, "vehiculos")}
+              </span>
+            </li>
+          ))}
         </ul>
-        <form action={agregarVehiculo} className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
+        <form action={agregarVehiculo} className="grid gap-2 sm:grid-cols-[1fr_auto_auto_auto_auto]">
           <input name="nombre" placeholder="Nombre (ej. Camioneta 1)" className={campo} required />
           <select name="tipo" className={campo}><option value="camioneta">Camioneta</option><option value="moto">Moto</option><option value="camion">Camión</option><option value="auto">Auto</option></select>
           <input name="placas" placeholder="Placas" className={campo} />
+          <input name="rastreador_id" placeholder="IMEI del GPS (opcional)" className={campo} />
           <button className={clasesBoton("principal", "normal")}>Agregar</button>
         </form>
       </section>

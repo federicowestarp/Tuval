@@ -11,7 +11,7 @@ import { urlArchivo } from "@/lib/url-archivo";
 import { urlBase } from "@/lib/url";
 import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../../Navegacion";
-import { cambiarEstado, registrarCobro } from "../acciones";
+import { cambiarEstado, clienteAcepto, cotizacionSolicitada, registrarCobro, surtirDeSucursal } from "../acciones";
 import { Cancelar } from "../Cancelar";
 import { sql } from "@/lib/db";
 import { agregarRenglonesAlPedido, asignarRenglon } from "./acciones";
@@ -43,6 +43,13 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
   const cobros = await sql<{ id: string; fecha: string; forma: string; monto: number; referencia_pasarela: string | null }[]>`
     select id, to_char(pagado_en at time zone 'America/Mexico_City', 'DD/MM/YYYY') fecha, forma, monto::float monto, referencia_pasarela
     from pagos where pedido_id = ${pedido.id} order by pagado_en`;
+  const [stock] = await sql<{ alcanza: boolean; lineas: number }[]>`
+    select count(*)::int lineas, coalesce(bool_and(coalesce(e.cantidad, 0) >= pp.cantidad), false) alcanza
+    from pedido_partidas pp left join existencias e on e.producto_id = pp.producto_id
+      and e.almacen_id = (select id from almacenes where tipo = 'sucursal' and activo order by creado_en limit 1)
+    where pp.pedido_id = ${pedido.id}`;
+  const hora = (d: Date | null) => d ? new Date(d).toLocaleString("es-MX", { timeZone: "America/Mexico_City", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null;
+  const abierto = !["entregado", "entregado_con_faltantes", "cancelado"].includes(pedido.estado);
   const ligaCliente = `${base}/pedido/${pedido.id}`;
   const promesa = pedido.entrega_fecha && pedido.entrega_ventana ? describirPromesa({ fecha: pedido.entrega_fecha, ventana: pedido.entrega_ventana }) : pedido.zona === "otro" ? `Envío a ${pedido.entidad ?? "otro estado"}: fecha y costo por confirmar` : "Recoger";
   const pendientes = pedido.especiales.filter((e) => e.estado === "nueva" || e.estado === "buscando");
@@ -76,6 +83,21 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
       </div>
 
       {pedido.estado === "cancelado" && pedido.motivo_cancelacion && <p className="rounded-xl bg-white p-3 text-sm">Motivo de cancelación: <strong>{pedido.motivo_cancelacion}</strong></p>}
+
+      {abierto && (
+        <section className={`${caja} flex flex-wrap items-center gap-2 text-sm`}>
+          <span className="font-semibold">Avance:</span>
+          {pedido.cotizacion_solicitada_en ? <span className="rounded-full bg-niebla px-3 py-1">Cotización pedida {hora(pedido.cotizacion_solicitada_en)}</span> : pedido.estado === "recibido" && (
+            <form action={cotizacionSolicitada}><input type="hidden" name="id" value={pedido.id} /><button className="rounded-full border border-azul px-3 py-1 font-semibold text-azul">Ya pedí cotización al proveedor</button></form>
+          )}
+          {pedido.confirmado_en && (pedido.aceptado_en ? <span className="rounded-full bg-niebla px-3 py-1">Cliente aceptó {hora(pedido.aceptado_en)}</span> : (
+            <form action={clienteAcepto}><input type="hidden" name="id" value={pedido.id} /><button className="rounded-full border border-azul px-3 py-1 font-semibold text-azul">Cliente aceptó</button></form>
+          ))}
+          {pedido.estado === "recibido" && pedido.confirmado_en && stock.lineas > 0 && stock.alcanza && (
+            <form action={surtirDeSucursal}><input type="hidden" name="id" value={pedido.id} /><button className="rounded-full bg-azul px-3 py-1 font-semibold text-white">Surtir desde sucursal (hay existencia)</button></form>
+          )}
+        </section>
+      )}
 
       <section className={caja}>
         <h2 className="font-semibold">Cobros</h2>

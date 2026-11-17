@@ -10,7 +10,8 @@ export const COOKIE_INTERNA = "tuval_interno";
 const DIAS_SESION = 7;
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
-export type RolInterno = "admin" | "operador" | "chofer";
+export type RolInterno = "admin" | "operador" | "chofer" | "mostrador";
+export type Minimo = "admin" | "operador" | "mostrador";
 export type UsuarioInterno = { id: string; nombre: string; correo: string; rol: RolInterno };
 
 export async function hashContrasena(contrasena: string): Promise<string> {
@@ -59,12 +60,17 @@ export async function usuarioInterno(): Promise<UsuarioInterno | null> {
   return u ?? null;
 }
 
-/** Qué puede ver cada rol. admin: todo · operador: pedidos, demanda y ruta · chofer: solo su ruta. */
-export const puede = (rol: RolInterno, minimo?: "admin" | "operador") =>
-  !minimo || rol === "admin" || (minimo === "operador" && rol === "operador");
+/**
+ * Qué puede ver cada rol. admin: todo · operador: pedidos, demanda, mostrador, inventario y ruta ·
+ * mostrador: punto de venta e inventario · chofer: solo su ruta.
+ */
+export const puede = (rol: RolInterno, minimo?: Minimo) =>
+  !minimo || rol === "admin" ||
+  (minimo === "operador" && rol === "operador") ||
+  (minimo === "mostrador" && (rol === "operador" || rol === "mostrador"));
 
 /** Para páginas y acciones del panel: sin sesión → a la entrada; sin rol suficiente → no existe. */
-export async function requerirInterno(minimo?: "admin" | "operador"): Promise<UsuarioInterno> {
+export async function requerirInterno(minimo?: Minimo): Promise<UsuarioInterno> {
   const u = await usuarioInterno();
   if (!u) redirect("/interno/entrar");
   if (!puede(u.rol, minimo)) notFound();

@@ -1,33 +1,37 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Logo } from "@/components/Logo";
 import { IconoBolsa } from "@/components/Iconos";
 import { useCarrito } from "@/components/carrito/CarritoProvider";
+import { BarraFlotante } from "./BarraFlotante";
 
-const ENLACES = [
+const EN_LINEA = [
   { href: "/tienda", texto: "Tienda" },
   { href: "/lista", texto: "Pedir con lista" },
   { href: "/obras", texto: "Para obras" },
-  { href: "/cuenta/pedidos", texto: "Mis pedidos" },
 ];
 
-export function BarraSuperior() {
+export function BarraSuperior({ whatsapp }: { whatsapp?: string | null }) {
   const { piezas } = useCarrito();
-  const ruta = usePathname();
   return (
-    <header className="sticky top-0 z-40 border-b border-linea/70 bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" aria-label="Inicio"><Logo /></Link>
-        <nav className="hidden items-center gap-7 text-[14px] md:flex">
-          {ENLACES.map((e) => (
-            <Link key={e.href} href={e.href} className={`transition hover:text-azul ${ruta === e.href ? "font-semibold text-azul" : "text-secundario"}`}>
-              {e.texto}
-            </Link>
-          ))}
-        </nav>
-        <Link href="/carrito" aria-label={`Carrito, ${piezas} productos`} className="relative -mr-2 flex h-10 w-10 items-center justify-center rounded-full text-azul hover:bg-niebla">
+    <BarraFlotante
+      enLinea={EN_LINEA}
+      enlaces={[
+        { href: "/tienda", texto: "Tienda" },
+        { href: "/lista", texto: "Pedir con lista o foto" },
+        { href: "/obras", texto: "Para obras y constructoras" },
+        { href: "/carrito", texto: "Carrito", nota: piezas ? `${piezas} pza${piezas === 1 ? "" : "s"}` : undefined },
+        { href: "/cuenta/pedidos", texto: "Mis pedidos" },
+        { href: "/cuenta", texto: "Mi cuenta y direcciones" },
+      ]}
+      pieMenu={
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <Link href="/#entregas" className="hover:text-azul">Envíos a todo México</Link>
+          {whatsapp && <a href={whatsapp} className="hover:text-azul">WhatsApp</a>}
+        </div>
+      }
+      acciones={
+        <Link href="/carrito" aria-label={`Carrito, ${piezas} productos`} className="relative flex h-10 w-10 items-center justify-center rounded-full text-azul hover:bg-niebla">
           <IconoBolsa />
           {piezas > 0 && (
             <span className="aparecer absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-azul px-1 text-[11px] font-semibold text-white">
@@ -35,7 +39,7 @@ export function BarraSuperior() {
             </span>
           )}
         </Link>
-      </div>
-    </header>
+      }
+    />
   );
 }

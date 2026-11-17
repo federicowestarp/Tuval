@@ -13,7 +13,7 @@ export function FormInvitar() {
   return (
     <div className="space-y-4">
       <form action={accion} className="space-y-3">
-        <Segmentado name="rol" valor={rol} onCambio={setRol} opciones={[{ id: "operador", texto: "Operador" }, { id: "chofer", texto: "Chofer" }, { id: "admin", texto: "Admin" }]} />
+        <Segmentado name="rol" valor={rol} onCambio={setRol} opciones={[{ id: "operador", texto: "Operador" }, { id: "mostrador", texto: "Mostrador" }, { id: "chofer", texto: "Chofer" }, { id: "admin", texto: "Admin" }]} />
         <button disabled={enviando} className={clasesBoton("principal", "normal")}>{enviando ? "Generando…" : "Generar invitación"}</button>
       </form>
       {e.liga && (
