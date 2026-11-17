@@ -6,12 +6,15 @@ import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../Navegacion";
 import { actualizarSolicitud } from "./acciones";
 import { FormAlta } from "./FormAlta";
+import { sql } from "@/lib/db";
 
 const ORIGEN: Record<string, string> = {
   cliente_fuera_catalogo: "Cliente: no está en catálogo",
   proveedor_sin_existencia: "Proveedor sin existencia",
   lista_cliente: "Lista del cliente",
   interno: "Interno",
+  mostrador: "Mostrador",
+  buscador_tienda: "Buscador de la tienda",
 };
 const ESTADOS: [string, string][] = [
   ["nueva", "Nueva"], ["buscando", "Buscando"], ["conseguida", "Conseguida"],
@@ -38,10 +41,23 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/deman
   await requerirInterno("operador");
   const sp = await searchParams;
   const estado = typeof sp.estado === "string" && ESTADOS.some(([e]) => e === sp.estado) ? sp.estado : undefined;
-  const grupos = await listarDemanda(estado);
+  const [grupos, uso] = await Promise.all([
+    listarDemanda(estado),
+    sql<{ origen: string; total: number; sin: number }[]>`
+      select origen, count(*)::int total, count(*) filter (where con_existencia = 0)::int sin
+      from busquedas_tienda where creado_en > now() - interval '30 days' group by origen order by total desc`,
+  ]);
+  const totalBusquedas = uso.reduce((a, x) => a + x.total, 0);
+  const ORIGEN_BUSQUEDA: Record<string, string> = { web: "Sitio", letrero: "Letrero (celular)", recepcion: "Tablet de recepción", vendedor: "Tablet de vendedor" };
 
   return (
     <>
+      {totalBusquedas > 0 && (
+        <section className="mt-4 rounded-xl bg-white p-4 text-sm">
+          <p className="font-semibold">Buscador de la tienda · últimos 30 días: {totalBusquedas} búsquedas</p>
+          <p className="text-secundario">{uso.map((x) => `${ORIGEN_BUSQUEDA[x.origen] ?? x.origen}: ${x.total} (${Math.round((x.sin / x.total) * 100)}% sin existencia)`).join(" · ")}</p>
+        </section>
+      )}
       <nav className="mt-4 flex flex-wrap gap-2 text-sm">
         <Link href="/interno/demanda" className={`rounded-full px-3 py-1 ${!estado ? "bg-azul text-white" : "bg-white"}`}>Abiertas</Link>
         {ESTADOS.map(([e, n]) => (

@@ -6,7 +6,7 @@ type Reconocedor = { lang: string; continuous: boolean; interimResults: boolean;
 type ConstructorReconocedor = new () => Reconocedor;
 
 /** Buscador del quiosco: escribir o tocar el micrófono y decir la pieza ("un codo de media"). */
-export function BuscarConVoz({ inicial }: { inicial: string }) {
+export function BuscarConVoz({ inicial, origen }: { inicial: string; origen?: string }) {
   const form = useRef<HTMLFormElement>(null);
   const [texto, setTexto] = useState(inicial);
   const [escuchando, setEscuchando] = useState(false);
@@ -43,6 +43,7 @@ export function BuscarConVoz({ inicial }: { inicial: string }) {
 
   return (
     <form ref={form} className="space-y-2">
+      {origen && <input type="hidden" name="o" value={origen} />}
       <div className="flex gap-2">
         <input name="q" value={texto} onChange={(e) => setTexto(e.target.value)} autoFocus placeholder="Ej. codo de media, válvula de bola, teflón"
           className="h-14 min-w-0 flex-1 rounded-full border-2 border-linea px-5 text-[18px]" />
