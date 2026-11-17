@@ -7,16 +7,15 @@ import { ConteoDenominaciones, conteoVacio } from "@/components/interno/ConteoDe
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { separarFondo, type LineaConteo } from "@/lib/denominaciones";
 import { abrirTurno, cerrarTurno, retiroParcial } from "./caja-acciones";
+import { cambiarUsuario } from "./usuario-acciones";
 
-export type CajaParaAbrir = { id: string; nombre: string; sobre: boolean; recibeDe: string | null; ocupadaPor: string | null };
+export type CajaParaAbrir = { id: string; nombre: string; recibeDe: string | null; ocupadaPor: string | null };
 
 /** Apertura de turno. Al cajero solo se le dice "registrada" o "pendiente de autorización"; nunca cuánto se esperaba. */
 export function AperturaTurno({ cajas }: { cajas: CajaParaAbrir[] }) {
   const libres = cajas.filter((c) => !c.ocupadaPor);
   const [caja, setCaja] = useState(libres[0]?.id ?? "");
   const [lineas, setLineas] = useState<LineaConteo[]>(conteoVacio);
-  const [sello, setSello] = useState<"integro" | "roto" | "">("");
-  const [folio, setFolio] = useState("");
   const [clave, setClave] = useState("");
   const [reintento, setReintento] = useState(false);
   const [msg, setMsg] = useState<{ t: string; error?: boolean } | null>(null);
@@ -26,7 +25,7 @@ export function AperturaTurno({ cajas }: { cajas: CajaParaAbrir[] }) {
 
   const abrir = () => iniciar(async () => {
     setMsg(null);
-    const r = await abrirTurno({ registradora: caja, lineas, selloIntegro: sello === "integro", folioSello: folio, contrasenaSaliente: clave, reintento });
+    const r = await abrirTurno({ registradora: caja, lineas, confirmaSaliente: clave, reintento });
     if (r.error) { setMsg({ t: r.error, error: true }); return; }
     if (r.recontar) { setReintento(true); setLineas(conteoVacio()); setMsg({ t: r.mensaje!, error: true }); return; }
     setMsg({ t: r.mensaje! });
@@ -43,26 +42,16 @@ export function AperturaTurno({ cajas }: { cajas: CajaParaAbrir[] }) {
           <select id="caja" value={caja} onChange={(e) => setCaja(e.target.value)} className={campo}>{libres.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}</select>
         </div>
       )}
-      {c?.sobre && (
-        <div className="space-y-2 rounded-2xl bg-niebla p-4">
-          <p className="font-semibold">Sobre de fondo sellado</p>
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setSello("integro")} className={`flex-1 rounded-full px-3 py-2 text-[14px] font-semibold ${sello === "integro" ? "bg-azul text-white" : "bg-white"}`}>El sello está íntegro</button>
-            <button type="button" onClick={() => setSello("roto")} className={`flex-1 rounded-full px-3 py-2 text-[14px] font-semibold ${sello === "roto" ? "bg-red-700 text-white" : "bg-white"}`}>Sello roto</button>
-          </div>
-          <input value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="Folio del sello" className={campo} />
-        </div>
-      )}
       {c?.recibeDe && (
         <div className="space-y-2 rounded-2xl bg-niebla p-4">
           <p className="font-semibold">Recibes el fondo de {c.recibeDe}</p>
-          <p className="text-[14px] text-secundario">Cuenten los dos por separado. {c.recibeDe} confirma la entrega con su contraseña.</p>
-          <input type="password" value={clave} onChange={(e) => setClave(e.target.value)} placeholder={`Contraseña de ${c.recibeDe}`} className={campo} autoComplete="off" />
+          <p className="text-[14px] text-secundario">Cuenten los dos por separado. {c.recibeDe} confirma la entrega con su PIN.</p>
+          <input type="password" inputMode="numeric" value={clave} onChange={(e) => setClave(e.target.value)} placeholder={`PIN de ${c.recibeDe}`} className={campo} autoComplete="off" />
         </div>
       )}
       <ConteoDenominaciones valor={lineas} onCambio={setLineas} titulo={reintento ? "Recuento del fondo" : "Cuenta el fondo"} />
       {msg && <p role="alert" className={`font-semibold ${msg.error ? "text-red-700" : "text-azul"}`}>{msg.t}</p>}
-      <button type="button" disabled={enviando || !caja || (c?.sobre && !sello)} onClick={abrir} className={clasesBoton("principal", "grande", true)}>{enviando ? "Registrando…" : "Registrar apertura"}</button>
+      <button type="button" disabled={enviando || !caja} onClick={abrir} className={clasesBoton("principal", "grande", true)}>{enviando ? "Registrando…" : "Registrar apertura"}</button>
     </section>
   );
 }
@@ -89,47 +78,47 @@ export function RetiroParcial() {
 
 export type TerminalCaja = { id: string; nombre: string };
 
-/** Cierre ciego: conteo por denominación, separación del fondo, sobre (si es cierre del día) y cierre de lote de cada terminal. */
+/** Cierre ciego: conteo por denominación, qué dejar de fondo en la caja y cierre de lote de las terminales no conectadas. */
 export function CierreTurno({ terminales, fondoFijo }: { terminales: TerminalCaja[]; fondoFijo: number }) {
   const [lineas, setLineas] = useState<LineaConteo[]>(conteoVacio);
-  const [dia, setDia] = useState(true);
-  const [folio, setFolio] = useState("");
   const [lotes, setLotes] = useState<Record<string, { total: string; transacciones: string; foto: File | null }>>({});
   const [msg, setMsg] = useState<{ t: string; error?: boolean } | null>(null);
-  const [listo, setListo] = useState(false);
+  const [listo, setListo] = useState<string | null>(null);
   const [enviando, iniciar] = useTransition();
   const sep = separarFondo(lineas, fondoFijo);
   const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
+  const deposito = sep.deposito.reduce((a, l) => a + l.d * l.piezas, 0);
 
   const cerrar = () => iniciar(async () => {
     setMsg(null);
     const fd = new FormData();
-    fd.set("datos", JSON.stringify({ lineas, cierreDia: dia, folioSello: folio, terminales: terminales.map((t) => ({ terminal_id: t.id, total: Number(lotes[t.id]?.total), transacciones: Number(lotes[t.id]?.transacciones) })) }));
+    fd.set("datos", JSON.stringify({ lineas, terminales: terminales.map((t) => ({ terminal_id: t.id, total: Number(lotes[t.id]?.total), transacciones: Number(lotes[t.id]?.transacciones) })) }));
     for (const t of terminales) { const f = lotes[t.id]?.foto; if (f) fd.set(`foto_${t.id}`, f); }
     const r = await cerrarTurno(fd);
-    if (r.error) setMsg({ t: r.error, error: true }); else { setListo(true); setMsg({ t: r.mensaje! }); }
+    if (r.error) setMsg({ t: r.error, error: true }); else { setListo(r.id ?? ""); setMsg({ t: r.mensaje! }); }
   });
 
-  if (listo) return <section className="mx-auto max-w-xl rounded-[20px] bg-white p-8 text-center"><p className="font-display text-3xl font-semibold">Cierre registrado</p><Link href="/interno/mostrador" className="mt-4 inline-block text-azul">Volver al mostrador</Link></section>;
+  if (listo !== null) return (
+    <section className="mx-auto max-w-xl space-y-3 rounded-[20px] bg-white p-8 text-center">
+      <p className="font-display text-3xl font-semibold">Cierre registrado</p>
+      {listo && <a href={`/interno/mostrador/corte/${listo}`} target="_blank" className={clasesBoton("principal", "grande", true)}>Imprimir ticket de corte para firmar</a>}
+      <Link href="/interno/mostrador" className="inline-block text-azul">Volver al mostrador</Link>
+    </section>
+  );
 
   return (
     <section className="mx-auto max-w-3xl space-y-5 rounded-[20px] bg-white p-6">
       <h1 className="font-display text-2xl font-semibold">Cerrar turno</h1>
       <ConteoDenominaciones valor={lineas} onCambio={setLineas} titulo="1 · Cuenta TODO el efectivo de la caja" />
       <div className="rounded-2xl bg-niebla p-4 text-[14px]">
-        <p className="font-semibold">2 · Separa el fondo para el siguiente turno ({mx(fondoFijo)})</p>
-        <p className="mt-1">Deja en la caja: {sep.fondo.filter((l) => l.piezas).map((l) => `${l.piezas} × $${l.d}`).join(" · ") || "—"}</p>
+        <p className="font-semibold">2 · Deja en la caja el fondo de cambio ({mx(fondoFijo)})</p>
+        <p className="mt-1">Se queda: {sep.fondo.filter((l) => l.piezas).map((l) => `${l.piezas} × $${l.d}`).join(" · ") || "—"}</p>
         {sep.faltante > 0 && <p className="mt-1 font-semibold text-red-700">No alcanza el cambio para el fondo completo: faltan {mx(sep.faltante)}.</p>}
-        <p className="mt-1 text-secundario">El resto va a depósito.</p>
-      </div>
-      <div className="space-y-2">
-        <label className="flex items-center gap-2 font-semibold"><input type="checkbox" checked={dia} onChange={(e) => setDia(e.target.checked)} className="h-5 w-5" /> Es el cierre del día (el fondo va en sobre sellado a caja fuerte)</label>
-        {dia && <input value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="Folio del sello del sobre" className={campo} />}
-        {!dia && <p className="text-[13px] text-secundario">Cambio de turno: el fondo se queda en la caja y el siguiente cajero lo recibe contándolo contigo.</p>}
+        <p className="mt-1">Se retira con el ticket de corte: <strong>{mx(deposito)}</strong> ({sep.deposito.filter((l) => l.piezas).map((l) => `${l.piezas} × $${l.d}`).join(" · ") || "nada"})</p>
       </div>
       {terminales.length > 0 && (
         <div className="space-y-3">
-          <p className="font-semibold">3 · Cierre de lote de cada terminal (obligatorio aunque sea $0)</p>
+          <p className="font-semibold">3 · Cierre de lote de las terminales no conectadas a la app (obligatorio aunque sea $0)</p>
           {terminales.map((t) => (
             <div key={t.id} className="grid gap-2 rounded-2xl bg-niebla p-3 sm:grid-cols-3">
               <p className="font-semibold sm:col-span-3">{t.nombre}</p>
@@ -143,5 +132,33 @@ export function CierreTurno({ terminales, fondoFijo }: { terminales: TerminalCaj
       {msg && <p role="alert" className={`font-semibold ${msg.error ? "text-red-700" : "text-azul"}`}>{msg.t}</p>}
       <button type="button" disabled={enviando} onClick={cerrar} className={clasesBoton("principal", "grande", true)}>{enviando ? "Registrando…" : "Confirmar cierre"}</button>
     </section>
+  );
+}
+
+/** Cambio rápido de usuario en la caja con PIN (sin cerrar el navegador ni escribir correo). */
+export function CambiarUsuario({ usuarios }: { usuarios: { id: string; nombre: string }[] }) {
+  const [abierto, setAbierto] = useState(false);
+  const [quien, setQuien] = useState("");
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [enviando, iniciar] = useTransition();
+  const router = useRouter();
+  if (!abierto) return <button type="button" onClick={() => setAbierto(true)} className={clasesBoton("secundario", "chico")}>Cambiar usuario</button>;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true">
+      <div className="w-full max-w-sm space-y-3 rounded-[20px] bg-white p-6">
+        <p className="font-display text-xl font-semibold">¿Quién va a usar la caja?</p>
+        <div className="grid grid-cols-2 gap-2">
+          {usuarios.map((u) => <button key={u.id} type="button" onClick={() => setQuien(u.id)} className={`rounded-xl px-3 py-3 text-[15px] font-semibold ${quien === u.id ? "bg-azul text-white" : "bg-niebla"}`}>{u.nombre}</button>)}
+        </div>
+        <input autoFocus type="password" inputMode="numeric" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="PIN" className={`${campo} text-center text-2xl tracking-[0.5em]`} />
+        {error && <p role="alert" className="font-semibold text-red-700">{error}</p>}
+        <div className="flex gap-2">
+          <button type="button" disabled={enviando || !quien || pin.length < 4} onClick={() => iniciar(async () => { const r = await cambiarUsuario(quien, pin); if (r.error) { setError(r.error); setPin(""); } else { setAbierto(false); router.refresh(); } })} className={clasesBoton("principal", "normal")}>{enviando ? "Entrando…" : "Entrar"}</button>
+          <button type="button" onClick={() => { setAbierto(false); setPin(""); setError(null); }} className="text-secundario">Cancelar</button>
+        </div>
+        <p className="text-[12px] text-secundario">Si tienes turno abierto, ciérralo antes de entregar la caja.</p>
+      </div>
+    </div>
   );
 }

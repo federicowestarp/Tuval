@@ -7,7 +7,7 @@ import { fechaHora } from "@/lib/cortes";
 import { Esqueleto } from "@/components/interno/Esqueleto";
 import { campo } from "@/components/ui";
 import { NavegacionInterna } from "../../Navegacion";
-import { asignarTerminal, crearCaja, crearTerminal, guardarParametro } from "../acciones";
+import { asignarTerminal, crearCaja, crearTerminal, guardarParametro, marcarIntegrada } from "../acciones";
 
 export default function Configuracion() {
   return (
@@ -29,7 +29,7 @@ async function Contenido() {
     sql<{ clave: string; valor: number; descripcion: string; actualizado_en: Date; quien: string | null }[]>`
       select p.clave, p.valor::float valor, p.descripcion, p.actualizado_en, u.nombre quien from parametros_caja p left join usuarios_internos u on u.id = p.actualizado_por order by p.clave`,
     sql<{ id: string; nombre: string }[]>`select id, nombre from cajas_registradoras where activa order by nombre`,
-    sql<{ id: string; nombre: string; proveedor: string | null }[]>`select id, nombre, proveedor from terminales where activa order by nombre`,
+    sql<{ id: string; nombre: string; proveedor: string | null; integrada: boolean }[]>`select id, nombre, proveedor, integrada from terminales where activa order by nombre`,
     sql<{ registradora_id: string; terminal_id: string }[]>`select registradora_id, terminal_id from caja_terminales`,
     sql<{ id: number; creado_en: Date; quien: string | null; accion: string; detalle: Record<string, unknown> | null; dispositivo: string | null }[]>`
       select b.id, b.creado_en, u.nombre quien, b.accion, b.detalle, b.dispositivo from bitacora_caja b left join usuarios_internos u on u.id = b.usuario_id
@@ -86,6 +86,20 @@ async function Contenido() {
           </form>
         </div>
       </section>
+
+      {terminales.length > 0 && (
+        <section className="rounded-[20px] bg-white p-5">
+          <h2 className="mb-2 font-semibold">Terminales</h2>
+          <ul className="divide-y divide-linea text-[14px]">
+            {terminales.map((t) => (
+              <li key={t.id} className="flex items-center justify-between gap-2 py-2">
+                <span>{t.nombre}{t.proveedor && ` · ${t.proveedor}`} · {t.integrada ? "conectada a la app (sin cierre de lote)" : "manual (pide cierre de lote con foto)"}</span>
+                <form action={marcarIntegrada}><input type="hidden" name="terminal" value={t.id} /><input type="hidden" name="integrada" value={t.integrada ? "0" : "1"} /><button className="text-azul">{t.integrada ? "Marcar manual" : "Marcar conectada"}</button></form>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="rounded-[20px] bg-white p-5">
         <h2 className="mb-2 font-semibold">Bitácora de caja</h2>

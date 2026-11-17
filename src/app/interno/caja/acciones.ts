@@ -163,3 +163,15 @@ export async function asignarTerminal(fd: FormData) {
   });
   refrescar("/interno/caja/configuracion");
 }
+
+/** Terminal conectada a la app: sus cobros llegan solos y no pide cierre de lote. */
+export async function marcarIntegrada(fd: FormData) {
+  const yo = await requerirInterno("admin");
+  const id = t(fd, "terminal"), v = fd.get("integrada") === "1";
+  if (!UUID.test(id)) return;
+  await sql.begin(async (tx) => {
+    await tx`update terminales set integrada = ${v} where id = ${id}`;
+    await bitacora(tx, yo.id, v ? "terminal_conectada" : "terminal_manual", null, { terminal: id });
+  });
+  refrescar("/interno/caja/configuracion");
+}

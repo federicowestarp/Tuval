@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
+import { asignarPin } from "../mostrador/usuario-acciones";
 import { NavegacionInterna } from "../Navegacion";
 import { cambiarActivo } from "./acciones";
 import { FormInvitar } from "./FormInvitar";
@@ -24,8 +25,8 @@ export default function Equipo() {
 async function Contenido() {
   await connection();
   const yo = await requerirInterno("admin");
-  const usuarios = await sql<{ id: string; nombre: string; correo: string; rol: string; activo: boolean; ultimo_acceso: Date | null }[]>`
-    select id, nombre, correo, rol, activo, ultimo_acceso from usuarios_internos order by activo desc, nombre`;
+  const usuarios = await sql<{ id: string; nombre: string; correo: string; rol: string; activo: boolean; ultimo_acceso: Date | null; con_pin: boolean }[]>`
+    select id, nombre, correo, rol, activo, ultimo_acceso, (pin_hash is not null) con_pin from usuarios_internos order by activo desc, nombre`;
   return (
     <>
       <section className="rounded-[20px] bg-white p-5">
@@ -43,6 +44,14 @@ async function Contenido() {
                   {u.correo} · {u.ultimo_acceso ? `último acceso ${new Date(u.ultimo_acceso).toLocaleDateString("es-MX", { timeZone: "America/Mexico_City" })}` : "sin acceso aún"}
                 </p>
               </div>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+              {u.activo && u.rol !== "chofer" && (
+                <form action={asignarPin} className="flex items-center gap-1">
+                  <input type="hidden" name="id" value={u.id} />
+                  <input name="pin" inputMode="numeric" pattern="[0-9]{4,6}" maxLength={6} placeholder={u.con_pin ? "Nuevo PIN" : "PIN 4–6 dígitos"} className="h-9 w-32 rounded-lg border border-linea px-2" />
+                  <button className="text-[13px] text-azul">{u.con_pin ? "Cambiar PIN" : "Asignar PIN"}</button>
+                </form>
+              )}
               {u.id !== yo.id && (
                 <form action={cambiarActivo}>
                   <input type="hidden" name="id" value={u.id} />
@@ -50,6 +59,7 @@ async function Contenido() {
                   <button className="text-[14px] text-secundario hover:text-azul">{u.activo ? "Dar de baja" : "Reactivar"}</button>
                 </form>
               )}
+              </div>
             </li>
           ))}
         </ul>

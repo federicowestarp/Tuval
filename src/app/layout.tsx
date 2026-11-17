@@ -3,6 +3,7 @@ import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { URL_SITIO } from "@/lib/sitio";
 import { CarritoProvider } from "@/components/carrito/CarritoProvider";
+import { Arranque } from "@/components/Arranque";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], weight: ["500", "600"] });
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${interTight.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Arranque />
         <CarritoProvider>{children}</CarritoProvider>
       </body>
     </html>

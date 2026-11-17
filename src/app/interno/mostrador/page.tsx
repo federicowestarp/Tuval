@@ -10,7 +10,7 @@ import { clasesBoton } from "@/components/ui";
 import { NavegacionInterna } from "../Navegacion";
 import { PuntoDeVenta } from "./PuntoDeVenta";
 import type { ProductoInventario } from "./InventarioFocos";
-import { AperturaTurno, RetiroParcial, type CajaParaAbrir } from "./Turno";
+import { AperturaTurno, CambiarUsuario, RetiroParcial, type CajaParaAbrir } from "./Turno";
 
 export default function Mostrador() {
   return (
@@ -27,6 +27,9 @@ async function Contenido() {
   await connection();
   const yo = await requerirInterno("mostrador");
   const s = await sucursal();
+  const conPin = await sql<{ id: string; nombre: string }[]>`
+    select id, nombre from usuarios_internos where activo and pin_hash is not null and rol in ('mostrador', 'supervisor', 'admin', 'operador') and id <> ${yo.id} order by nombre`;
+  const cambiar = conPin.length > 0 && <CambiarUsuario usuarios={conPin} />;
   const [turno] = await sql<{ id: string; estado: string; registradora_id: string; caja: string; abierta_en: Date }[]>`
     select c.id, c.estado, c.registradora_id, r.nombre caja, c.abierta_en
     from cajas c join cajas_registradoras r on r.id = c.registradora_id
@@ -36,9 +39,8 @@ async function Contenido() {
   if (!turno) {
     const cajas = await sql<CajaParaAbrir[]>`
       select r.id, r.nombre,
-             exists (select 1 from sobres_fondo sf where sf.registradora_id = r.id and sf.turno_apertura_id is null) sobre,
              (select u.nombre from cajas c join usuarios_internos u on u.id = c.cerrada_por
-              where c.registradora_id = r.id and c.cerrada_en is not null and not c.cierre_de_dia and c.cerrada_en > now() - interval '18 hours'
+              where c.registradora_id = r.id and c.cerrada_en > now() - interval '3 hours' and c.cerrada_por <> ${yo.id}
                 and exists (select 1 from conteos_caja cc where cc.turno_id = c.id and cc.tipo = 'fondo_siguiente')
                 and not exists (select 1 from cajas n where n.recibido_de = c.id)
               order by c.cerrada_en desc limit 1) "recibeDe",
@@ -46,6 +48,7 @@ async function Contenido() {
       from cajas_registradoras r where r.activa and r.almacen_id = ${s.id} order by r.nombre`;
     return (
       <>
+        <div className="flex justify-end gap-2"><span className="self-center text-[14px] text-secundario">Estás como {yo.nombre}</span>{cambiar}</div>
         <AperturaTurno cajas={cajas} />
         {puede(yo.rol, "supervisor") && <p className="text-center text-[14px]"><Link href="/interno/caja" className="text-azul">Ir a supervisión de caja ›</Link></p>}
       </>
@@ -56,6 +59,7 @@ async function Contenido() {
     return (
       <section className="mx-auto max-w-xl space-y-2 rounded-[20px] bg-white p-8 text-center">
         <p className="font-display text-2xl font-semibold">Apertura pendiente de autorización del supervisor</p>
+        <div className="flex justify-center">{cambiar}</div>
         <p className="text-secundario">No puedes cobrar hasta que el supervisor la autorice.</p>
       </section>
     );
@@ -86,7 +90,9 @@ async function Contenido() {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="font-display text-2xl font-semibold">Mostrador · {turno.caja}</h1>
         <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[14px] text-secundario">{yo.nombre}</span>
           <Link href="/interno/mostrador/cierre" className={clasesBoton("secundario", "chico")}>Cerrar turno</Link>
+          {cambiar}
           {puede(yo.rol, "supervisor") && <Link href="/interno/caja" className="text-[14px] text-azul">Supervisión ›</Link>}
         </div>
       </div>

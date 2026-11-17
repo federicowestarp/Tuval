@@ -101,6 +101,10 @@ export async function conciliarYCerrar(tx: Tx, turno: string, usuario: string) {
   const fueraTerm = c.terminales.filter((t) => t.diferencia != null && (Math.abs(t.diferencia) > p.tolerancia_terminal || t.lote_transacciones !== t.transacciones));
   // Patrón: sobrante en efectivo + faltante en terminal (o al revés) → posible método mal registrado.
   const cruzado = c.diferencia != null && fueraTerm.some((t) => (t.diferencia ?? 0) * (c.diferencia ?? 0) < 0);
+  if (!fueraEf && c.diferencia) {
+    await tx`insert into incidentes_caja (turno_id, tipo, monto, detalle, responsable_id, dentro_tolerancia)
+             values (${turno}, 'diferencia_efectivo', ${c.diferencia}, ${`Dentro de tolerancia. Esperado ${c.esperado}, contado ${c.contado}`}, ${usuario}, true)`;
+  }
   if (fueraEf) {
     await tx`insert into incidentes_caja (turno_id, tipo, monto, detalle, posible_metodo_mal_registrado, responsable_id)
              values (${turno}, 'diferencia_efectivo', ${c.diferencia}, ${`Esperado ${c.esperado}, contado ${c.contado}`}, ${cruzado}, ${usuario})`;

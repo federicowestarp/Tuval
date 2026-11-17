@@ -48,8 +48,8 @@ async function Contenido() {
     sql<{ id: string; caja: string; cajero: string; abierta_en: Date }[]>`
       select c.id, r.nombre caja, u.nombre cajero, c.abierta_en from cajas c join cajas_registradoras r on r.id = c.registradora_id
       join usuarios_internos u on u.id = c.abierta_por where c.estado = 'pendiente_autorizacion' order by c.abierta_en`,
-    sql<{ id: string; tipo: string; monto: number | null; detalle: string | null; posible: boolean; responsable: string | null; creado_en: Date; turno_id: string | null }[]>`
-      select i.id, i.tipo, i.monto::float monto, i.detalle, i.posible_metodo_mal_registrado posible, u.nombre responsable, i.creado_en, i.turno_id
+    sql<{ id: string; tipo: string; monto: number | null; detalle: string | null; posible: boolean; aviso: boolean; responsable: string | null; creado_en: Date; turno_id: string | null }[]>`
+      select i.id, i.tipo, i.monto::float monto, i.detalle, i.posible_metodo_mal_registrado posible, i.dentro_tolerancia aviso, u.nombre responsable, i.creado_en, i.turno_id
       from incidentes_caja i left join usuarios_internos u on u.id = i.responsable_id where i.estado = 'abierto' order by i.creado_en`,
     sql<{ id: string; folio: string; cajero: string; creado_en: Date }[]>`
       select rc.id, rc.folio, u.nombre cajero, rc.creado_en from retiros_caja rc join usuarios_internos u on u.id = rc.cajero_id
@@ -105,7 +105,7 @@ async function Contenido() {
         <h2 className="mb-2 font-semibold">Incidentes abiertos <span className="text-[13px] font-normal text-secundario">· resolver el mismo día</span></h2>
         {incidentes.length === 0 ? <p className="text-[14px] text-secundario">Sin incidentes abiertos.</p> : incidentes.map((i) => (
           <form key={i.id} action={resolverIncidente} className="space-y-2 border-b border-linea py-3 text-[14px]">
-            <p><strong>{TIPO_INCIDENTE[i.tipo] ?? i.tipo}</strong>{i.monto != null && ` · ${i.monto > 0 ? "sobra" : "falta"} ${pesos(Math.abs(i.monto))}`} · {i.responsable ?? "sin responsable"} · {fechaHora(i.creado_en)}
+            <p>{i.aviso && <span className="mr-2 rounded-full bg-amber-100 px-2 text-[12px] text-amber-900">aviso · dentro de tolerancia</span>}<strong>{TIPO_INCIDENTE[i.tipo] ?? i.tipo}</strong>{i.monto != null && ` · ${i.monto > 0 ? "sobra" : "falta"} ${pesos(Math.abs(i.monto))}`} · {i.responsable ?? "sin responsable"} · {fechaHora(i.creado_en)}
               {i.turno_id && <> · <Link href={`/interno/mostrador/cortes/${i.turno_id}`} className="text-azul">ver turno</Link></>}</p>
             {i.detalle && <p className="text-secundario">{i.detalle}</p>}
             {i.posible && <p className="font-semibold text-amber-800">Posible método de pago mal registrado (sobrante en un método y faltante en otro).</p>}

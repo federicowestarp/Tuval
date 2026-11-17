@@ -54,3 +54,10 @@ body {
   .aparecer { animation: none; }
   html { scroll-behavior: auto; }
 }
+
+/* Arranque: el símbolo late mientras carga; respaldo CSS que oculta la pantalla a los 4 s. */
+@keyframes latido { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.88); opacity: 0.55; } }
+.latido { animation: latido 1.1s ease-in-out infinite; transform-origin: center; }
+@keyframes ocultar-arranque { to { opacity: 0; visibility: hidden; } }
+.arranque { animation: ocultar-arranque 0.3s ease 4s forwards; }
+@media (prefers-reduced-motion: reduce) { .latido { animation: none; } }

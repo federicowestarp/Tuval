@@ -15,8 +15,21 @@ import { refrescar } from "@/lib/refrescar";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export type Respuesta = { error?: string; mensaje?: string; recontar?: boolean; id?: string };
 
-export type DatosApertura = { registradora: string; lineas: unknown; selloIntegro?: boolean; folioSello?: string; contrasenaSaliente?: string; reintento?: boolean };
+export type DatosApertura = { registradora: string; lineas: unknown; confirmaSaliente?: string; reintento?: boolean };
 
+/** El cajero saliente confirma la entrega del fondo con su PIN o su contraseña. */
+async function confirmaUsuario(usuario: string, valor: string | undefined) {
+  if (!valor) return false;
+  const [u] = await sql<{ pin_hash: string | null; hash_contrasena: string }[]>`select pin_hash, hash_contrasena from usuarios_internos where id = ${usuario}`;
+  if (!u) return false;
+  return (!!u.pin_hash && (await contrasenaValida(valor, u.pin_hash))) || contrasenaValida(valor, u.hash_contrasena);
+}
+
+/**
+ * Apertura. El fondo se queda en la caja (sin sobres): se compara contra lo que dejó el último cierre de esa caja
+ * (o el fondo fijo si es la primera vez). Si el cierre fue hace menos de 3 h y lo hizo otra persona es un cambio de turno
+ * en persona: cuentan los dos, deben coincidir exacto y el saliente confirma con su PIN.
+ */
 export async function abrirTurno(d: DatosApertura): Promise<Respuesta> {
   const yo = await requerirInterno("mostrador");
   if (!UUID.test(d.registradora)) return { error: "Elige la caja." };
@@ -30,50 +43,36 @@ export async function abrirTurno(d: DatosApertura): Promise<Respuesta> {
       const [abierto] = await tx`select 1 from cajas where registradora_id = ${reg.id} and cerrada_en is null`;
       if (abierto) return { error: "Esta caja ya tiene un turno abierto." };
       const p = await parametros(tx);
-
-      // ¿Qué se esperaba recibir? 1) sobre sellado del cierre de día, 2) fondo del turno anterior (cambio de turno), 3) fondo fijo.
-      const [sobre] = await tx<{ id: string; folio_sello: string; monto: number }[]>`
-        select id, folio_sello, monto::float monto from sobres_fondo where registradora_id = ${reg.id} and turno_apertura_id is null order by creado_en desc limit 1`;
-      const [anterior] = sobre ? [] : await tx<{ id: string; cajero: string; hash: string; fondo: number }[]>`
-        select c.id, c.cerrada_por cajero, u.hash_contrasena hash, cc.total::float fondo
-        from cajas c join conteos_caja cc on cc.turno_id = c.id and cc.tipo = 'fondo_siguiente' join usuarios_internos u on u.id = c.cerrada_por
-        where c.registradora_id = ${reg.id} and c.cerrada_en is not null and not c.cierre_de_dia
-          and not exists (select 1 from cajas n where n.recibido_de = c.id)
-          and c.cerrada_en > now() - interval '18 hours'
+      const [anterior] = await tx<{ id: string; cajero: string; fondo: number; en_persona: boolean }[]>`
+        select c.id, c.cerrada_por cajero, cc.total::float fondo,
+               (c.cerrada_en > now() - interval '3 hours' and c.cerrada_por <> ${yo.id}) en_persona
+        from cajas c join conteos_caja cc on cc.turno_id = c.id and cc.tipo = 'fondo_siguiente'
+        where c.registradora_id = ${reg.id} and c.cerrada_en is not null and not exists (select 1 from cajas n where n.recibido_de = c.id)
         order by c.cerrada_en desc limit 1`;
-
-      if (anterior) {
-        if (!d.contrasenaSaliente || !(await contrasenaValida(d.contrasenaSaliente, anterior.hash))) {
-          return { error: "El cajero saliente debe confirmar con su contraseña la entrega del fondo." };
-        }
+      const enPersona = !!anterior?.en_persona;
+      if (enPersona && !(await confirmaUsuario(anterior!.cajero, d.confirmaSaliente))) {
+        return { error: "El cajero que entrega debe confirmar con su PIN." };
       }
-      const esperado = sobre ? sobre.monto : anterior ? anterior.fondo : p.fondo_fijo;
-      // Cambio de turno: los dos conteos deben coincidir; si no, recuento obligatorio una vez.
-      const exacto = anterior ? Math.abs(total - esperado) < 0.005 : Math.abs(total - esperado) <= p.tolerancia_efectivo;
-      if (anterior && !exacto && !d.reintento) return { recontar: true, mensaje: "Los conteos no coinciden. Vuelvan a contar juntos." };
-
+      const esperado = anterior ? anterior.fondo : p.fondo_fijo;
+      const dif = Math.round((total - esperado) * 100) / 100;
+      const dentro = Math.abs(dif) <= p.tolerancia_efectivo;
+      if (enPersona && dif !== 0 && !d.reintento) return { recontar: true, mensaje: "Los conteos no coinciden. Vuelvan a contar juntos." };
+      const bloquea = enPersona ? dif !== 0 : !dentro;
       const [turno] = await tx<{ id: string }[]>`
         insert into cajas (almacen_id, abierta_por, fondo, registradora_id, estado, recibido_de)
-        values (${reg.almacen_id}, ${yo.id}, ${total}, ${reg.id}, ${exacto ? "abierto" : "pendiente_autorizacion"}, ${anterior?.id ?? null})
+        values (${reg.almacen_id}, ${yo.id}, ${total}, ${reg.id}, ${bloquea ? "pendiente_autorizacion" : "abierto"}, ${anterior?.id ?? null})
         returning id`;
       const conteo = await guardarConteo(tx, turno.id, anterior ? "recepcion_cambio_turno" : "apertura", yo.id, lineas);
-      let selloRoto = false;
-      if (sobre) {
-        selloRoto = !d.selloIntegro || (d.folioSello ?? "").trim() !== sobre.folio_sello;
-        await tx`update sobres_fondo set turno_apertura_id = ${turno.id}, sello_integro = ${!selloRoto} where id = ${sobre.id}`;
-        if (selloRoto) await tx`insert into incidentes_caja (turno_id, tipo, detalle, responsable_id) values (${turno.id}, 'sello_roto', ${`Folio esperado ${sobre.folio_sello}, capturado ${d.folioSello ?? "—"}; sello íntegro: ${d.selloIntegro ? "sí" : "no"}`}, ${yo.id})`;
+      if (dif !== 0) {
+        // Aunque esté dentro de tolerancia se avisa al supervisor; solo bloquea si la rebasa.
+        await tx`insert into incidentes_caja (turno_id, tipo, monto, detalle, responsable_id, dentro_tolerancia)
+                 values (${turno.id}, ${enPersona ? "diferencia_cambio_turno" : "diferencia_apertura"}, ${dif},
+                         ${`Fondo que dejó el cierre anterior ${esperado}, contado al abrir ${total}`}, ${anterior?.cajero ?? yo.id}, ${!bloquea})`;
       }
-      if (!exacto) {
-        await tx`insert into incidentes_caja (turno_id, tipo, monto, detalle, responsable_id)
-                 values (${turno.id}, ${anterior ? "diferencia_cambio_turno" : "diferencia_apertura"}, ${Math.round((total - esperado) * 100) / 100},
-                         ${`Esperado ${esperado}, contado ${total}`}, ${anterior ? anterior.cajero : yo.id})`;
-      }
-      // Sello roto también bloquea hasta que el supervisor autorice.
-      if (selloRoto && exacto) await tx`update cajas set estado = 'pendiente_autorizacion' where id = ${turno.id}`;
-      await bitacora(tx, yo.id, "apertura", turno.id, { conteo: conteo.id, sobre: sobre?.id ?? null, recibe_de: anterior?.id ?? null });
-      return exacto && !selloRoto
-        ? { mensaje: "Apertura registrada", id: turno.id }
-        : { mensaje: "Apertura pendiente de autorización del supervisor", id: turno.id };
+      await bitacora(tx, yo.id, "apertura", turno.id, { conteo: conteo.id, recibe_de: anterior?.id ?? null, en_persona: enPersona });
+      return bloquea
+        ? { mensaje: "Apertura pendiente de autorización del supervisor", id: turno.id }
+        : { mensaje: "Apertura registrada", id: turno.id };
     });
   } catch (e) {
     return { error: (e as Error).message };
@@ -109,23 +108,24 @@ export async function retiroParcial(lineasEntrada: unknown): Promise<Respuesta> 
 }
 
 /**
- * Cierre ciego. FormData: datos (JSON con lineas, cierreDia, folioSello, terminales[{terminal_id,total,transacciones}])
- * y una foto por terminal en `foto_<terminal_id>`. Al cajero solo se le responde "Cierre registrado".
+ * Cierre ciego. El fondo de cambio se queda en la caja; lo demás se retira con el ticket de corte firmado.
+ * FormData: datos (JSON con lineas y terminales[{terminal_id,total,transacciones}]) y foto por terminal NO conectada
+ * en `foto_<terminal_id>`. Al cajero solo se le responde "Cierre registrado".
  */
 export async function cerrarTurno(fd: FormData): Promise<Respuesta> {
   const yo = await requerirInterno("mostrador");
-  let datos: { lineas: unknown; cierreDia: boolean; folioSello?: string; terminales: { terminal_id: string; total: number; transacciones: number }[] };
+  let datos: { lineas: unknown; terminales: { terminal_id: string; total: number; transacciones: number }[] };
   try { datos = JSON.parse(String(fd.get("datos"))); } catch { return { error: "Datos de cierre inválidos." }; }
   let lineas;
   try { lineas = normalizarConteo(datos.lineas); } catch (e) { return { error: (e as Error).message }; }
-  if (datos.cierreDia && !(datos.folioSello ?? "").trim()) return { error: "Captura el folio del sello del sobre de fondo." };
 
   const [t] = await sql<{ id: string; registradora_id: string }[]>`
     select id, registradora_id from cajas where abierta_por = ${yo.id} and cerrada_en is null order by abierta_en desc limit 1`;
   if (!t) return { error: "No tienes un turno abierto." };
+  // Las terminales conectadas a la app no piden cierre de lote: sus cobros ya llegan solos.
   const asignadas = await sql<{ id: string; nombre: string }[]>`
-    select tr.id, tr.nombre from caja_terminales ct join terminales tr on tr.id = ct.terminal_id where ct.registradora_id = ${t.registradora_id} and tr.activa`;
-  // Obligatorio para TODAS las terminales asignadas, aunque tengan $0.
+    select tr.id, tr.nombre from caja_terminales ct join terminales tr on tr.id = ct.terminal_id
+    where ct.registradora_id = ${t.registradora_id} and tr.activa and not tr.integrada`;
   const capturas: { terminal_id: string; total: number; transacciones: number; foto: string }[] = [];
   for (const term of asignadas) {
     const c = (datos.terminales ?? []).find((x) => x.terminal_id === term.id);
@@ -143,17 +143,12 @@ export async function cerrarTurno(fd: FormData): Promise<Respuesta> {
       const cierre = await guardarConteo(tx, t.id, "cierre", yo.id, lineas);
       const { fondo } = separarFondo(lineas, p.fondo_fijo);
       const fondoConteo = await guardarConteo(tx, t.id, "fondo_siguiente", yo.id, fondo);
-      if (datos.cierreDia) {
-        await tx`insert into sobres_fondo (folio_sello, registradora_id, turno_cierre_id, conteo_id, monto, usuario_id)
-                 values (${datos.folioSello!.trim()}, ${t.registradora_id}, ${t.id}, ${fondoConteo.id}, ${fondoConteo.total}, ${yo.id})`;
-      }
       for (const c of capturas) {
         await tx`insert into cierres_terminal (turno_id, terminal_id, total, transacciones, foto_id, usuario_id)
                  values (${t.id}, ${c.terminal_id}, ${c.total}, ${c.transacciones}, ${c.foto}, ${yo.id})`;
       }
-      await tx`update cajas set cierre_de_dia = ${!!datos.cierreDia} where id = ${t.id}`;
       await conciliarYCerrar(tx, t.id, yo.id);
-      await bitacora(tx, yo.id, "cierre", t.id, { conteo: cierre.id, fondo: fondoConteo.id, cierre_de_dia: !!datos.cierreDia, terminales: capturas.length });
+      await bitacora(tx, yo.id, "cierre", t.id, { conteo: cierre.id, fondo: fondoConteo.id, terminales: capturas.length });
       return { mensaje: "Cierre registrado", id: t.id };
     });
   } catch (e) {
