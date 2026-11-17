@@ -17,8 +17,8 @@ export default function Tienda(props: PageProps<"/tienda">) {
     <Marco>
       <main className="mx-auto max-w-6xl px-4 pt-8 sm:px-6 sm:pt-12">
         <h1 className="font-display text-[34px] font-semibold sm:text-5xl">Tienda</h1>
-        <div className="pb-3 pt-4">
-          <Suspense fallback={<div className="h-12 rounded-full bg-niebla" />}>
+        <div className="pointer-events-none sticky top-[4.75rem] z-30 pb-3 pt-4 sm:top-[5.25rem]">
+          <Suspense fallback={<div className="h-12 rounded-full bg-white/70 ring-1 ring-black/5 backdrop-blur-xl" />}>
             <BuscadorConParametros searchParams={props.searchParams} />
           </Suspense>
         </div>
@@ -37,7 +37,7 @@ async function leer(searchParams: SP) {
 
 async function BuscadorConParametros({ searchParams }: { searchParams: SP }) {
   const { q } = await leer(searchParams);
-  return <Buscador inicial={q} />;
+  return <div className="pointer-events-auto"><Buscador inicial={q} translucido /></div>;
 }
 
 function Esqueleto() {
