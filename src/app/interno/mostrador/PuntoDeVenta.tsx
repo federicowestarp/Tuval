@@ -54,7 +54,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
     setEscaneando(false);
     const codigo = codigoCarritoDeQr(texto);
     if (codigo) { await cargarCarrito(codigo); return; }
-    const sku = skuDeQr(texto);
+    const sku = skuDeQr(texto) ?? (/^[A-Za-z0-9-]{2,60}$/.test(texto.trim()) ? texto.trim() : null);
     if (sku) { const p = await productoPorEtiqueta(sku); if (p) { agregar(p); setAvisoQr(`Agregado: ${p.nombre}`); } else setAvisoQr(`No encontré el producto ${sku}.`); return; }
     setAvisoQr("Ese QR no es de un carrito ni de una etiqueta de Tuval.");
   };

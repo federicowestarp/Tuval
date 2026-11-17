@@ -7,6 +7,9 @@ import { requerirInterno } from "@/lib/equipo";
 import { TASA_IVA } from "@/lib/totales";
 import { Esqueleto } from "@/components/interno/Esqueleto";
 import { NavegacionInterna } from "../../Navegacion";
+import { describirUbicacion, ubicacionesDe } from "@/lib/plano";
+import { Plano } from "@/components/Plano";
+import { asignarUbicacion } from "../../plano/acciones";
 
 const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
@@ -42,6 +45,10 @@ async function Contenido({ params }: { params: PageProps<"/interno/escanear/[sku
     where i.estado = 'abierto' and t.producto_id = ${p.id} order by (t.final is null) desc, i.creado_en desc limit 1`;
   if (t) redirect(`/interno/inventario-fisico/t/${t.id}`);
 
+  const ubicaciones = await ubicacionesDe();
+  const [aqui] = await sql<{ ubicacion_id: string | null }[]>`
+    select e.ubicacion_id from existencias e join almacenes a on a.id = e.almacen_id where e.producto_id = ${p.id} and a.id = (select id from almacenes where tipo = 'sucursal' and activo order by creado_en limit 1)`;
+  const ubic = ubicaciones.find((u) => u.id === aqui?.ubicacion_id) ?? null;
   const existencias = await sql<{ almacen: string; cantidad: number; minimo: number | null; ubicacion: string | null }[]>`
     select a.nombre almacen, e.cantidad::float cantidad, e.minimo::float minimo, u.codigo ubicacion
     from existencias e join almacenes a on a.id = e.almacen_id left join ubicaciones u on u.id = e.ubicacion_id
@@ -78,6 +85,20 @@ async function Contenido({ params }: { params: PageProps<"/interno/escanear/[sku
               );
             })}
           </ul>
+        )}
+      </div>
+      <div className="space-y-2">
+        <p className="text-[14px] font-semibold">Dónde está: <span className="font-normal">{describirUbicacion(ubic, ubicaciones)}</span></p>
+        {ubic && <Plano ubicaciones={ubicaciones} resaltar={ubic} compacto />}
+        {ubicaciones.length > 0 && (
+          <form action={asignarUbicacion} className="flex gap-2">
+            <input type="hidden" name="producto_id" value={p.id} />
+            <select name="ubicacion_id" defaultValue={ubic?.id ?? ""} aria-label="Cambiar ubicación" className="h-10 min-w-0 flex-1 rounded-full border border-linea bg-white px-3">
+              <option value="">Sin ubicación</option>
+              {ubicaciones.map((u) => <option key={u.id} value={u.id}>{u.codigo}</option>)}
+            </select>
+            <button className="rounded-full border border-azul px-4 font-semibold text-azul">{ubic ? "Mover aquí" : "Asignar"}</button>
+          </form>
         )}
       </div>
       <p className="rounded-xl bg-niebla p-3 text-[13px] text-secundario">No hay inventario físico abierto con este producto. Cuando se abra uno, este mismo QR te lleva directo a contarlo.</p>

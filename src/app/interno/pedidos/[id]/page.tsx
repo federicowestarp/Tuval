@@ -63,8 +63,8 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
     proveedorDelPedido(pedido.id),
     sql<{ id: string; folio: string; enviada_en: Date | null; conciliada_en: Date | null; factura_folio: string | null; diferencias: Diferencia[] | null }[]>`
       select id, folio, enviada_en, conciliada_en, factura_folio, diferencias from ordenes_compra where pedido_id = ${pedido.id} and estado <> 'cancelada' order by creado_en desc limit 1`,
-    sql<{ aprobado_por: string | null; cliente_id: string | null; pagado: number }[]>`
-      select aprobado_por, cliente_id, coalesce((select sum(monto) from pagos g where g.pedido_id = p.id and g.estado = 'confirmado'), 0)::float pagado from pedidos p where p.id = ${pedido.id}`,
+    sql<{ aprobado_por: string | null; cliente_id: string | null; pagado: number; en_surtido: boolean }[]>`
+      select aprobado_por, cliente_id, surtir_en_sucursal_desde is not null en_surtido, coalesce((select sum(monto) from pagos g where g.pedido_id = p.id and g.estado = 'confirmado'), 0)::float pagado from pedidos p where p.id = ${pedido.id}`,
   ]);
   const credito = ap?.cliente_id ? await estadoCuenta(ap.cliente_id) : null;
   const proceso = {
@@ -158,7 +158,10 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
           {proceso.oc?.diferencias?.length ? (
             <ul className="rounded-lg bg-red-50 p-2 text-[13px]">{proceso.oc.diferencias.map((d, i) => <li key={i}>{d.producto}: pedido {d.esperado}, facturado {d.facturado}{d.costoFactura != null && d.costoOc != null && d.costoFactura !== d.costoOc ? ` · precio ${d.costoOc} → ${d.costoFactura}` : ""}</li>)}</ul>
           ) : null}
-          {pedido.estado === "recibido" && pedido.confirmado_en && stock.lineas > 0 && stock.alcanza && (
+          {pedido.estado === "recibido" && ap?.en_surtido && (
+            <Link href={`/interno/surtido/${pedido.id}`} className="inline-block rounded-full bg-azul px-3 py-1 font-semibold text-white">Surtiéndose en sucursal · ver lista de surtido</Link>
+          )}
+          {pedido.estado === "recibido" && !ap?.en_surtido && pedido.confirmado_en && stock.lineas > 0 && stock.alcanza && (
             <form action={surtirDeSucursal}><input type="hidden" name="id" value={pedido.id} /><button className="rounded-full bg-azul px-3 py-1 font-semibold text-white">Mejor surtir desde sucursal (hay existencia)</button></form>
           )}
         </section>

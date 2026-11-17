@@ -1,5 +1,7 @@
 "use server";
 
+import { redirect } from "next/navigation";
+
 import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
@@ -80,23 +82,18 @@ export async function surtirDeSucursal(fd: FormData) {
   const yo = await requerirInterno("operador");
   const id = String(fd.get("id"));
   if (!UUID.test(id)) return;
-  const { mover, sucursal } = await import("@/lib/inventario");
+  const { sucursal } = await import("@/lib/inventario");
   const s = await sucursal();
+  // Surtido guiado: el pedido pasa a la lista de surtido de la sucursal; cada pieza se descuenta al escanearla.
   await sql.begin(async (tx) => {
-    const [p] = await tx<{ folio: string; estado: string }[]>`select folio, estado from pedidos where id = ${id} for update`;
-    if (!p || p.estado !== "recibido") return;
-    const partidas = await tx<{ producto_id: string; cantidad: number; costo: number | null }[]>`
-      select pp.producto_id, pp.cantidad::float cantidad, coalesce(pr.costo_promedio, pp.costo_unitario)::float costo
-      from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = ${id}`;
-    for (const x of partidas) {
-      await mover(tx, { producto: x.producto_id, cantidad: x.cantidad, tipo: "salida_venta", origen: s.id, costo: x.costo, referencia: p.folio, pedido: id, usuario: yo.id });
-      await tx`update pedido_partidas set cantidad_surtida = cantidad, costo_unitario = coalesce(costo_unitario, ${x.costo}) where pedido_id = ${id} and producto_id = ${x.producto_id}`;
-    }
-    await tx`update pedidos set estado = 'surtido', almacen_surtido = ${s.id}, aceptado_en = coalesce(aceptado_en, now()) where id = ${id}`;
-    await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${id}, 'surtido', ${"Surtido de " + s.nombre}, ${yo.id})`;
+    const [p] = await tx`update pedidos set surtir_en_sucursal_desde = coalesce(surtir_en_sucursal_desde, now()), almacen_surtido = ${s.id}, aceptado_en = coalesce(aceptado_en, now())
+                         where id = ${id} and estado = 'recibido' returning id`;
+    if (p) await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${id}, 'recibido', ${"Se surte en " + s.nombre + " (lista de surtido)"}, ${yo.id})`;
   });
   refrescar(`/interno/pedidos/${id}`);
   refrescar("/interno/pedidos");
+  refrescar("/interno/surtido");
+  redirect(`/interno/surtido/${id}`);
 }
 
 /** El operador ya le escribió al cliente (recordatorio de cotización sin respuesta). */

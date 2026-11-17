@@ -7,7 +7,8 @@ import jsQR from "jsqr";
  * Lector de QR con la cámara del dispositivo (tablet de caja, celular del equipo).
  * Funciona en iPhone/iPad y Android sin instalar nada. Llama onLeer con el texto del QR.
  */
-export function EscanerQR({ onLeer, onCerrar, titulo = "Escanea el QR" }: { onLeer: (texto: string) => void; onCerrar: () => void; titulo?: string }) {
+export function EscanerQR({ onLeer, onCerrar, titulo = "Escanea el QR" }: { onLeer: (texto: string, escrito?: boolean) => void; onCerrar: () => void; titulo?: string }) {
+  const [manual, setManual] = useState("");
   const video = useRef<HTMLVideoElement>(null);
   const lienzo = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +60,10 @@ export function EscanerQR({ onLeer, onCerrar, titulo = "Escanea el QR" }: { onLe
       </div>
       <canvas ref={lienzo} className="hidden" />
       {error && <p className="mt-3 rounded-xl bg-red-600 p-3 text-center">{error}</p>}
+      <form onSubmit={(e) => { e.preventDefault(); if (manual.trim()) { leido.current = true; onLeer(manual.trim(), true); } }} className="mx-auto mt-3 flex w-full max-w-md gap-2">
+        <input value={manual} onChange={(e) => setManual(e.target.value)} placeholder="¿No lee? Escribe el código" aria-label="Código escrito" className="h-11 min-w-0 flex-1 rounded-full bg-white/15 px-4 text-white placeholder:text-white/60" />
+        <button className="rounded-full bg-white px-4 font-semibold text-black">Usar</button>
+      </form>
     </div>
   );
 }

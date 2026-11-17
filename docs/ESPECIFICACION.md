@@ -201,6 +201,8 @@ Sin la API de WhatsApp Business los envíos son de un toque (liga wa.me); la aut
 
 **Inventario físico por tarjetas:** se abre por almacén (congela lo que dice el sistema), se imprimen tarjetas con folio y QR, dos conteos ciegos por personas distintas, tercero si no coinciden, lista de folios sin contar, y al cerrar se ajustan existencias con su valuación a costo promedio. Mientras se cuenta no conviene mover mercancía de ese almacén.
 
+**Tienda física (anaquel):** etiquetas con precio con IVA y QR permanente (lleva a la ficha pública; el equipo ve "contar o existencias"); aviso cuando el precio o nombre cambió para reimprimir. El cliente arma su carrito escaneando, toca "Pagar en caja" y enseña un QR o código de 6 letras; la caja lo carga con la cámara de la tablet y se cobra solo lo que se lleva. Chequeo aleatorio diario (conteo ciego; diferencias las resuelve supervisión). Plano generado de pasillo/anaquel/nivel; surtido guiado (cada pieza se escanea y se descuenta; si se escribe el código a mano queda marcado). Quiosco público "¿Dónde está?" (tuval.mx/donde) con plano y precio.
+
 ## 7. Pendientes (no inventar)
 
 - ¿Qué es exactamente Emmsa para Tuval (distribuidor/mayorista)? ¿Entrega lista de precios/catálogo? ¿En qué formato (Excel, PDF, API)? ¿Comparte existencias?
