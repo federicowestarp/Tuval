@@ -9,6 +9,7 @@ import { pesos } from "@/components/interno/Indicadores";
 import { NavegacionInterna } from "../Navegacion";
 import { Contar, Recibir } from "./Capturas";
 import { fijarMinimo } from "./acciones";
+import { COLOR_FOCO, NOMBRE_FOCO, focoDe } from "@/lib/focos";
 
 const PESTANAS = [
   { id: "existencias", texto: "Existencias" },
@@ -50,7 +51,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/i
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-semibold">Inventario · {s.nombre}</h1>
-          <p className="text-[13px] text-secundario">{resumen.productos} productos con existencia · valor a costo {pesos(resumen.valor)} · {resumen.bajo} bajo mínimo · {resumen.negativos} negativos</p>
+          <p className="text-[13px] text-secundario">{resumen.productos} productos con existencia · valor a costo {pesos(resumen.valor)} · {resumen.bajo} agotándose · {resumen.negativos} negativos</p>
         </div>
         <nav className="flex flex-wrap gap-1 rounded-full bg-white p-1 text-[14px] font-semibold">
           {PESTANAS.map((t) => (
@@ -71,13 +72,13 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/i
 async function Existencias({ almacen, q, ver }: { almacen: string; q: string; ver: string }) {
   const palabras = q.toLowerCase().split(/\s+/).filter(Boolean).slice(0, 5);
   const filtroTexto = palabras.length ? palabras.map((w) => sql`and (lower(p.nombre) like ${"%" + w + "%"} or lower(p.sku) like ${"%" + w + "%"})`).reduce((a, b) => sql`${a} ${b}`) : sql``;
-  const filtroVer = ver === "bajo" ? sql`and e.minimo is not null and e.cantidad < e.minimo` : ver === "negativos" ? sql`and e.cantidad < 0` : ver === "todos" ? sql`` : sql`and e.cantidad is not null`;
+  const filtroVer = ver === "bajo" ? sql`and e.minimo is not null and e.cantidad < e.minimo and e.cantidad > 0` : ver === "agotados" ? sql`and coalesce(e.cantidad, 0) <= 0` : ver === "negativos" ? sql`and e.cantidad < 0` : ver === "todos" ? sql`` : sql`and e.cantidad is not null`;
   const filas = await sql<{ id: string; sku: string; nombre: string; cantidad: number | null; minimo: number | null; costo: number | null }[]>`
     select p.id, p.sku, p.nombre, e.cantidad::float cantidad, e.minimo::float minimo, p.costo_promedio::float costo
     from productos p left join existencias e on e.producto_id = p.id and e.almacen_id = ${almacen}
     where p.activo ${filtroTexto} ${filtroVer}
     order by (e.cantidad < coalesce(e.minimo, -1e9)) desc nulls last, p.nombre limit 200`;
-  const filtros = [["", "Con movimiento"], ["bajo", "Bajo mínimo"], ["negativos", "Negativos"], ["todos", "Todo el catálogo"]];
+  const filtros = [["", "Con movimiento"], ["bajo", "Agotándose (bajo el mínimo)"], ["agotados", "Agotados"], ["negativos", "Negativos (revisar)"], ["todos", "Todo el catálogo"]];
   return (
     <div className="space-y-3">
       <form className="flex flex-wrap gap-2">
@@ -93,8 +94,13 @@ async function Existencias({ almacen, q, ver }: { almacen: string; q: string; ve
             <tbody className="divide-y divide-linea">
               {filas.map((f) => (
                 <tr key={f.id}>
-                  <td className="py-2 pr-3"><span className="block max-w-[22rem] truncate">{f.nombre}</span><span className="text-[12px] text-secundario">{f.sku}</span></td>
-                  <td className={`text-right tabular-nums font-semibold ${(f.cantidad ?? 0) < 0 || (f.minimo != null && (f.cantidad ?? 0) < f.minimo) ? "text-red-700" : ""}`}>{f.cantidad ?? 0}</td>
+                  <td className="py-2 pr-3">
+                    <span className="flex items-center gap-2.5">
+                      <span title={NOMBRE_FOCO[focoDe({ existencia: f.cantidad ?? 0, minimo: f.minimo })]} className={`h-3 w-3 shrink-0 rounded-full ${COLOR_FOCO[focoDe({ existencia: f.cantidad ?? 0, minimo: f.minimo })]}`} />
+                      <span className="min-w-0"><span className="block max-w-[22rem] truncate">{f.nombre}</span><span className="text-[12px] text-secundario">{f.sku}</span></span>
+                    </span>
+                  </td>
+                  <td className={`text-right tabular-nums font-semibold ${(f.cantidad ?? 0) <= 0 ? "text-red-700" : f.minimo != null && (f.cantidad ?? 0) < f.minimo ? "text-amber-700" : ""}`}>{f.cantidad ?? 0}</td>
                   <td className="text-right">
                     <form action={fijarMinimo} className="inline-flex justify-end">
                       <input type="hidden" name="producto_id" value={f.id} />
@@ -107,7 +113,7 @@ async function Existencias({ almacen, q, ver }: { almacen: string; q: string; ve
               ))}
             </tbody>
           </table>
-          <p className="mt-2 text-[12px] text-secundario">Para fijar un mínimo, escríbelo y presiona Enter.</p>
+          <p className="mt-2 text-[12px] text-secundario">Verde: hay · Amarillo: se está agotando (bajo el mínimo) · Rojo: agotado. Para fijar un mínimo, escríbelo y presiona Enter; sin mínimo, un producto nunca sale en amarillo.</p>
         </div>
       )}
     </div>

@@ -36,6 +36,7 @@ async function Contenido() {
     return (
       <section className="mx-auto max-w-md space-y-4 rounded-[20px] bg-white p-6">
         <h1 className="font-display text-2xl font-semibold">Abrir caja · {s.nombre}</h1>
+        <Link href="/interno/mostrador/cortes" className="text-[14px] text-azul">Ver cortes de caja anteriores ›</Link>
         <form action={abrirCaja} className="space-y-3">
           <div><label className={etiqueta} htmlFor="fondo">Fondo de caja (efectivo inicial)</label><input id="fondo" name="fondo" inputMode="decimal" defaultValue="0" className={campo} /></div>
           <button className={clasesBoton("principal", "grande", true)}>Abrir caja</button>
@@ -52,7 +53,7 @@ async function Contenido() {
       from pedidos p join pagos g on g.pedido_id = p.id where g.caja_id = ${caja.id} order by p.creado_en desc limit 15`,
     sql<ProductoInventario[]>`
       select p.id, p.sku, p.nombre, p.unidad, pr.precio::float precio, coalesce(e.cantidad, 0)::float existencia, p.codigo_barras,
-             p.costo_promedio::float costo, p.categoria_id, e.minimo::float minimo
+             p.costo_promedio::float costo, p.categoria_id, e.minimo::float minimo, p.imagen_url
       from productos p
       left join precios pr on pr.producto_id = p.id and pr.lista_id = (select id from listas_precio where nombre = 'Público')
       left join existencias e on e.producto_id = p.id and e.almacen_id = ${s.id}
@@ -66,7 +67,7 @@ async function Contenido() {
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h1 className="font-display text-2xl font-semibold">Mostrador · {s.nombre}</h1>
-        <p className="text-[13px] text-secundario">Caja abierta por {caja.quien} · fondo {pesos(caja.fondo)}</p>
+        <p className="text-[13px] text-secundario">Caja abierta por {caja.quien} · fondo {pesos(caja.fondo)} · <Link href="/interno/mostrador/cortes" className="text-azul">Cortes anteriores</Link></p>
       </div>
       <PuntoDeVenta inventario={inventario} categorias={categorias} />
       <div className="grid gap-4 md:grid-cols-2">

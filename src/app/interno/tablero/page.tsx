@@ -164,7 +164,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
             <Barras filas={t.formas.map((x) => ({ etiqueta: x.forma, valor: x.total, texto: pesos(x.total) }))} vacio="Sin ventas de mostrador." />
             {t.cortes.length > 0 && (
               <>
-                <p className="mb-2 mt-5 font-semibold">Cortes de caja</p>
+                <p className="mb-2 mt-5 flex justify-between font-semibold">Cortes de caja <Link href="/interno/mostrador/cortes" className="text-[14px] text-azul">Ver reporte ›</Link></p>
                 <ul className="divide-y divide-linea text-[14px]">
                   {t.cortes.map((c) => {
                     const dif = c.contado - c.esperado;

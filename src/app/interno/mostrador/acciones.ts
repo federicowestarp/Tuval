@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { refrescar } from "@/lib/refrescar";
 import { sql } from "@/lib/db";
 import { requerirInterno } from "@/lib/equipo";
@@ -29,6 +30,7 @@ export async function cerrarCaja(fd: FormData) {
     where id = ${id} and cerrada_en is null`;
   refrescar("/interno/mostrador");
   refrescar("/interno/tablero");
+  redirect(`/interno/mostrador/cortes/${id}`);
 }
 
 export type LineaVenta = { id: string; cantidad: number; precio?: number | null };

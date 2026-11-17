@@ -2,17 +2,15 @@
 
 import { useMemo, useState } from "react";
 import type { ProductoMostrador } from "@/lib/inventario";
+import { IconoCategoria } from "@/components/IconoCategoria";
+import { IconoCaja } from "@/components/Iconos";
+import { CATEGORIAS } from "@/lib/categorias";
+import { COLOR_FOCO, NOMBRE_FOCO, focoDe, type Foco } from "@/lib/focos";
 
-export type ProductoInventario = ProductoMostrador & { categoria_id: string; minimo: number | null };
-type Foco = "verde" | "amarillo" | "rojo";
-
-/** Verde: hay de sobra · Amarillo: en o bajo el mínimo (5 si no hay mínimo) · Rojo: sin existencia. */
-export const focoDe = (p: { existencia: number; minimo: number | null }): Foco =>
-  p.existencia <= 0 ? "rojo" : p.existencia <= (p.minimo ?? 5) ? "amarillo" : "verde";
-
-const COLOR: Record<Foco, string> = { verde: "bg-emerald-500", amarillo: "bg-amber-400", rojo: "bg-red-500" };
-const NOMBRE: Record<Foco, string> = { verde: "Hay", amarillo: "Poco", rojo: "Sin existencia" };
-const POR_PAGINA = 40;
+export type ProductoInventario = ProductoMostrador & { categoria_id: string; minimo: number | null; imagen_url: string | null };
+const POR_PAGINA = 60;
+const CON_ICONO = new Set<string>(CATEGORIAS.map((c) => c.id));
+const ORDEN: Record<Foco, number> = { verde: 0, amarillo: 1, rojo: 2 };
 
 export function InventarioFocos({ productos, categorias, onAgregar }: {
   productos: ProductoInventario[];
@@ -35,7 +33,9 @@ export function InventarioFocos({ productos, categorias, onAgregar }: {
     return productos.filter((p) =>
       (foco === "todos" || focoDe(p) === foco) &&
       (!cat || p.categoria_id === cat) &&
-      palabras.every((w) => p.nombre.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w)));
+      palabras.every((w) => p.nombre.toLowerCase().includes(w) || p.sku.toLowerCase().includes(w)))
+      // Primero lo que sí hay, luego lo que se agota y al final lo agotado.
+      .sort((a, b) => ORDEN[focoDe(a)] - ORDEN[focoDe(b)] || a.nombre.localeCompare(b.nombre, "es"));
   }, [productos, q, foco, cat]);
 
   return (
@@ -52,8 +52,8 @@ export function InventarioFocos({ productos, categorias, onAgregar }: {
               onClick={() => { setFoco(f); setVer(POR_PAGINA); }}
               className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 ${foco === f ? "bg-azul text-white" : "bg-niebla text-secundario hover:text-azul"}`}
             >
-              {f !== "todos" && <span className={`h-2.5 w-2.5 rounded-full ${COLOR[f]}`} />}
-              {f === "todos" ? `Todos ${productos.length}` : `${NOMBRE[f]} ${conteo[f]}`}
+              {f !== "todos" && <span className={`h-2.5 w-2.5 rounded-full ${COLOR_FOCO[f]}`} />}
+              {f === "todos" ? `Todos ${productos.length}` : `${NOMBRE_FOCO[f]} ${conteo[f]}`}
             </button>
           ))}
         </div>
@@ -65,33 +65,44 @@ export function InventarioFocos({ productos, categorias, onAgregar }: {
           {categorias.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
       </div>
-      {filtrados.length === 0 ? <p className="py-6 text-center text-[14px] text-secundario">Nada con este filtro.</p> : (
-        <ul className="divide-y divide-linea">
-          {filtrados.slice(0, ver).map((p) => {
-            const f = focoDe(p);
-            return (
-              <li key={p.id}>
-                <button type="button" onClick={() => onAgregar(p)} title={`${NOMBRE[f]} · clic para agregar a la venta`} className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-niebla">
-                  <span className={`h-3 w-3 rounded-full ${COLOR[f]}`} aria-label={NOMBRE[f]} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-[15px]">{p.nombre}</span>
-                    <span className="text-[12px] text-secundario">{p.sku}{p.minimo != null && ` · mínimo ${p.minimo}`}</span>
-                  </span>
-                  <span className="text-right text-[13px]">
-                    <span className="block font-semibold tabular-nums">{p.existencia} {p.unidad === "pieza" ? "pzas" : p.unidad}</span>
-                    <span className="text-secundario">{p.precio != null ? `$${(p.precio * 1.16).toFixed(2)}` : "sin precio"}</span>
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {filtrados.length > ver && (
-        <button type="button" onClick={() => setVer((v) => v + POR_PAGINA)} className="w-full rounded-full bg-niebla py-2.5 text-[14px] font-semibold text-azul">
-          Ver más ({filtrados.length - ver})
-        </button>
-      )}
+
+      {/* Caja de altura fija con scroll propio: la venta y el cobro siguen a la vista. */}
+      <div className="h-[28rem] overflow-y-auto rounded-2xl bg-niebla p-2 sm:h-[32rem]">
+        {filtrados.length === 0 ? <p className="py-10 text-center text-[14px] text-secundario">Nada con este filtro.</p> : (
+          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+            {filtrados.slice(0, ver).map((p) => {
+              const f = focoDe(p);
+              return (
+                <li key={p.id}>
+                  <button type="button" onClick={() => onAgregar(p)} title={`${p.nombre} · ${NOMBRE_FOCO[f]} · clic para agregar`} className="flex h-full w-full flex-col overflow-hidden rounded-xl bg-white text-left ring-1 ring-linea transition hover:ring-azul active:scale-[.98]">
+                    <span className="relative flex aspect-[4/3] w-full items-center justify-center bg-piedra">
+                      {p.imagen_url
+                        // eslint-disable-next-line @next/next/no-img-element -- foto del catálogo
+                        ? <img src={p.imagen_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        : CON_ICONO.has(p.categoria_id)
+                          ? <IconoCategoria categoria={p.categoria_id as Parameters<typeof IconoCategoria>[0]["categoria"]} className="h-10 w-10 text-azul/50" />
+                          : <IconoCaja className="h-10 w-10 text-azul/40" />}
+                      <span className={`absolute left-2 top-2 h-3.5 w-3.5 rounded-full ring-2 ring-white ${COLOR_FOCO[f]}`} aria-label={NOMBRE_FOCO[f]} />
+                    </span>
+                    <span className="flex flex-1 flex-col p-2.5">
+                      <span className="line-clamp-2 text-[13px] font-medium leading-snug">{p.nombre}</span>
+                      <span className="mt-auto flex items-baseline justify-between gap-1 pt-1.5 text-[12px]">
+                        <span className={`font-semibold tabular-nums ${f === "rojo" ? "text-red-700" : f === "amarillo" ? "text-amber-700" : ""}`}>{p.existencia} {p.unidad === "pieza" ? "pzas" : p.unidad}</span>
+                        <span className="text-secundario">{p.precio != null ? `$${(p.precio * 1.16).toFixed(0)}` : "s/precio"}</span>
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {filtrados.length > ver && (
+          <button type="button" onClick={() => setVer((v) => v + POR_PAGINA)} className="mt-2 w-full rounded-full bg-white py-2.5 text-[14px] font-semibold text-azul">
+            Ver más ({filtrados.length - ver})
+          </button>
+        )}
+      </div>
     </div>
   );
 }

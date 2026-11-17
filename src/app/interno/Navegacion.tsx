@@ -4,19 +4,21 @@ import { BarraProvisional } from "@/components/marco/BarraProvisional";
 import { puede, usuarioInterno, type Minimo } from "@/lib/equipo";
 import { salir } from "./sesion-acciones";
 
-type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario";
-const SECCIONES: { id: Seccion; texto: string; href: string; minimo?: Minimo }[] = [
-  { id: "tablero", texto: "Tablero", href: "/interno/tablero", minimo: "admin" },
-  { id: "pedidos", texto: "Pedidos", href: "/interno/pedidos", minimo: "operador" },
-  { id: "demanda", texto: "Demanda", href: "/interno/demanda", minimo: "operador" },
-  { id: "contactos", texto: "Contactos", href: "/interno/contactos", minimo: "operador" },
-  { id: "mostrador", texto: "Mostrador", href: "/interno/mostrador", minimo: "mostrador" },
-  { id: "inventario", texto: "Inventario", href: "/interno/inventario", minimo: "mostrador" },
-  { id: "chofer", texto: "Ruta", href: "/interno/chofer" },
-  { id: "gastos", texto: "Gastos", href: "/interno/gastos", minimo: "admin" },
-  { id: "flotilla", texto: "Flotilla", href: "/interno/flotilla", minimo: "admin" },
-  { id: "catalogo", texto: "Catálogo", href: "/interno/catalogo", minimo: "admin" },
-  { id: "equipo", texto: "Equipo", href: "/interno/equipo", minimo: "admin" },
+type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes";
+const AREAS = ["Dirección", "Pedidos en línea", "Sucursal", "Reparto"] as const;
+const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS)[number]; minimo?: Minimo }[] = [
+  { id: "tablero", texto: "Tablero", href: "/interno/tablero", area: "Dirección", minimo: "admin" },
+  { id: "gastos", texto: "Gastos", href: "/interno/gastos", area: "Dirección", minimo: "admin" },
+  { id: "catalogo", texto: "Catálogo", href: "/interno/catalogo", area: "Dirección", minimo: "admin" },
+  { id: "equipo", texto: "Equipo", href: "/interno/equipo", area: "Dirección", minimo: "admin" },
+  { id: "pedidos", texto: "Pedidos", href: "/interno/pedidos", area: "Pedidos en línea", minimo: "operador" },
+  { id: "demanda", texto: "Demanda", href: "/interno/demanda", area: "Pedidos en línea", minimo: "operador" },
+  { id: "contactos", texto: "Contactos", href: "/interno/contactos", area: "Pedidos en línea", minimo: "operador" },
+  { id: "mostrador", texto: "Mostrador", href: "/interno/mostrador", area: "Sucursal", minimo: "mostrador" },
+  { id: "cortes", texto: "Cortes de caja", href: "/interno/mostrador/cortes", area: "Sucursal", minimo: "mostrador" },
+  { id: "inventario", texto: "Inventario", href: "/interno/inventario", area: "Sucursal", minimo: "mostrador" },
+  { id: "chofer", texto: "Ruta del día", href: "/interno/chofer", area: "Reparto" },
+  { id: "flotilla", texto: "Flotilla y personal", href: "/interno/flotilla", area: "Reparto", minimo: "admin" },
 ];
 
 async function Barra({ actual }: { actual: Seccion }) {
@@ -27,7 +29,7 @@ async function Barra({ actual }: { actual: Seccion }) {
     <BarraFlotante
       inicio="/interno"
       titulo={aqui?.texto}
-      enlaces={secciones.map((s) => ({ href: s.href, texto: s.texto }))}
+      grupos={AREAS.map((area) => ({ titulo: area, enlaces: secciones.filter((s) => s.area === area).map((s) => ({ href: s.href, texto: s.texto })) })).filter((g) => g.enlaces.length > 0)}
       pieMenu={u && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span>{u.nombre} · {u.rol}</span>
