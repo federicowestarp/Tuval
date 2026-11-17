@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -13,7 +13,7 @@ export type GrupoMenu = { titulo: string; enlaces: EnlaceMenu[] };
  * La usan el sitio público y el panel interno.
  */
 export function BarraFlotante({
-  inicio = "/", enlaces = [], grupos, enLinea = [], acciones, pieMenu, titulo,
+  inicio = "/", enlaces = [], grupos, enLinea = [], acciones, pieMenu, titulo, debajo,
 }: {
   inicio?: string;
   enlaces?: EnlaceMenu[];
@@ -25,10 +25,30 @@ export function BarraFlotante({
   pieMenu?: React.ReactNode;
   /** Texto junto al logo (p. ej. la sección actual del panel). */
   titulo?: string;
+  /** Segunda cápsula fija bajo la barra (p. ej. el buscador de la tienda). */
+  debajo?: React.ReactNode;
 }) {
   const [abierto, setAbierto] = useState(false);
   const ruta = usePathname();
   const router = useRouter();
+  const cabecera = useRef<HTMLElement>(null);
+
+  // iPhone: con el teclado abierto, Safari desplaza lo "fijo" junto con la página. Se recoloca la barra
+  // en la parte visible de la pantalla usando visualViewport.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const ajustar = () => {
+      const h = cabecera.current;
+      if (!h) return;
+      const dy = Math.max(0, vv.offsetTop);
+      h.style.transform = dy > 0 ? `translate3d(0, ${dy}px, 0)` : "";
+    };
+    vv.addEventListener("resize", ajustar);
+    vv.addEventListener("scroll", ajustar);
+    window.addEventListener("scroll", ajustar, { passive: true });
+    return () => { vv.removeEventListener("resize", ajustar); vv.removeEventListener("scroll", ajustar); window.removeEventListener("scroll", ajustar); };
+  }, []);
 
   // El menú está oculto, así que sus enlaces no se precargan solos: se precargan todas las secciones
   // al montar la barra para que al tocar una aparezca al instante (con su esqueleto mientras llegan los datos).
@@ -58,7 +78,7 @@ export function BarraFlotante({
 
   return (
     <>
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 sm:px-5 sm:pt-4">
+      <header ref={cabecera} className="pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 will-change-transform sm:px-5 sm:pt-4">
         <div className="pointer-events-auto mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 rounded-full bg-white/70 pl-5 pr-2 shadow-[0_8px_30px_rgba(29,29,31,0.08)] ring-1 ring-black/5 backdrop-blur-xl backdrop-saturate-150">
           <div className="flex min-w-0 items-center gap-3">
             <Link href={inicio} aria-label="Inicio" className="shrink-0"><Logo /></Link>
@@ -85,6 +105,7 @@ export function BarraFlotante({
             </button>
           </div>
         </div>
+        {debajo && <div className="pointer-events-auto mx-auto mt-2 max-w-6xl">{debajo}</div>}
       </header>
 
       <div
@@ -169,7 +190,7 @@ export function BarraFlotante({
   );
 }
 
-/** Espacio bajo la barra fija para que el contenido no quede detrás. */
-export function EspacioBarra() {
-  return <div aria-hidden className="h-[5.25rem] sm:h-24" />;
+/** Espacio bajo la barra fija para que el contenido no quede detrás (más alto si lleva segunda cápsula). */
+export function EspacioBarra({ conDebajo = false }: { conDebajo?: boolean }) {
+  return <div aria-hidden className={conDebajo ? "h-[9.25rem] sm:h-40" : "h-[5.25rem] sm:h-24"} />;
 }

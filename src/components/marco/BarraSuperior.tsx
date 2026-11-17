@@ -11,10 +11,11 @@ const EN_LINEA = [
   { href: "/obras", texto: "Para obras" },
 ];
 
-export function BarraSuperior({ whatsapp }: { whatsapp?: string | null }) {
+export function BarraSuperior({ whatsapp, debajo }: { whatsapp?: string | null; debajo?: React.ReactNode }) {
   const { piezas } = useCarrito();
   return (
     <BarraFlotante
+      debajo={debajo}
       enLinea={EN_LINEA}
       enlaces={[
         { href: "/tienda", texto: "Tienda" },
