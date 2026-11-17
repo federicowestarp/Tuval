@@ -204,6 +204,7 @@ export async function cargarDemo(): Promise<string> {
     const movs: Fila[] = [];
     for (const p of inventario) movs.push({ producto_id: p.id, almacen_destino: s.id, almacen_origen: null, cantidad: entero(15, 80), tipo: "entrada_compra", costo_unitario: costoDe(p.precio), referencia: "PRUEBA inventario inicial", creado_en: iso(mx(31, 9)) });
 
+    const [registradora] = await tx<{ id: string }[]>`select id from cajas_registradoras where almacen_id = ${s.id} order by creado_en limit 1`;
     // Mostrador: una caja por día, 2–7 ventas
     const cajas: Fila[] = [], ventas: Fila[] = [], vPartidas: Fila[] = [], vPagos: Fila[] = [], vEventos: Fila[] = [];
     for (let dia = 30; dia >= 1; dia--) {
@@ -231,9 +232,9 @@ export async function cargarDemo(): Promise<string> {
         vEventos.push({ pedido_id: id, estado: "entregado", nota: "Venta de mostrador (prueba)", creado_en: iso(hora) });
       }
       const diferencia = Math.random() < 0.15 ? -entero(20, 150) : 0;
-      cajas.push({ id: caja, almacen_id: s.id, abierta_por: choferes[2], abierta_en: iso(mx(dia, 8, 55)), fondo: 1000, cerrada_por: choferes[2], cerrada_en: iso(mx(dia, 18, 5)), efectivo_contado: r2(1000 + efectivo + diferencia) });
+      cajas.push({ id: caja, almacen_id: s.id, abierta_por: choferes[2], abierta_en: iso(mx(dia, 8, 55)), fondo: 1000, cerrada_por: choferes[2], cerrada_en: iso(mx(dia, 18, 5)), efectivo_contado: r2(1000 + efectivo + diferencia), estado: Math.abs(diferencia) > 50 ? "con_incidente" : "conciliado", registradora_id: registradora?.id ?? null });
     }
-    await insertar(tx, "cajas", { id: "uuid", almacen_id: "uuid", abierta_por: "uuid", abierta_en: "timestamptz", fondo: "numeric", cerrada_por: "uuid", cerrada_en: "timestamptz", efectivo_contado: "numeric" }, cajas);
+    await insertar(tx, "cajas", { id: "uuid", almacen_id: "uuid", abierta_por: "uuid", abierta_en: "timestamptz", fondo: "numeric", cerrada_por: "uuid", cerrada_en: "timestamptz", efectivo_contado: "numeric", estado: "text", registradora_id: "uuid" }, cajas);
     await insertar(tx, "pedidos", { id: "uuid", folio: "text", canal: "canal_pedido", tipo_entrega: "tipo_entrega", comprobante: "comprobante", estado: "estado_pedido", creado_en: "timestamptz", confirmado_en: "timestamptz", aceptado_en: "timestamptz", almacen_surtido: "uuid", vendedor_id: "uuid", contacto_nombre: "text", subtotal: "numeric", iva: "numeric", total: "numeric" }, ventas);
     await insertar(tx, "pedido_partidas", { id: "uuid", pedido_id: "uuid", producto_id: "uuid", cantidad: "numeric", precio_unitario: "numeric", costo_unitario: "numeric", cantidad_surtida: "numeric" }, vPartidas, false);
     await insertar(tx, "pagos", { id: "uuid", pedido_id: "uuid", monto: "numeric", forma: "text", pagado_en: "timestamptz", caja_id: "uuid", recibido: "numeric" }, vPagos);

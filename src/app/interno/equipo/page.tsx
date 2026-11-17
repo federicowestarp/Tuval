@@ -38,7 +38,7 @@ async function Contenido() {
           {usuarios.map((u) => (
             <li key={u.id} className="flex items-center justify-between gap-3 py-3">
               <div className={u.activo ? "" : "opacity-50"}>
-                <p className="font-semibold">{u.nombre} <span className="text-[13px] font-normal text-secundario">· {u.rol === "admin" ? "Administrador" : u.rol === "chofer" ? "Chofer" : u.rol === "mostrador" ? "Mostrador" : "Operador"}{!u.activo && " · dado de baja"}</span></p>
+                <p className="font-semibold">{u.nombre} <span className="text-[13px] font-normal text-secundario">· {u.rol === "admin" ? "Administrador" : u.rol === "chofer" ? "Chofer" : u.rol === "mostrador" ? "Cajero (mostrador)" : u.rol === "supervisor" ? "Supervisor de caja" : "Operador"}{!u.activo && " · dado de baja"}</span></p>
                 <p className="text-[13px] text-secundario">
                   {u.correo} · {u.ultimo_acceso ? `último acceso ${new Date(u.ultimo_acceso).toLocaleDateString("es-MX", { timeZone: "America/Mexico_City" })}` : "sin acceso aún"}
                 </p>

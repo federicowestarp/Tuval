@@ -21,7 +21,7 @@ export default function Cortes() {
 
 async function Contenido() {
   await connection();
-  await requerirInterno("mostrador");
+  await requerirInterno("supervisor");
   const cortes = await listarCortes();
   const cerrados = cortes.filter((c) => c.cerrada_en);
   const faltantes = cerrados.filter((c) => c.contado != null && c.contado - c.esperado <= -1);

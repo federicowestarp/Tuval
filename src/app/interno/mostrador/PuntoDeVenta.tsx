@@ -14,7 +14,8 @@ type Linea = ProductoMostrador & { cantidad: number; manual: string };
 const IVA = 0.16;
 const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
-export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoInventario[]; categorias: { id: string; nombre: string }[] }) {
+export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inventario: ProductoInventario[]; categorias: { id: string; nombre: string }[]; terminales?: { id: string; nombre: string }[] }) {
+  const [terminal, setTerminal] = useState(terminales.length === 1 ? terminales[0].id : "");
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [forma, setForma] = useState<"efectivo" | "tarjeta" | "transferencia">("efectivo");
   const [comprobante, setComprobante] = useState<"nota" | "factura">("nota");
@@ -22,7 +23,7 @@ export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoI
   const [referencia, setReferencia] = useState("");
   const [cliente, setCliente] = useState({ nombre: "", telefono: "", rfc: "", razon: "", cp: "", regimen: "", uso: "G03" });
   const [error, setError] = useState<string | null>(null);
-  const [hecha, setHecha] = useState<{ id: string; folio: string; cambio: number } | null>(null);
+  const [hecha, setHecha] = useState<{ id: string; folio: string; cambio: number; pendiente: boolean } | null>(null);
   const [enviando, iniciar] = useTransition();
 
   const agregar = (p: ProductoMostrador) => {
@@ -45,10 +46,10 @@ export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoI
     iniciar(async () => {
       const r = await registrarVenta({
         lineas: lineas.map((l) => ({ id: l.id, cantidad: l.cantidad, precio: l.precio == null ? Number(l.manual) || null : null })),
-        forma, recibido: Number(recibido) || null, referencia, comprobante, cliente,
+        forma, terminal: forma === "tarjeta" ? terminal : null, recibido: Number(recibido) || null, referencia, comprobante, cliente,
       });
       if (r.error) { setError(r.error); return; }
-      setHecha({ id: r.id!, folio: r.folio!, cambio });
+      setHecha({ id: r.id!, folio: r.folio!, cambio, pendiente: !!r.pendiente });
       setLineas([]); setRecibido(""); setReferencia("");
       setCliente({ nombre: "", telefono: "", rfc: "", razon: "", cp: "", regimen: "", uso: "G03" });
     });
@@ -60,7 +61,8 @@ export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoI
         <BuscadorProducto onElegir={agregar} />
         {hecha && (
           <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-niebla p-4">
-            <p className="font-semibold">Venta {hecha.folio} registrada{hecha.cambio > 0 && <> · Cambio: <span className="text-azul">{mx(hecha.cambio)}</span></>}</p>
+            <p className="font-semibold">Venta {hecha.folio} registrada{hecha.cambio > 0 && !hecha.pendiente && <> · Cambio: <span className="text-azul">{mx(hecha.cambio)}</span></>}
+              {hecha.pendiente && <span className="block text-amber-800">Pendiente de pago por transferencia: no entregues la mercancía hasta que se confirme.</span>}</p>
             <Link href={`/interno/mostrador/ticket/${hecha.id}`} target="_blank" className={clasesBoton("secundario", "chico")}>Imprimir ticket</Link>
           </div>
         )}
@@ -109,9 +111,21 @@ export function PuntoDeVenta({ inventario, categorias }: { inventario: ProductoI
             {Number(recibido) > 0 && <p className="mt-1 text-[15px]">Cambio: <strong className={cambio < 0 ? "text-red-700" : "text-azul"}>{mx(Math.max(0, cambio))}</strong>{cambio < 0 && " · falta dinero"}</p>}
           </div>
         ) : (
-          <div>
-            <label className={etiqueta} htmlFor="referencia">{forma === "tarjeta" ? "Autorización de la terminal" : "Referencia"}</label>
-            <input id="referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} className={campo} />
+          <div className="space-y-2">
+            {forma === "tarjeta" && (terminales.length === 0
+              ? <p className="text-[13px] font-semibold text-red-700">Esta caja no tiene terminal asignada; no se puede cobrar con tarjeta.</p>
+              : <div>
+                  <label className={etiqueta} htmlFor="terminal">Terminal</label>
+                  <select id="terminal" value={terminal} onChange={(e) => setTerminal(e.target.value)} className={campo} required>
+                    <option value="">¿En qué terminal cobraste?</option>
+                    {terminales.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                  </select>
+                </div>)}
+            {forma === "transferencia" && <p className="text-[13px] text-secundario">La venta queda pendiente de pago hasta que se confirme la transferencia. No se entrega antes.</p>}
+            <div>
+              <label className={etiqueta} htmlFor="referencia">{forma === "tarjeta" ? "Autorización de la terminal" : "Referencia"}</label>
+              <input id="referencia" value={referencia} onChange={(e) => setReferencia(e.target.value)} className={campo} />
+            </div>
           </div>
         )}
         <div>

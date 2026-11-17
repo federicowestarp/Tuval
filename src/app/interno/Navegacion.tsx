@@ -4,7 +4,7 @@ import { BarraProvisional } from "@/components/marco/BarraProvisional";
 import { puede, usuarioInterno, type Minimo } from "@/lib/equipo";
 import { salir } from "./sesion-acciones";
 
-type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes";
+type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes" | "supervision";
 const AREAS = ["Dirección", "Pedidos en línea", "Sucursal", "Reparto"] as const;
 const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS)[number]; minimo?: Minimo }[] = [
   { id: "tablero", texto: "Tablero", href: "/interno/tablero", area: "Dirección", minimo: "admin" },
@@ -15,7 +15,8 @@ const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS
   { id: "demanda", texto: "Demanda", href: "/interno/demanda", area: "Pedidos en línea", minimo: "operador" },
   { id: "contactos", texto: "Contactos", href: "/interno/contactos", area: "Pedidos en línea", minimo: "operador" },
   { id: "mostrador", texto: "Mostrador", href: "/interno/mostrador", area: "Sucursal", minimo: "mostrador" },
-  { id: "cortes", texto: "Cortes de caja", href: "/interno/mostrador/cortes", area: "Sucursal", minimo: "mostrador" },
+  { id: "supervision", texto: "Supervisión de caja", href: "/interno/caja", area: "Sucursal", minimo: "supervisor" },
+  { id: "cortes", texto: "Cortes de caja", href: "/interno/mostrador/cortes", area: "Sucursal", minimo: "supervisor" },
   { id: "inventario", texto: "Inventario", href: "/interno/inventario", area: "Sucursal", minimo: "mostrador" },
   { id: "chofer", texto: "Ruta del día", href: "/interno/chofer", area: "Reparto" },
   { id: "flotilla", texto: "Flotilla y personal", href: "/interno/flotilla", area: "Reparto", minimo: "admin" },

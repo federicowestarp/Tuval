@@ -6,6 +6,7 @@ import { requerirInterno } from "@/lib/equipo";
 import { DIAS_COSTO, datosTablero, PERIODOS, type Periodo } from "@/lib/tablero";
 import { Barras, Indicador, horas, pesos } from "@/components/interno/Indicadores";
 import { DatosPrueba } from "./DatosPrueba";
+import { VentaDelDia } from "@/components/interno/VentaDelDia";
 import { NavegacionInterna } from "../Navegacion";
 
 const CATEGORIA: Record<string, string> = {
@@ -61,6 +62,8 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
       </div>
 
       <DatosPrueba hay={t.hayPrueba} />
+
+      <Suspense fallback={<div className="h-32 animate-pulse rounded-[20px] bg-white" />}><VentaDelDia /></Suspense>
 
       <Seccion titulo="Pedidos">
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">

@@ -11,8 +11,8 @@ export const COOKIE_INTERNA = "tuval_interno";
 const DIAS_SESION = 7;
 const hash = (t: string) => createHash("sha256").update(t).digest("hex");
 
-export type RolInterno = "admin" | "operador" | "chofer" | "mostrador";
-export type Minimo = "admin" | "operador" | "mostrador";
+export type RolInterno = "admin" | "operador" | "chofer" | "mostrador" | "supervisor";
+export type Minimo = "admin" | "operador" | "mostrador" | "supervisor";
 export type UsuarioInterno = { id: string; nombre: string; correo: string; rol: RolInterno };
 
 export async function hashContrasena(contrasena: string): Promise<string> {
@@ -69,7 +69,9 @@ export const usuarioInterno = cache(async (): Promise<UsuarioInterno | null> => 
 export const puede = (rol: RolInterno, minimo?: Minimo) =>
   !minimo || rol === "admin" ||
   (minimo === "operador" && rol === "operador") ||
-  (minimo === "mostrador" && (rol === "operador" || rol === "mostrador"));
+  (minimo === "mostrador" && (rol === "operador" || rol === "mostrador" || rol === "supervisor")) ||
+  // Supervisor de caja: ve esperados y diferencias, autoriza aperturas, retiros, transferencias e incidentes.
+  (minimo === "supervisor" && rol === "supervisor");
 
 /** Para páginas y acciones del panel: sin sesión → a la entrada; sin rol suficiente → no existe. */
 export async function requerirInterno(minimo?: Minimo): Promise<UsuarioInterno> {

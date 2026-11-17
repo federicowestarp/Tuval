@@ -23,7 +23,7 @@ export async function entrar(_prev: EstadoSesion, fd: FormData): Promise<EstadoS
 
   await iniciarSesion(u.id);
   const [{ rol }] = await sql<{ rol: string }[]>`select rol from usuarios_internos where id = ${u.id}`;
-  redirect(rol === "chofer" ? "/interno/chofer" : rol === "mostrador" ? "/interno/mostrador" : rol === "admin" ? "/interno/tablero" : "/interno/pedidos");
+  redirect(rol === "chofer" ? "/interno/chofer" : rol === "mostrador" ? "/interno/mostrador" : rol === "supervisor" ? "/interno/caja" : rol === "admin" ? "/interno/tablero" : "/interno/pedidos");
 }
 
 export async function salir() {
@@ -63,5 +63,5 @@ export async function activar(_prev: EstadoActivar, fd: FormData): Promise<Estad
     return u.id;
   });
   await iniciarSesion(id);
-  redirect(inv.rol === "chofer" ? "/interno/chofer" : inv.rol === "mostrador" ? "/interno/mostrador" : inv.rol === "admin" ? "/interno/tablero" : "/interno/pedidos");
+  redirect(inv.rol === "chofer" ? "/interno/chofer" : inv.rol === "mostrador" ? "/interno/mostrador" : inv.rol === "supervisor" ? "/interno/caja" : inv.rol === "admin" ? "/interno/tablero" : "/interno/pedidos");
 }

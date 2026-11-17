@@ -15,12 +15,13 @@ export async function listarCortes(opciones: { id?: string; limite?: number } = 
            coalesce(sum(g.monto) filter (where g.forma = 'tarjeta'), 0)::float tarjeta,
            coalesce(sum(g.monto) filter (where g.forma = 'transferencia'), 0)::float transferencia,
            coalesce(sum(g.monto) filter (where g.forma = 'credito'), 0)::float credito,
-           (c.fondo + coalesce(sum(g.monto) filter (where g.forma = 'efectivo'), 0))::float esperado,
+           (c.fondo + coalesce(sum(g.monto) filter (where g.forma = 'efectivo'), 0)
+            - coalesce((select sum(cc.total) from retiros_caja rc join conteos_caja cc on cc.id = rc.conteo_id where rc.turno_id = c.id), 0))::float esperado,
            c.efectivo_contado::float contado, c.notas
     from cajas c
     join usuarios_internos ua on ua.id = c.abierta_por
     left join usuarios_internos uc on uc.id = c.cerrada_por
-    left join pagos g on g.caja_id = c.id
+    left join pagos g on g.caja_id = c.id and g.estado = 'confirmado'
     where ${opciones.id ? sql`c.id = ${opciones.id}` : sql`true`}
     group by c.id, ua.nombre, uc.nombre
     order by c.abierta_en desc

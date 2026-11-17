@@ -30,7 +30,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/activar/[token]">,
     <>
       <h1 className="mt-8 text-center font-display text-3xl font-semibold">Bienvenido al equipo</h1>
       <p className="mt-1 text-center text-[15px] text-secundario">
-        Crea tu acceso {inv.rol === "admin" ? "de administrador" : inv.rol === "chofer" ? "de chofer" : inv.rol === "mostrador" ? "de mostrador" : "de operador"}.
+        Crea tu acceso {inv.rol === "admin" ? "de administrador" : inv.rol === "chofer" ? "de chofer" : inv.rol === "mostrador" ? "de cajero" : inv.rol === "supervisor" ? "de supervisor de caja" : "de operador"}.
       </p>
       <FormActivar token={token} />
     </>

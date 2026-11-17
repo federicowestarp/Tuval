@@ -12,5 +12,5 @@ async function Redirigir(): Promise<null> {
   await connection();
   const u = await usuarioInterno();
   if (!u) redirect("/interno/entrar");
-  redirect(u.rol === "admin" ? "/interno/tablero" : u.rol === "chofer" ? "/interno/chofer" : u.rol === "mostrador" ? "/interno/mostrador" : "/interno/pedidos");
+  redirect(u.rol === "admin" ? "/interno/tablero" : u.rol === "chofer" ? "/interno/chofer" : u.rol === "mostrador" ? "/interno/mostrador" : u.rol === "supervisor" ? "/interno/caja" : "/interno/pedidos");
 }
