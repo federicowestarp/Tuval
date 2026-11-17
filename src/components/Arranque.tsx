@@ -14,7 +14,7 @@ export function Arranque() {
     return () => clearTimeout(t);
   }, []);
   return (
-    <div aria-hidden className={`arranque fixed inset-0 z-[100] flex items-center justify-center bg-white transition-opacity duration-300 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
+    <div aria-hidden className={`arranque fixed inset-0 print:hidden z-[100] flex items-center justify-center bg-white transition-opacity duration-300 ${visible ? "opacity-100" : "pointer-events-none opacity-0"}`}>
       <Simbolo className="latido h-16 w-16" />
     </div>
   );

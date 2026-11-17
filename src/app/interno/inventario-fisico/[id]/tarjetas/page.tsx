@@ -35,24 +35,32 @@ async function Contenido({ params }: { params: PageProps<"/interno/inventario-fi
         <p className="text-[13px]">Imprime en hoja carta, dos tarjetas por renglón. Pega cada tarjeta en el producto o su ubicación.</p>
         <Imprimir />
       </div>
-      <div className="grid grid-cols-2 gap-3 print:gap-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 print:grid-cols-2 print:gap-2" style={{ printColorAdjust: "exact", WebkitPrintColorAdjust: "exact" }}>
         {tarjetas.map((t, i) => (
-          <article key={t.id} className="break-inside-avoid rounded border border-black p-3 text-[12px]" style={{ pageBreakInside: "avoid" }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide">Tuval · {inv.nombre}</p>
-                <p className="text-[22px] font-bold leading-none">#{String(t.folio).padStart(4, "0")}</p>
-                <p className="mt-1 font-semibold leading-tight">{t.producto}</p>
-                <p>SKU {t.sku}{t.unidad ? ` · ${t.unidad}` : ""}</p>
-                <p>Ubicación: {t.ubicacion ?? "__________"}</p>
+          <article key={t.id} className="overflow-hidden rounded-xl border-2 border-[#0B3D91] text-[12px]" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+            <header className="flex items-center justify-between gap-2 bg-[#0B3D91] px-3 py-1.5 text-white">
+              <span className="truncate text-[11px] font-semibold uppercase tracking-wide">Tuval · {inv.nombre}</span>
+              <span className="shrink-0 text-[18px] font-bold tabular-nums">#{String(t.folio).padStart(4, "0")}</span>
+            </header>
+            <div className="grid grid-cols-[minmax(0,1fr)_5.5rem] gap-3 p-3">
+              <div className="min-w-0 space-y-1">
+                <p className="text-[15px] font-semibold leading-tight break-words">{t.producto}</p>
+                <p className="text-[#555]">SKU <span className="font-mono">{t.sku}</span>{t.unidad ? ` · cuenta en ${t.unidad}` : ""}</p>
+                <p className="inline-block rounded-md bg-[#E8F1FB] px-2 py-0.5 font-semibold text-[#0B3D91]">Ubicación: {t.ubicacion ?? "________"}</p>
               </div>
-              <div className="h-20 w-20 shrink-0 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrs[i] }} />
+              <div className="h-[5.5rem] w-[5.5rem] [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrs[i] }} />
             </div>
-            <table className="mt-2 w-full border-collapse text-[11px]">
-              <thead><tr><th className="border border-black p-1 text-left">Conteo</th><th className="border border-black p-1">Cantidad</th><th className="border border-black p-1">Nombre / firma</th></tr></thead>
+            <table className="w-full table-fixed border-collapse text-[11px]">
+              <colgroup><col className="w-[30%]" /><col className="w-[25%]" /><col className="w-[45%]" /></colgroup>
+              <thead className="bg-[#E8F1FB] text-[#0B3D91]">
+                <tr><th className="border-y border-r border-[#0B3D91] px-2 py-1 text-left">Conteo</th><th className="border border-[#0B3D91] px-2 py-1">Cantidad</th><th className="border-y border-l border-[#0B3D91] px-2 py-1">Nombre / firma</th></tr>
+              </thead>
               <tbody>
-                {["1º", "2º", "3º (si no coinciden)"].map((c) => (
-                  <tr key={c}><td className="border border-black p-1">{c}</td><td className="h-7 w-20 border border-black" /><td className="border border-black" /></tr>
+                {[["1º", ""], ["2º", ""], ["3º", "si no coinciden"]].map(([c, nota], k) => (
+                  <tr key={c} className={k === 2 ? "bg-[#FFF6E5]" : ""}>
+                    <td className="h-9 border-r border-b border-[#0B3D91] px-2 font-semibold">{c}{nota && <span className="block text-[9px] font-normal text-[#8A5A00]">{nota}</span>}</td>
+                    <td className="border border-t-0 border-[#0B3D91]" /><td className="border-b border-l border-[#0B3D91]" />
+                  </tr>
                 ))}
               </tbody>
             </table>
