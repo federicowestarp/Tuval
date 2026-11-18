@@ -43,3 +43,18 @@ export function Progreso({ actual, recoger = false }: { actual: number; recoger?
     </div>
   );
 }
+
+/**
+ * Cargando: el anillo del símbolo se va cerrando (como el avance de una entrega) y al cerrarse aparece el punto cian.
+ * Solo CSS; se repite mientras dure la espera.
+ */
+export function AnilloCargando({ className = "h-16 w-16" }: { className?: string }) {
+  const [px, py] = punto(ARCO);
+  return (
+    <svg viewBox="0 0 64 64" className={`anillo-cargando ${className}`} role="img" aria-label="Cargando">
+      <path d={arco(ARCO)} fill="none" stroke="var(--linea)" strokeWidth="9" strokeLinecap="round" />
+      <path className="anillo-cargando-arco" d={arco(ARCO)} pathLength={100} fill="none" stroke="var(--azul-tuval)" strokeWidth="9" strokeLinecap="round" />
+      <circle className="anillo-cargando-punto" cx={px} cy={py} r="5.5" fill="var(--cian-flujo)" />
+    </svg>
+  );
+}
