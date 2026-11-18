@@ -20,14 +20,21 @@ export function MapaUbicacion({ lat, lng }: { lat?: number; lng?: number }) {
     (async () => {
       const L = await import("leaflet");
       if (cancelado || !div.current) return;
+      // Pin con el símbolo de Tuval (anillo abierto + punto cian), apoyado en la punta.
       const icono = L.divIcon({
-        className: "",
-        html: '<div style="width:22px;height:22px;border-radius:50%;background:#2bb3d9;border:4px solid #0b2e5c;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>',
-        iconSize: [22, 22],
-        iconAnchor: [11, 11],
+        className: "pin-tuval",
+        html: `<svg width="40" height="50" viewBox="0 0 40 50" aria-hidden="true">
+          <path d="M20 49c-1.2-6.5-16-17.5-16-29a16 16 0 0 1 32 0c0 11.5-14.8 22.5-16 29z" fill="#0b2e5c" stroke="#fff" stroke-width="2.5"/>
+          <path d="M28.5 20a8.5 8.5 0 1 1-2.5-6" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round"/>
+          <circle cx="26.6" cy="12.6" r="2.6" fill="#2bb3d9"/>
+        </svg>`,
+        iconSize: [40, 50],
+        iconAnchor: [20, 49],
       });
       const inicio = pos ?? PUEBLA;
-      mapa = L.map(div.current).setView(inicio, pos ? 17 : 12);
+      mapa = L.map(div.current, { zoomControl: false, attributionControl: true }).setView(inicio, pos ? 17 : 12);
+      L.control.zoom({ position: "bottomright", zoomInTitle: "Acercar", zoomOutTitle: "Alejar" }).addTo(mapa);
+      mapa.attributionControl.setPrefix(false);
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "© OpenStreetMap",
@@ -84,7 +91,7 @@ export function MapaUbicacion({ lat, lng }: { lat?: number; lng?: number }) {
 
   return (
     <div>
-      <div ref={div} className="h-64 w-full overflow-hidden rounded-[20px] bg-niebla" />
+      <div ref={div} className="mapa-tuval h-64 w-full overflow-hidden rounded-[20px] bg-[#E8F1FB] ring-1 ring-[#C9D6E8]" />
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <button type="button" onClick={usarMiUbicacion} className="inline-flex h-10 items-center rounded-full bg-niebla px-4 text-[14px] font-semibold text-azul">
           Usar mi ubicación actual

@@ -66,3 +66,15 @@ body {
 .tabla th, .tabla td { padding: 0.55rem 0.75rem; white-space: nowrap; vertical-align: middle; }
 .tabla th:first-child, .tabla td:first-child { padding-left: 0; white-space: normal; min-width: 8rem; }
 .tabla th:last-child, .tabla td:last-child { padding-right: 0; }
+
+/* Mapa con el estilo de Tuval: calles en tonos azul-gris claros, controles redondos y discretos.
+   Mismo mapa gratuito (OpenStreetMap), solo se le cambia el color en el navegador. */
+.mapa-tuval .leaflet-tile-pane { filter: grayscale(1) sepia(0.25) hue-rotate(175deg) saturate(1.6) brightness(1.04) contrast(0.98); }
+.mapa-tuval .leaflet-container, .mapa-tuval { font-family: inherit; }
+.mapa-tuval .leaflet-control-zoom { border: 0 !important; box-shadow: 0 4px 14px rgb(11 46 92 / 0.18) !important; border-radius: 9999px !important; overflow: hidden; margin: 0 12px 12px 0 !important; }
+.mapa-tuval .leaflet-control-zoom a { width: 38px !important; height: 38px !important; line-height: 36px !important; color: #0b2e5c !important; font-size: 20px !important; border: 0 !important; background: rgb(255 255 255 / 0.92) !important; backdrop-filter: blur(8px); }
+.mapa-tuval .leaflet-control-zoom a + a { border-top: 1px solid #e6ebf2 !important; }
+.mapa-tuval .leaflet-control-attribution { background: rgb(255 255 255 / 0.7) !important; font-size: 10px; border-radius: 9999px 0 0 0; padding: 0 8px; color: #6b7a8c; }
+.mapa-tuval .leaflet-control-attribution a { color: #6b7a8c; }
+.pin-tuval { filter: drop-shadow(0 3px 4px rgb(11 46 92 / 0.35)); }
+.pin-tuval.leaflet-marker-draggable:active { transform-origin: bottom center; }
