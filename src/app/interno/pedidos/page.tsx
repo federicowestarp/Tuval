@@ -2,7 +2,8 @@ import { Esqueleto } from "@/components/interno/Esqueleto";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { demandaPorEstado, ligaWhatsApp, listarPedidos, lugar, type VistaPedidos } from "@/lib/pedidos";
+import { demandaPorEstado, ligaWhatsApp, listarPedidos, lugar, pasoActual, tiempoDesde, type VistaPedidos } from "@/lib/pedidos";
+import { Transcurrido } from "./Transcurrido";
 import { PLAZOS, pendientesSeguimiento } from "@/lib/seguimiento";
 import { NOMBRE_INTERNO, SIGUIENTE } from "@/lib/estados";
 import { describirPromesa } from "@/lib/corte";
@@ -93,6 +94,8 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/pedid
       {resumen}
       {pedidos.map((p) => {
         const siguiente = SIGUIENTE[p.estado];
+        const paso = pasoActual(p);
+        const cerrado = ["entregado", "entregado_con_faltantes", "cancelado"].includes(p.estado);
         return (
           <article key={p.id} className="grid gap-3 rounded-xl bg-white p-4 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
@@ -100,6 +103,13 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/pedid
                 <Link href={`/interno/pedidos/${p.id}`} className="text-azul underline">{p.folio}</Link>
                 <span className="ml-2 rounded-full bg-piedra px-2 py-0.5 text-xs text-tinta">{NOMBRE_INTERNO[p.estado]}</span>
                 {!p.confirmado_en && <span className="ml-2 rounded-full bg-cian px-2 py-0.5 text-xs text-sobrecian">Por confirmar</span>}
+              </p>
+              <p className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[13px]">
+                <span className="text-secundario">Llegó hace <strong className="text-tinta"><Transcurrido desde={new Date(p.creado_en).toISOString()} inicial={tiempoDesde(p.creado_en)} /></strong></span>
+                {!cerrado && paso.paso !== "Llegó" && (
+                  <span className="rounded-full bg-[#E8F1FB] px-2 text-azul">{paso.paso} · hace <strong><Transcurrido desde={paso.desde} inicial={tiempoDesde(paso.desde)} /></strong></span>
+                )}
+                {!cerrado && paso.paso === "Llegó" && <span className="rounded-full bg-amber-50 px-2 text-amber-800">Sin atender</span>}
               </p>
               <p className="mt-1 text-sm">
                 {p.contacto_nombre} · {p.contacto_telefono} · {lugar(p)} · {p.tipo_entrega}

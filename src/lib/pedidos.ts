@@ -89,7 +89,24 @@ export type PedidoResumen = Omit<PedidoDetalle, "partidas" | "especiales" | "adj
   sin_precio: number;
   especiales: number;
   adjuntos: number;
+  /** Momentos del proceso, para saber en qué paso va y desde cuándo. */
+  hitos: { paso: string; en: string }[];
 };
+
+/** Paso actual del pedido: el hito más reciente del proceso (el contador se reinicia en cada paso). */
+export function pasoActual(p: { creado_en: Date | string; hitos: { paso: string; en: string }[] }): { paso: string; desde: string } {
+  let actual = { paso: "Llegó", desde: new Date(p.creado_en).toISOString() };
+  for (const h of p.hitos ?? []) if (h.en && new Date(h.en) > new Date(actual.desde)) actual = { paso: h.paso, desde: new Date(h.en).toISOString() };
+  return actual;
+}
+
+/** "3 h 20 min" desde una fecha hasta ahora (para el primer render; luego se actualiza en el navegador). */
+export function tiempoDesde(fecha: Date | string): string {
+  const min = Math.max(0, Math.floor((Date.now() - new Date(fecha).getTime()) / 60000));
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  return h < 24 ? `${h} h ${min % 60} min` : `${Math.floor(h / 24)} d ${h % 24} h`;
+}
 
 export type VistaPedidos = "proceso" | "cerrados" | "archivo";
 
@@ -108,10 +125,23 @@ export async function listarPedidos(vista: VistaPedidos = "proceso"): Promise<Pe
            (select count(*)::int from pedido_partidas where pedido_id = p.id and precio_unitario is null) as sin_precio,
            (select count(*)::int from solicitudes_producto where pedido_id = p.id and origen = 'cliente_fuera_catalogo') as especiales,
            (select count(*)::int from pedido_archivos where pedido_id = p.id) as adjuntos,
+           (select coalesce(json_agg(json_build_object('paso', h.paso, 'en', h.en)) filter (where h.en is not null), '[]') from (values
+              ('Pedimos cotización', p.cotizacion_solicitada_en),
+              ('Cotización del proveedor', (select max(c.cargada_en) from cotizaciones_proveedor c where c.pedido_id = p.id)),
+              ('Confirmado al cliente', p.confirmado_en),
+              ('Cliente aceptó', p.aceptado_en),
+              ('Aprobado', p.aprobado_en),
+              ('Orden enviada al proveedor', (select max(o.enviada_en) from ordenes_compra o where o.pedido_id = p.id and o.estado <> 'cancelada')),
+              ('Comprado al proveedor', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado = 'comprado_proveedor')),
+              ('Surtido', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado = 'surtido')),
+              ('En ruta', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado = 'en_ruta')),
+              ('Entregado', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado in ('entregado', 'entregado_con_faltantes'))),
+              ('Cancelado', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado = 'cancelado'))
+            ) h(paso, en)) as hitos,
            coalesce(p.estado = 'recibido' and ${frescuraProveedor} < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}), false) as reconfirmar
     from pedidos p
     where p.canal <> 'mostrador' and ${filtro}
-    order by ${vista === "proceso" ? sql`p.entrega_fecha nulls last, p.entrega_ventana, p.creado_en` : sql`p.creado_en desc`}
+    order by p.creado_en desc
     limit 200`;
 }
 
