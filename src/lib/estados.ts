@@ -35,3 +35,11 @@ export function etapaCliente(e: EstadoPedido): number {
     case "cancelado": return -1;
   }
 }
+
+/** Pedidos para recoger: después de surtido no van a ruta; se entregan en sucursal con el QR del cliente. */
+export const ETAPAS_CLIENTE_RECOGER = ["Pedido recibido", "Preparando pedido", "Listo para recoger", "Entregado"] as const;
+
+export function siguientePara(estado: EstadoPedido, tipoEntrega: string | null): EstadoPedido | undefined {
+  if (tipoEntrega === "recoger" && (estado === "surtido" || estado === "en_ruta")) return undefined;
+  return SIGUIENTE[estado];
+}

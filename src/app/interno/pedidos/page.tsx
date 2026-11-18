@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { demandaPorEstado, ligaWhatsApp, listarPedidos, lugar, pasoActual, tiempoDesde, type VistaPedidos } from "@/lib/pedidos";
 import { Transcurrido } from "./Transcurrido";
 import { PLAZOS, pendientesSeguimiento } from "@/lib/seguimiento";
-import { NOMBRE_INTERNO, SIGUIENTE } from "@/lib/estados";
+import { NOMBRE_INTERNO, siguientePara } from "@/lib/estados";
 import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { cambiarEstado, reconfirmarProveedor, registrarRecordatorio } from "./acciones";
@@ -93,7 +93,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/pedid
       {seguimiento}
       {resumen}
       {pedidos.map((p) => {
-        const siguiente = SIGUIENTE[p.estado];
+        const siguiente = siguientePara(p.estado, p.tipo_entrega);
         const paso = pasoActual(p);
         const cerrado = ["entregado", "entregado_con_faltantes", "cancelado"].includes(p.estado);
         return (
@@ -136,6 +136,9 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/pedid
                   <input type="hidden" name="estado" value={siguiente} />
                   <button className="rounded-lg bg-azul px-4 py-2 text-sm font-semibold text-white">→ {NOMBRE_INTERNO[siguiente]}</button>
                 </form>
+              )}
+              {p.tipo_entrega === "recoger" && (p.estado === "surtido" || p.estado === "en_ruta") && (
+                <Link href={`/interno/recoger/${p.token_receptor}`} className="rounded-lg bg-azul px-4 py-2 text-sm font-semibold text-white">Entregar en sucursal</Link>
               )}
               {p.estado !== "entregado" && p.estado !== "entregado_con_faltantes" && p.estado !== "cancelado" && (
                 <Cancelar id={p.id} />

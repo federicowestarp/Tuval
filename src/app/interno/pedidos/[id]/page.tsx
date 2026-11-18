@@ -5,7 +5,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { obtenerPedido, ligaWhatsApp, ligaMapa, lugar } from "@/lib/pedidos";
 import { compararPedido, renglonesSinAsignar, ultimaCotizacion } from "@/lib/interno";
-import { NOMBRE_INTERNO, SIGUIENTE } from "@/lib/estados";
+import { NOMBRE_INTERNO, siguientePara } from "@/lib/estados";
 import { describirPromesa } from "@/lib/corte";
 import { formatoMoneda } from "@/lib/catalogo";
 import { urlArchivo } from "@/lib/url-archivo";
@@ -57,7 +57,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
     vigencia(id),
   ]);
   if (!pedido) notFound();
-  const siguiente = SIGUIENTE[pedido.estado];
+  const siguiente = siguientePara(pedido.estado, pedido.tipo_entrega);
   const esAdmin = puede(yo.rol, "admin");
   const [prov, [oc], [ap]] = await Promise.all([
     proveedorDelPedido(pedido.id),
@@ -108,6 +108,9 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
               <input type="hidden" name="estado" value={siguiente} />
               <button className="rounded-lg bg-azul px-4 py-2 text-sm font-semibold text-white">→ {NOMBRE_INTERNO[siguiente]}</button>
             </form>
+          )}
+          {pedido.tipo_entrega === "recoger" && (pedido.estado === "surtido" || pedido.estado === "en_ruta") && (
+            <Link href={`/interno/recoger/${pedido.token_receptor}`} className="rounded-lg bg-azul px-4 py-2 text-sm font-semibold text-white">Entregar en sucursal</Link>
           )}
           {!["entregado", "entregado_con_faltantes", "cancelado"].includes(pedido.estado) && <Cancelar id={pedido.id} />}
         </div>

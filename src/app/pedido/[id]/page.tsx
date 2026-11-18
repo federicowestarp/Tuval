@@ -14,6 +14,8 @@ import { formatoMoneda } from "@/lib/catalogo";
 import { urlBase } from "@/lib/url";
 import { PLAZOS, vigencia } from "@/lib/seguimiento";
 import { Aceptar } from "./Aceptar";
+import QRCode from "qrcode";
+import { urlPanel } from "@/lib/etiqueta";
 
 export default function SeguimientoPedido(props: PageProps<"/pedido/[id]">) {
   return (
@@ -37,8 +39,13 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
   const porConfirmar = !pedido.confirmado_en;
   const vencida = pedido.estado === "recibido" && !!pedido.confirmado_en && !pedido.aceptado_en &&
     (await vigencia(pedido.id)).vencida;
+  const recoger = pedido.tipo_entrega === "recoger";
+  // Para recoger no hay "en ruta": en cuanto el material está en sucursal, está listo para recoger con su QR.
+  const listoRecoger = recoger && (pedido.estado === "surtido" || pedido.estado === "en_ruta");
+  const qrRecoger = listoRecoger ? await QRCode.toString(urlPanel(`/interno/recoger/${pedido.token_receptor}`), { type: "svg", margin: 1, errorCorrectionLevel: "M" }) : null;
   const titulo =
     actual === -1 ? "Pedido cancelado." :
+    listoRecoger ? "Listo para recoger." :
     pedido.estado === "entregado_con_faltantes" ? "Entregado con faltantes." :
     actual === 3 ? "Entregado." :
     actual === 2 ? "Va en camino." :
@@ -70,11 +77,20 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
         </div>
       )}
 
-      {actual >= 0 && <Progreso actual={actual} />}
+      {actual >= 0 && <Progreso actual={listoRecoger ? 2 : actual} recoger={recoger} />}
+
+      {listoRecoger && qrRecoger && (
+        <div className="flex flex-col items-center gap-3 rounded-[24px] bg-[#E8F1FB] p-6 text-center">
+          <p className="text-[18px] font-semibold">Enseña este código en caja</p>
+          <div className="h-56 w-56 rounded-2xl bg-white p-2 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrRecoger }} />
+          <p className="font-mono text-[15px] font-semibold text-azul">{pedido.folio}</p>
+          <p className="text-[14px] text-secundario">Tu material ya está en la sucursal. Revisas las piezas con nosotros, firmas y listo.</p>
+        </div>
+      )}
 
       {pedido.estado === "recibido" && pedido.confirmado_en && !pedido.aceptado_en && !vencida && <Aceptar pedidoId={pedido.id} />}
 
-      <EnCamino pedidoId={pedido.id} estado={pedido.estado} />
+      {!recoger && <EnCamino pedidoId={pedido.id} estado={pedido.estado} />}
 
       {actual >= 0 && actual < 3 && pedido.entrega_fecha && pedido.entrega_ventana && (
         <div className="rounded-[20px] bg-niebla p-5">

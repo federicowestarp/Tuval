@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { EscanerQR, codigoCarritoDeQr, skuDeQr } from "@/components/interno/EscanerQR";
 import { cargarCarritoTienda, darAccesoCelular, productoPorEtiqueta, verificarCelular } from "./tienda-acciones";
 import QRCode from "qrcode";
@@ -42,6 +42,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
   const [codigoCarrito, setCodigoCarrito] = useState("");
   const [avisoQr, setAvisoQr] = useState<string | null>(null);
   const params = useSearchParams();
+  const router = useRouter();
   const cargarCarrito = async (codigo: string) => {
     setAvisoQr(null);
     const r = await cargarCarritoTienda(codigo);
@@ -54,6 +55,9 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
   };
   const leerQr = async (texto: string) => {
     setEscaneando(false);
+    // QR de "listo para recoger" del cliente: abre la entrega en sucursal.
+    const recoger = texto.match(/\/interno\/recoger\/([A-Za-z0-9_-]+)/);
+    if (recoger) { router.push(`/interno/recoger/${recoger[1]}`); return; }
     const codigo = codigoCarritoDeQr(texto);
     if (codigo) { await cargarCarrito(codigo); return; }
     const sku = skuDeQr(texto) ?? (/^[A-Za-z0-9-]{2,60}$/.test(texto.trim()) ? texto.trim() : null);
@@ -114,7 +118,7 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
       <section className="space-y-3 rounded-[20px] bg-white p-4">
         <BuscadorProducto onElegir={(p) => agregar(p)} />
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={() => setEscaneando(true)} className="rounded-full bg-azul px-4 py-2 text-[14px] font-semibold text-white">Escanear QR (carrito o etiqueta)</button>
+          <button type="button" onClick={() => setEscaneando(true)} className="rounded-full bg-azul px-4 py-2 text-[14px] font-semibold text-white">Escanear QR (carrito, etiqueta o recoger)</button>
           <form onSubmit={(e) => { e.preventDefault(); if (codigoCarrito.trim()) cargarCarrito(codigoCarrito); setCodigoCarrito(""); }} className="flex items-center gap-1">
             <input value={codigoCarrito} onChange={(e) => setCodigoCarrito(e.target.value.toUpperCase())} maxLength={6} placeholder="Código" aria-label="Código de carrito" className="h-9 w-32 rounded-full border border-linea px-3 font-mono uppercase" />
             <button className="h-9 rounded-full border border-azul px-3 text-[14px] font-semibold text-azul">Cargar</button>

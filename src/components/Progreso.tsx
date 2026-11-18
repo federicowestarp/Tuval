@@ -1,4 +1,4 @@
-import { ETAPAS_CLIENTE } from "@/lib/estados";
+import { ETAPAS_CLIENTE, ETAPAS_CLIENTE_RECOGER } from "@/lib/estados";
 
 const CORTAS = ["Recibido", "Preparando", "En ruta", "Entregado"];
 const ARCO = 285; // grados del anillo del símbolo (abertura arriba a la derecha)
@@ -26,12 +26,14 @@ export function AnilloAvance({ actual, className = "h-20 w-20" }: { actual: numb
 }
 
 /** Seguimiento: anillo + pasos con texto (el estado nunca se indica solo con color). */
-export function Progreso({ actual }: { actual: number }) {
+export function Progreso({ actual, recoger = false }: { actual: number; recoger?: boolean }) {
+  const cortas = recoger ? ["Recibido", "Preparando", "Listo para recoger", "Entregado"] : CORTAS;
+  const etapas = recoger ? ETAPAS_CLIENTE_RECOGER : ETAPAS_CLIENTE;
   return (
-    <div className="flex items-center gap-5" aria-label={`Estado: ${ETAPAS_CLIENTE[Math.max(0, actual)]}`}>
+    <div className="flex items-center gap-5" aria-label={`Estado: ${etapas[Math.max(0, actual)]}`}>
       <AnilloAvance actual={actual} className="h-20 w-20 shrink-0" />
       <ol className="grid flex-1 grid-cols-2 gap-x-4 gap-y-1.5 text-[14px]">
-        {CORTAS.map((e, i) => (
+        {cortas.map((e, i) => (
           <li key={e} className={`flex items-center gap-2 ${i <= actual ? "font-semibold text-tinta" : "text-secundario"}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${i < actual ? "bg-azul" : i === actual ? "bg-cian" : "bg-linea"}`} />
             {e}

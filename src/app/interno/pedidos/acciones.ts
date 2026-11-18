@@ -23,8 +23,9 @@ export async function cambiarEstado(fd: FormData) {
   const motivoCompleto = estado === "cancelado" ? (nota ? `${motivo}: ${nota}` : motivo) : null;
 
   await sql.begin(async (tx) => {
-    const [actual] = await tx<{ estado: EstadoPedido }[]>`select estado from pedidos where id = ${id} for update`;
+    const [actual] = await tx<{ estado: EstadoPedido; tipo_entrega: string }[]>`select estado, tipo_entrega from pedidos where id = ${id} for update`;
     if (!actual) throw new Error("Pedido no encontrado");
+    if (actual.tipo_entrega === "recoger" && estado === "en_ruta") throw new Error("Este pedido se recoge en sucursal: se entrega con el QR del cliente, no va a ruta.");
     const permitido = SIGUIENTE[actual.estado] === estado || (estado === "cancelado" && !["entregado", "entregado_con_faltantes", "cancelado"].includes(actual.estado));
     if (!permitido) throw new Error(`No se puede pasar de ${actual.estado} a ${estado}`);
     if (estado === "comprado_proveedor") {

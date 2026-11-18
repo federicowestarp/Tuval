@@ -120,7 +120,7 @@ export async function listarPedidos(vista: VistaPedidos = "proceso"): Promise<Pe
     select p.id, p.folio, p.estado, p.zona, p.entidad, p.tipo_entrega, p.direccion_entrega, p.recibe_nombre, p.recibe_telefono, p.motivo_cancelacion, p.cotizacion_solicitada_en, p.aceptado_en,
            to_char(p.entrega_fecha, 'YYYY-MM-DD') as entrega_fecha, p.entrega_ventana, p.comprobante,
            p.contacto_nombre, p.contacto_telefono, p.sin_recepcion_solicitada, p.subtotal, p.iva, p.total,
-           p.confirmado_en, p.creado_en,
+           p.confirmado_en, p.creado_en, p.token_receptor,
            (select coalesce(sum(cantidad), 0) from pedido_partidas where pedido_id = p.id) as piezas,
            (select count(*)::int from pedido_partidas where pedido_id = p.id and precio_unitario is null) as sin_precio,
            (select count(*)::int from solicitudes_producto where pedido_id = p.id and origen = 'cliente_fuera_catalogo') as especiales,
