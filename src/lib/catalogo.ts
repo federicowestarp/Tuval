@@ -57,6 +57,14 @@ export async function sugerirProductos(texto: string, limite = 3): Promise<Produ
     .slice(0, 8);
   if (terminos.length === 0) return [];
   const minimo = Math.max(1, Math.ceil(terminos.length / 2));
+  // Además de la mitad de las palabras, debe coincidir al menos una palabra del nombre de la pieza (no solo la medida):
+  // "codo 2\"" no debe sugerir una bomba "con uniones 2\"".
+  const singular = (t: string) => (/[aeiou][rnldj]es$/.test(t) ? t.slice(0, -2) : t.length > 3 && t.endsWith("s") ? t.slice(0, -1) : t);
+  const nombres = terminos.filter((t) => !/\d/.test(t)).map(singular);
+  const deNombre = nombres.reduce(
+    (acc, t) => sql`${acc} + (unaccent(lower(p.nombre || ' ' || p.atributos::text)) like unaccent(lower(${"%" + escaparLike(t) + "%"})))::int`,
+    sql`0`,
+  );
   const puntaje = terminos.reduce(
     (acc, t) =>
       sql`${acc} + (unaccent(lower(p.nombre || ' ' || p.sku || ' ' || p.atributos::text)) like unaccent(lower(${"%" + escaparLike(t) + "%"})))::int`,
@@ -64,14 +72,14 @@ export async function sugerirProductos(texto: string, limite = 3): Promise<Produ
   );
   return sql<Producto[]>`
     select * from (
-      select p.id, p.sku, p.nombre, p.categoria_id, p.atributos, p.unidad, p.imagen_url, pr.precio, ${puntaje} as puntaje
+      select p.id, p.sku, p.nombre, p.categoria_id, p.atributos, p.unidad, p.imagen_url, pr.precio, ${puntaje} as puntaje, ${deNombre} as de_nombre
       from productos p
       left join precios pr on pr.producto_id = p.id
         and pr.lista_id = (select id from listas_precio where nombre = 'Público')
       where p.activo
     ) x
-    where puntaje >= ${minimo}
-    order by puntaje desc, nombre
+    where puntaje >= ${minimo} and (${nombres.length} = 0 or de_nombre >= 1)
+    order by de_nombre desc, puntaje desc, nombre
     limit ${limite}`;
 }
 

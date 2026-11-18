@@ -9,10 +9,10 @@ const estilos: Record<Variante, string> = {
   acento: "bg-cian text-sobrecian",
   fantasma: "text-azul hover:bg-niebla",
 };
-const tam = { normal: "h-12 px-6 text-[15px]", grande: "h-14 px-7 text-base", chico: "h-9 px-4 text-sm" };
+const tam = { normal: "h-12 px-6 text-[15px]", grande: "h-14 px-7 text-base", chico: "h-9 shrink-0 px-4 text-sm" };
 
 export function clasesBoton(v: Variante = "principal", t: keyof typeof tam = "normal", ancho = false) {
-  return `inline-flex items-center justify-center gap-2 rounded-full font-semibold transition active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 ${estilos[v]} ${tam[t]} ${ancho ? "w-full" : ""}`;
+  return `inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 ${estilos[v]} ${tam[t]} ${ancho ? "w-full" : ""}`;
 }
 
 export function BotonLiga({ href, variante, tamano, ancho, children, ...resto }: { href: string; variante?: Variante; tamano?: keyof typeof tam; ancho?: boolean; children: React.ReactNode } & Omit<React.ComponentProps<typeof Link>, "href">) {

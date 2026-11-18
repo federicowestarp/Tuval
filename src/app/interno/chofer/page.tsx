@@ -1,4 +1,5 @@
 import { Esqueleto } from "@/components/interno/Esqueleto";
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { sql } from "@/lib/db";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -65,7 +66,7 @@ async function Contenido() {
           <form action={terminarRuta} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
             <input name="odometro" inputMode="numeric" placeholder="Odómetro al terminar (km)" className="h-11 w-full min-w-0 rounded-full border border-linea px-4 text-[15px]" />
             <button className={`${clasesBoton("secundario", "normal")} whitespace-nowrap`}>Terminar ruta</button>
-            <label className="col-span-2 text-[13px] text-secundario">Foto del odómetro (opcional) <input name="foto_odometro" type="file" accept="image/*" capture="environment" className="mt-1 block text-sm" /></label>
+            <div className="col-span-2"><ElegirArchivo name="foto_odometro" accept="image/*" capture="environment" texto="Foto del odómetro" ayuda="Opcional" /></div>
           </form>
         ) : (
           <form action={iniciarRuta} className="grid gap-2 sm:grid-cols-2">
@@ -76,7 +77,7 @@ async function Contenido() {
               </select>
             )}
             <input name="odometro" inputMode="numeric" placeholder="Odómetro al salir (km)" required={vehiculos.length > 0} className="h-11 rounded-full border border-linea px-4 text-[15px]" />
-            <label className="text-[13px] text-secundario sm:col-span-2">Foto del odómetro (opcional) <input name="foto_odometro" type="file" accept="image/*" capture="environment" className="mt-1 block text-sm" /></label>
+            <div className="sm:col-span-2"><ElegirArchivo name="foto_odometro" accept="image/*" capture="environment" texto="Foto del odómetro" ayuda="Opcional" /></div>
             <button className={`${clasesBoton("principal", "normal")} sm:col-span-2`}>Iniciar ruta</button>
           </form>
         )}

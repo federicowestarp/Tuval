@@ -1,5 +1,6 @@
 "use client";
 
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -124,7 +125,7 @@ export function CierreTurno({ terminales, fondoFijo }: { terminales: TerminalCaj
               <p className="font-semibold sm:col-span-3">{t.nombre}</p>
               <input inputMode="decimal" placeholder="Total del lote" value={lotes[t.id]?.total ?? ""} onChange={(e) => setLotes({ ...lotes, [t.id]: { ...lotes[t.id], total: e.target.value } })} className={campo} />
               <input inputMode="numeric" placeholder="Núm. de transacciones" value={lotes[t.id]?.transacciones ?? ""} onChange={(e) => setLotes({ ...lotes, [t.id]: { ...lotes[t.id], transacciones: e.target.value } })} className={campo} />
-              <label className="text-[13px]">Foto del ticket <input type="file" accept="image/*" capture="environment" onChange={(e) => setLotes({ ...lotes, [t.id]: { ...lotes[t.id], foto: e.target.files?.[0] ?? null } })} className="mt-1 block text-sm" /></label>
+              <ElegirArchivo accept="image/*" capture="environment" texto="Foto del ticket del lote" onArchivo={(f) => setLotes({ ...lotes, [t.id]: { ...lotes[t.id], foto: f } })} />
             </div>
           ))}
         </div>

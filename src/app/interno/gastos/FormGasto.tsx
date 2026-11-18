@@ -1,5 +1,6 @@
 "use client";
 
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { useActionState, useState } from "react";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { registrarGasto, type EstadoGasto } from "./acciones";
@@ -42,7 +43,7 @@ export function FormGasto({ vehiculos, empleados, hoy }: { vehiculos: Opcion[]; 
           <select id="empleado_id" name="empleado_id" className={campo} required><option value="">Elige…</option>{empleados.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}</select>
         </div>
       )}
-      <div className="sm:col-span-2"><label className={etiqueta} htmlFor="comprobante">Comprobante (foto o PDF, opcional)</label><input id="comprobante" name="comprobante" type="file" accept="image/*,application/pdf" className="block text-sm" /></div>
+      <div className="sm:col-span-2"><ElegirArchivo name="comprobante" accept="image/*,application/pdf" texto="Comprobante" ayuda="Foto o PDF, opcional" /></div>
       {e.error && <p role="alert" className="font-semibold text-red-700 sm:col-span-2">{e.error}</p>}
       {e.ok && !e.error && <p className="text-[14px] font-semibold text-azul sm:col-span-2">Gasto guardado.</p>}
       <div className="sm:col-span-2"><button disabled={enviando} className={clasesBoton("principal", "normal")}>{enviando ? "Guardando…" : "Guardar gasto"}</button></div>

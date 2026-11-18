@@ -1,5 +1,6 @@
 "use client";
 
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { useActionState } from "react";
 import { subirFactura, type EstadoFactura } from "./acciones";
 
@@ -9,11 +10,9 @@ export function FacturaProveedor({ pedidoId, folio }: { pedidoId: string; folio:
   return (
     <form action={accion} className="space-y-1 rounded-xl bg-niebla px-3 py-2 text-[14px]">
       <input type="hidden" name="pedido_id" value={pedidoId} />
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-semibold">{folio}</span>
-        <input type="file" name="factura" accept=".xml,text/xml,application/xml,application/pdf,image/*" aria-label={`Factura de ${folio}`} className="min-w-0 flex-1 text-[13px]" />
-        <button disabled={enviando} className="rounded-full bg-azul px-3 py-1 font-semibold text-white">{enviando ? "Revisando…" : "Subir factura"}</button>
-      </div>
+      <p className="font-semibold">{folio}</p>
+      <ElegirArchivo name="factura" accept=".xml,text/xml,application/xml,application/pdf,image/*" texto="Elegir factura" ayuda="XML de preferencia (también PDF o foto)" />
+      <button disabled={enviando} className="w-full rounded-full bg-azul py-2 font-semibold text-white">{enviando ? "Revisando…" : "Subir factura"}</button>
       {estado.mensaje && <p className="text-emerald-700">{estado.mensaje}</p>}
       {estado.error && <p className="font-semibold text-red-700">{estado.error}</p>}
     </form>

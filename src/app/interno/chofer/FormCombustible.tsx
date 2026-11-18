@@ -1,5 +1,6 @@
 "use client";
 
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { useActionState } from "react";
 import { campo, clasesBoton } from "@/components/ui";
 import { cargarCombustible, type EstadoCarga } from "./acciones";
@@ -14,7 +15,7 @@ export function FormCombustible() {
         <input name="monto" inputMode="decimal" placeholder="Monto $" required className={campo} />
         <input name="odometro" inputMode="numeric" placeholder="Odómetro (km)" className={campo} />
         <select name="forma_pago" className={campo}><option>Efectivo</option><option>Tarjeta</option><option>Vales</option></select>
-        <label className="col-span-2 text-[14px]">Foto del ticket <input name="ticket" type="file" accept="image/*" capture="environment" required className="mt-1 block text-sm" /></label>
+        <div className="col-span-2"><ElegirArchivo name="ticket" accept="image/*" capture="environment" required texto="Foto del ticket" ayuda="Obligatoria" /></div>
         {e.error && <p role="alert" className="col-span-2 font-semibold text-red-700">{e.error}</p>}
         {e.ok && !e.error && <p className="col-span-2 font-semibold text-azul">Carga registrada.</p>}
         <button disabled={enviando} className={`${clasesBoton("principal", "normal")} col-span-2`}>{enviando ? "Guardando…" : "Guardar carga"}</button>

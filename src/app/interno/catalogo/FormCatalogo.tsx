@@ -1,5 +1,6 @@
 "use client";
 
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { startTransition, useActionState, useRef, useState } from "react";
 import { clasesBoton, campo, etiqueta } from "@/components/ui";
 import { CATEGORIAS } from "@/lib/categorias";
@@ -23,8 +24,7 @@ export function FormCatalogo() {
   return (
     <form ref={form} onSubmit={(e) => e.preventDefault()} className="space-y-4">
       <div>
-        <label className={etiqueta} htmlFor="archivo">Archivo CSV</label>
-        <input id="archivo" type="file" accept=".csv,text/csv" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
+        <ElegirArchivo accept=".csv,text/csv" texto="Elegir archivo CSV" onArchivo={setArchivo} />
         {archivo && <p className="mt-1 text-[13px]">Archivo: {archivo.name}</p>}
         <p className="mt-1.5 text-[13px] text-secundario">Columnas reconocidas: sku/código, nombre, categoría, unidad, marca, modelo, proveedor, costo, precio, existencia.</p>
       </div>

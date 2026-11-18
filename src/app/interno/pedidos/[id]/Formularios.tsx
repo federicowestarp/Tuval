@@ -1,5 +1,6 @@
 "use client";
 
+import { ElegirArchivo } from "@/components/ElegirArchivo";
 import { useActionState, useState } from "react";
 import { cargarCotizacion, confirmarPedido, type Resultado } from "./acciones";
 import type { RenglonComparacion } from "@/lib/interno";
@@ -17,9 +18,7 @@ export function FormCotizacion({ pedidoId }: { pedidoId: string }) {
   return (
     <form action={accion} className="space-y-3">
       <input type="hidden" name="pedido_id" value={pedidoId} />
-      <label className="flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-linea p-5 text-center font-semibold text-azul">
-        <input type="file" name="pdf" accept="application/pdf" className="text-sm" />
-      </label>
+      <ElegirArchivo name="pdf" accept="application/pdf" texto="Elegir PDF de la cotización" ayuda="El PDF que mandó el proveedor" grande />
       <button type="button" onClick={() => setPegar(!pegar)} className="text-sm text-secundario underline">
         {pegar ? "Ocultar" : "¿No tienes PDF? Pegar desde Excel"}
       </button>
@@ -58,63 +57,50 @@ export function FormConfirmar({ pedidoId, renglones, confirmado }: { pedidoId: s
   return (
     <form action={accion} className="space-y-3">
       <input type="hidden" name="pedido_id" value={pedidoId} />
-      <div className="overflow-x-auto">
-        <table className="tabla w-full min-w-[760px] text-left text-sm">
-          <thead className="bg-piedra text-xs">
-            <tr>
-              <th className="p-2">Producto</th>
-              <th className="p-2">Cant.</th>
-              <th className="p-2">Exist. propia</th>
-              <th className="p-2">Emmsa: costo</th>
-              <th className="p-2">Emmsa: disp. / tiempo</th>
-              <th className="p-2">Nuestra lista</th>
-              <th className="p-2">Precio de venta</th>
-              <th className="p-2">Margen</th>
-              <th className="p-2">No se consigue</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-linea">
-            {renglones.map((x) => {
-              const venta = Number(precios[x.partida_id]) || null;
-              const alerta = x.cot_disponible === false;
-              return (
-                <tr key={x.partida_id} className={alerta ? "bg-red-50" : ""}>
-                  <td className="p-2"><span className="font-semibold">{x.nombre}</span><span className="block text-xs text-secundario">{x.sku}{x.cot_codigo && ` · Emmsa ${x.cot_codigo}`}</span></td>
-                  <td className="p-2">{x.cantidad}</td>
-                  <td className="p-2">{x.existencia_propia}</td>
-                  <td className="p-2">{x.cot_precio != null ? formatoMoneda(x.cot_precio) : <span className="text-secundario">sin cotizar</span>}</td>
-                  <td className="p-2">
-                    {x.cot_disponible == null ? "—" : x.cot_disponible ? "Sí" : <span className="font-semibold text-red-700">No</span>}
-                    {x.cot_tiempo && (
-                      <span className={`block text-xs ${x.cot_dias != null && x.cot_dias > 1 ? "font-semibold text-red-700" : "text-secundario"}`}>{x.cot_tiempo}</span>
-                    )}
-                  </td>
-                  <td className="p-2">{x.precio_lista != null ? formatoMoneda(x.precio_lista) : "—"}</td>
-                  <td className="p-2">
-                    <input
-                      name={`precio_${x.partida_id}`}
-                      value={precios[x.partida_id]}
-                      onChange={(e) => setPrecios({ ...precios, [x.partida_id]: e.target.value })}
-                      disabled={quitar[x.partida_id]}
-                      inputMode="decimal"
-                      placeholder="sin IVA"
-                      className="w-24 rounded-lg border border-linea px-2 py-1 disabled:opacity-40"
-                    />
-                  </td>
-                  <td className={`p-2 ${venta && x.cot_precio && venta <= x.cot_precio ? "font-semibold text-red-700" : ""}`}>{margen(venta, x.cot_precio)}</td>
-                  <td className="p-2 text-center"><input
-                      type="checkbox"
-                      name={`quitar_${x.partida_id}`}
-                      checked={quitar[x.partida_id]}
-                      onChange={(e) => setQuitar({ ...quitar, [x.partida_id]: e.target.checked })}
-                      className="h-5 w-5"
-                    /></td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      {/* Tarjetas en vez de tabla: se leen igual en el celular que en la computadora. */}
+      <ul className="space-y-2">
+        {renglones.map((x) => {
+          const venta = Number(precios[x.partida_id]) || null;
+          const alerta = x.cot_disponible === false;
+          const bajo = !!(venta && x.cot_precio && venta <= x.cot_precio);
+          return (
+            <li key={x.partida_id} className={`rounded-xl border p-3 ${alerta ? "border-red-200 bg-red-50" : "border-linea"} ${quitar[x.partida_id] ? "opacity-50" : ""}`}>
+              <div className="flex items-start justify-between gap-3">
+                <p className="min-w-0"><span className="font-semibold">{x.nombre}</span><span className="block text-xs text-secundario">{x.sku}{x.cot_codigo && ` · Emmsa ${x.cot_codigo}`}</span></p>
+                <span className="shrink-0 rounded-full bg-niebla px-2.5 py-0.5 text-sm font-semibold">× {x.cantidad}</span>
+              </div>
+              <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] sm:grid-cols-4">
+                <div><dt className="text-secundario">Exist. propia</dt><dd className="font-semibold">{x.existencia_propia}</dd></div>
+                <div><dt className="text-secundario">Emmsa: costo</dt><dd className="font-semibold">{x.cot_precio != null ? formatoMoneda(x.cot_precio) : <span className="font-normal text-secundario">sin cotizar</span>}</dd></div>
+                <div><dt className="text-secundario">Emmsa: disponible</dt><dd className="font-semibold">
+                  {x.cot_disponible == null ? "—" : x.cot_disponible ? "Sí" : <span className="text-red-700">No</span>}
+                  {x.cot_tiempo && <span className={`block text-xs font-normal ${x.cot_dias != null && x.cot_dias > 1 ? "font-semibold text-red-700" : "text-secundario"}`}>{x.cot_tiempo}</span>}
+                </dd></div>
+                <div><dt className="text-secundario">Nuestra lista</dt><dd className="font-semibold">{x.precio_lista != null ? formatoMoneda(x.precio_lista) : "—"}</dd></div>
+              </dl>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-linea pt-2">
+                <label className="flex items-center gap-2 text-[13px]">
+                  <span className="text-secundario">Precio de venta</span>
+                  <input
+                    name={`precio_${x.partida_id}`}
+                    value={precios[x.partida_id]}
+                    onChange={(e) => setPrecios({ ...precios, [x.partida_id]: e.target.value })}
+                    disabled={quitar[x.partida_id]}
+                    inputMode="decimal"
+                    placeholder="sin IVA"
+                    className="h-9 w-28 rounded-lg border border-linea px-2 text-right disabled:opacity-40"
+                  />
+                </label>
+                <span className={`text-[13px] ${bajo ? "font-semibold text-red-700" : "text-secundario"}`}>Margen <strong>{margen(venta, x.cot_precio)}</strong></span>
+                <label className="ml-auto flex items-center gap-2 text-[13px]">
+                  <input type="checkbox" name={`quitar_${x.partida_id}`} checked={quitar[x.partida_id]} onChange={(e) => setQuitar({ ...quitar, [x.partida_id]: e.target.checked })} className="h-5 w-5" />
+                  No se consigue
+                </label>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
       <p className="text-xs text-secundario">Precios sin IVA. Lo marcado como “no se consigue” se quita del pedido y queda registrado en Demanda.</p>
       <button disabled={enviando} className="rounded-full bg-azul px-5 py-3 font-semibold text-white disabled:opacity-60">
         {enviando ? "Confirmando…" : confirmado ? "Volver a confirmar" : "Confirmar pedido"}
