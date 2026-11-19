@@ -134,7 +134,7 @@ export async function solicitarCotizacionWA(id: string): Promise<{ url?: string;
   if (!prov?.whatsapp) return { error: `Falta el WhatsApp de ${prov?.nombre ?? "Emmsa"}: captúralo abajo en “WhatsApp del proveedor”.` };
   await sql`update pedidos set cotizacion_solicitada_en = coalesce(cotizacion_solicitada_en, now()) where id = ${pedidoId}`;
   refrescar(`/interno/pedidos/${pedidoId}`);
-  return { url: ligaWa(prov.whatsapp, await mensajeSolicitud(pedidoId)) };
+  return { url: ligaWa(prov.whatsapp, await mensajeSolicitud(pedidoId, prov.id)) };
 }
 
 /** Manda la orden de compra por WhatsApp: el pedido queda "comprado a proveedor" automáticamente. */

@@ -20,7 +20,7 @@ export type RenglonComparacion = {
   /** Última oferta de cada proveedor que cotizó esta partida. */
   ofertas: Oferta[];
 };
-export type Oferta = { proveedor_id: string; proveedor: string; precio: number; disponible: boolean | null; tiempo: string | null; dias: number | null; codigo: string | null };
+export type Oferta = { proveedor_id: string; proveedor: string; precio: number; disponible: boolean | null; tiempo: string | null; dias: number | null; codigo: string | null; preferencia: number | null };
 
 export async function idEmmsa(): Promise<string> {
   const [p] = await sql<{ id: string }[]>`select id from proveedores where nombre = 'Emmsa' limit 1`;
@@ -30,7 +30,8 @@ export async function idEmmsa(): Promise<string> {
 
 /**
  * Compara cada partida contra nuestra lista, nuestras existencias y la última cotización de cada proveedor.
- * El proveedor de la partida es el elegido al confirmar; si no hay, el de la oferta disponible más barata.
+ * El proveedor de la partida es el elegido al confirmar; si no, el que sí tiene la pieza, prefiriendo el surtidor
+ * principal del producto, luego el alterno y luego el más barato.
  */
 export async function compararPedido(pedidoId: string): Promise<RenglonComparacion[]> {
   const filas = await sql<(Omit<RenglonComparacion, "cot_precio" | "cot_disponible" | "cot_tiempo" | "cot_codigo" | "cot_dias" | "proveedor" | "proveedor_id"> & { elegido: string | null })[]>`
@@ -47,8 +48,10 @@ export async function compararPedido(pedidoId: string): Promise<RenglonComparaci
            coalesce((select sum(e.cantidad) from existencias e join almacenes a on a.id = e.almacen_id
                      where e.producto_id = pr.id and a.tipo in ('cedis', 'sucursal')), 0) as existencia_propia,
            coalesce((select json_agg(json_build_object('proveedor_id', u.proveedor_id, 'proveedor', pv.nombre, 'precio', cp.precio_unitario::float,
-                        'disponible', cp.disponible, 'tiempo', cp.tiempo_entrega, 'dias', cp.dias_entrega, 'codigo', cp.codigo_proveedor)
-                        order by (cp.disponible is false), cp.precio_unitario)
+                        'disponible', cp.disponible, 'tiempo', cp.tiempo_entrega, 'dias', cp.dias_entrega, 'codigo', cp.codigo_proveedor,
+                        'preferencia', (select x.preferencia from productos_proveedor x where x.producto_id = pr.id and x.proveedor_id = u.proveedor_id))
+                        -- Primero quien sí tiene la pieza; luego el surtidor principal, el alterno y al final el precio.
+                        order by (cp.disponible is false), coalesce((select x.preferencia from productos_proveedor x where x.producto_id = pr.id and x.proveedor_id = u.proveedor_id), 9), cp.precio_unitario)
                      from ultimas u join cotizacion_partidas cp on cp.cotizacion_id = u.id and cp.pedido_partida_id = pp.id
                      join proveedores pv on pv.id = u.proveedor_id), '[]') as ofertas
     from pedido_partidas pp
@@ -85,6 +88,8 @@ export type GrupoDemanda = {
   notas: string | null;
   pedidos: { id: string; folio: string }[];
   ultima: Date;
+  contactos: { id: string; telefono: string; nombre: string | null; avisado: boolean }[];
+  hay_existencia: boolean;
 };
 
 export async function listarDemanda(estado?: string): Promise<GrupoDemanda[]> {
@@ -99,9 +104,16 @@ export async function listarDemanda(estado?: string): Promise<GrupoDemanda[]> {
            max(s.proveedor_alterno) as proveedor_alterno,
            max(s.notas) as notas,
            coalesce(json_agg(distinct jsonb_build_object('id', p.id, 'folio', p.folio)) filter (where p.id is not null), '[]') as pedidos,
-           max(s.creado_en) as ultima
+           max(s.creado_en) as ultima,
+           coalesce(json_agg(jsonb_build_object('id', s.id, 'telefono', coalesce(s.contacto_telefono, p.contacto_telefono, cu.telefono),
+                       'nombre', coalesce(p.contacto_nombre, cl.nombre, cu.nombre), 'avisado', s.avisado_en is not null))
+                    filter (where coalesce(s.contacto_telefono, p.contacto_telefono, cu.telefono) is not null), '[]') as contactos,
+           bool_or(exists (select 1 from existencias e join almacenes a on a.id = e.almacen_id
+                           where e.producto_id = s.producto_id and a.tipo in ('sucursal', 'cedis') and e.cantidad > 0)) as hay_existencia
     from solicitudes_producto s
     left join pedidos p on p.id = s.pedido_id
+    left join cuentas cu on cu.id = s.cuenta_id
+    left join clientes cl on cl.id = s.cliente_id
     where ${estado ? sql`s.estado = ${estado}` : sql`s.estado in ('nueva', 'buscando', 'conseguida')`}
     group by lower(unaccent(trim(s.descripcion))), s.estado
     order by veces desc, ultima desc

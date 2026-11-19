@@ -33,12 +33,21 @@ export async function proveedoresDelPedido(pedidoId: string) {
     order by (pr.nombre = 'Emmsa') desc, pr.nombre`;
 }
 
-export async function mensajeSolicitud(pedidoId: string) {
+/**
+ * Mensaje de solicitud de cotización. Con proveedor: solo las piezas que ese proveedor surte (principal o alterno)
+ * más las que no tienen surtidor asignado; si ninguna es suya, todas.
+ */
+export async function mensajeSolicitud(pedidoId: string, proveedorId?: string) {
   const [p] = await sql<{ folio: string }[]>`select folio from pedidos where id = ${pedidoId}`;
-  const partidas = await sql<{ cantidad: number; nombre: string; unidad: string; codigo: string | null }[]>`
+  const todas = await sql<{ cantidad: number; nombre: string; unidad: string; codigo: string | null; suya: boolean; sin_surtidor: boolean }[]>`
     select pp.cantidad::float cantidad, pr.nombre, pr.unidad,
-           (select sku_proveedor from productos_proveedor x where x.producto_id = pr.id and x.sku_proveedor is not null limit 1) codigo
+           coalesce((select sku_proveedor from productos_proveedor x where x.producto_id = pr.id and x.proveedor_id = ${proveedorId ?? null} and x.sku_proveedor is not null),
+                    (select sku_proveedor from productos_proveedor x where x.producto_id = pr.id and x.sku_proveedor is not null limit 1)) codigo,
+           exists (select 1 from productos_proveedor x where x.producto_id = pr.id and x.proveedor_id = ${proveedorId ?? null} and x.preferencia is not null) suya,
+           not exists (select 1 from productos_proveedor x where x.producto_id = pr.id and x.preferencia is not null) sin_surtidor
     from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = ${pedidoId} order by pr.nombre`;
+  const propias = proveedorId ? todas.filter((x) => x.suya || x.sin_surtidor) : todas;
+  const partidas = propias.some((x) => x.suya) || !proveedorId ? propias : todas;
   const especiales = await sql<{ cantidad: number; descripcion: string }[]>`
     select cantidad::float cantidad, descripcion from solicitudes_producto where pedido_id = ${pedidoId} and estado in ('nueva', 'buscando')`;
   const lineas = [

@@ -10,6 +10,7 @@ import { NavegacionInterna } from "../../Navegacion";
 import { describirUbicacion, ubicacionesDe } from "@/lib/plano";
 import { Plano } from "@/components/Plano";
 import { asignarUbicacion } from "../../plano/acciones";
+import { guardarSurtidores } from "../acciones";
 
 const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
@@ -49,6 +50,14 @@ async function Contenido({ params }: { params: PageProps<"/interno/escanear/[sku
   const [aqui] = await sql<{ ubicacion_id: string | null }[]>`
     select e.ubicacion_id from existencias e join almacenes a on a.id = e.almacen_id where e.producto_id = ${p.id} and a.id = (select id from almacenes where tipo = 'sucursal' and activo order by creado_en limit 1)`;
   const ubic = ubicaciones.find((u) => u.id === aqui?.ubicacion_id) ?? null;
+  const [proveedores, surtidores] = await Promise.all([
+    sql<{ id: string; nombre: string }[]>`select id, nombre from proveedores order by (nombre = 'Emmsa') desc, nombre`,
+    sql<{ proveedor_id: string; preferencia: number; nombre: string; costo: number | null; sku_proveedor: string | null }[]>`
+      select x.proveedor_id, x.preferencia, pv.nombre, x.costo::float costo, x.sku_proveedor
+      from productos_proveedor x join proveedores pv on pv.id = x.proveedor_id where x.producto_id = ${p.id} and x.preferencia is not null order by x.preferencia`,
+  ]);
+  const principal = surtidores.find((x) => x.preferencia === 1);
+  const alterno = surtidores.find((x) => x.preferencia === 2);
   const existencias = await sql<{ almacen: string; cantidad: number; minimo: number | null; ubicacion: string | null }[]>`
     select a.nombre almacen, e.cantidad::float cantidad, e.minimo::float minimo, u.codigo ubicacion
     from existencias e join almacenes a on a.id = e.almacen_id left join ubicaciones u on u.id = e.ubicacion_id
@@ -101,6 +110,22 @@ async function Contenido({ params }: { params: PageProps<"/interno/escanear/[sku
           </form>
         )}
       </div>
+      <form action={guardarSurtidores} className="space-y-2 rounded-xl border border-linea p-3">
+        <input type="hidden" name="producto_id" value={p.id} />
+        <p className="text-[14px] font-semibold">Quién lo surte</p>
+        <div className="grid grid-cols-2 gap-2 text-[13px]">
+          <label className="space-y-1"><span className="text-secundario">Principal</span>
+            <select name="principal" defaultValue={principal?.proveedor_id ?? ""} className="h-10 w-full rounded-full border border-linea bg-white px-3">
+              <option value="">Sin asignar</option>{proveedores.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+            </select></label>
+          <label className="space-y-1"><span className="text-secundario">Alterno (si el principal no tiene)</span>
+            <select name="alterno" defaultValue={alterno?.proveedor_id ?? ""} className="h-10 w-full rounded-full border border-linea bg-white px-3">
+              <option value="">Ninguno</option>{proveedores.map((x) => <option key={x.id} value={x.id}>{x.nombre}</option>)}
+            </select></label>
+        </div>
+        {(principal || alterno) && <p className="text-[12px] text-secundario">{[principal, alterno].filter(Boolean).map((x) => `${x!.nombre}${x!.costo ? ` · último costo $${x!.costo.toFixed(2)}` : ""}${x!.sku_proveedor ? ` · cód. ${x!.sku_proveedor}` : ""}`).join("  ·  ")}</p>}
+        <button className="rounded-full border border-azul px-4 py-1.5 text-[14px] font-semibold text-azul">Guardar</button>
+      </form>
       <p className="rounded-xl bg-niebla p-3 text-[13px] text-secundario">No hay inventario físico abierto con este producto. Cuando se abra uno, este mismo QR te lleva directo a contarlo.</p>
       <Link href={`/interno/etiquetas?q=${encodeURIComponent(p.sku)}&todos=1&ver=1`} className="block text-center text-[14px] text-azul">Reimprimir etiqueta</Link>
     </section>

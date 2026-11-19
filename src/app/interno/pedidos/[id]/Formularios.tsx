@@ -91,7 +91,7 @@ export function FormConfirmar({ pedidoId, renglones, confirmado }: { pedidoId: s
           return (
             <li key={x.partida_id} className={`rounded-xl border p-3 ${alerta ? "border-red-200 bg-red-50" : "border-linea"} ${quitar[x.partida_id] ? "opacity-50" : ""}`}>
               <div className="flex items-start justify-between gap-3">
-                <p className="min-w-0"><span className="font-semibold">{x.nombre}</span><span className="block text-xs text-secundario">{x.sku}{o?.codigo && ` · ${quien} ${o.codigo}`}</span></p>
+                <p className="min-w-0"><span className="font-semibold">{x.nombre}</span><span className="block text-xs text-secundario">{x.sku}{o?.codigo && ` · ${quien} ${o.codigo}`} · <a href={`/interno/escanear/${encodeURIComponent(x.sku)}`} className="text-azul underline">quién lo surte</a></span></p>
                 <span className="shrink-0 rounded-full bg-niebla px-2.5 py-0.5 text-sm font-semibold">× {x.cantidad}</span>
               </div>
               <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] sm:grid-cols-4">

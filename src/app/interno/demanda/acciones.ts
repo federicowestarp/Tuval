@@ -70,3 +70,21 @@ export async function darDeAlta(_prev: ResultadoAlta, fd: FormData): Promise<Res
   const agregados = solicitudes.filter((x) => x.abierto).length;
   return { mensaje: agregados ? `Alta hecha y agregado a ${agregados} pedido(s) por confirmar.` : "Alta hecha en catálogo." };
 }
+
+/**
+ * Avisar al cliente que ya conseguimos lo que buscaba: abre WhatsApp con el mensaje escrito y queda marcado como avisado.
+ */
+export async function avisarCliente(id: string): Promise<{ url?: string; error?: string }> {
+  await requerirInterno("mostrador");
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { error: "No válido." };
+  const [s] = await sql<{ descripcion: string; telefono: string | null; nombre: string | null }[]>`
+    select s.descripcion, coalesce(s.contacto_telefono, p.contacto_telefono, cu.telefono) telefono, coalesce(p.contacto_nombre, cl.nombre, cu.nombre) nombre
+    from solicitudes_producto s left join pedidos p on p.id = s.pedido_id left join cuentas cu on cu.id = s.cuenta_id left join clientes cl on cl.id = s.cliente_id
+    where s.id = ${id}`;
+  if (!s?.telefono) return { error: "No dejó celular." };
+  await sql`update solicitudes_producto set avisado_en = now() where id = ${id}`;
+  refrescar("/interno/demanda");
+  const hola = s.nombre && !/^cliente /i.test(s.nombre) ? `Hola ${s.nombre.split(" ")[0]}` : "Hola";
+  const mensaje = `${hola}, de Tuval. Ya tenemos lo que buscabas: ${s.descripcion}. ¿Te lo apartamos o te lo enviamos?`;
+  return { url: `https://wa.me/52${s.telefono.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(mensaje)}` };
+}

@@ -35,8 +35,9 @@ export async function registrarFaltante(d: { descripcion: string; cantidad: numb
   if (desc.length < 2) return { error: "Describe lo que pidieron." };
   const nota = [d.cliente?.trim(), d.telefono?.replace(/\D/g, "")].filter(Boolean).join(" · ") || null;
   await sql`
-    insert into solicitudes_producto (descripcion, cantidad, origen, estado, producto_id, notas, registrado_por)
-    values (${desc}, ${cant}, 'mostrador', 'nueva', ${d.productoId && /^[0-9a-f-]{36}$/i.test(d.productoId) ? d.productoId : null}, ${nota}, ${yo.id})`;
+    insert into solicitudes_producto (descripcion, cantidad, origen, estado, producto_id, notas, registrado_por, contacto_telefono)
+    values (${desc}, ${cant}, 'mostrador', 'nueva', ${d.productoId && /^[0-9a-f-]{36}$/i.test(d.productoId) ? d.productoId : null}, ${nota}, ${yo.id},
+            ${d.telefono?.replace(/\D/g, "").slice(-10) || null})`;
   refrescar("/interno/demanda");
   return { ok: true };
 }

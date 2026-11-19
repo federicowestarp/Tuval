@@ -4,8 +4,9 @@ import { connection } from "next/server";
 import { listarDemanda } from "@/lib/interno";
 import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../Navegacion";
-import { actualizarSolicitud } from "./acciones";
+import { actualizarSolicitud, avisarCliente } from "./acciones";
 import { FormAlta } from "./FormAlta";
+import { BotonWhatsApp } from "../pedidos/[id]/BotonWhatsApp";
 import { sql } from "@/lib/db";
 
 const ORIGEN: Record<string, string> = {
@@ -91,6 +92,22 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/deman
               <input name="notas" defaultValue={g.notas ?? ""} placeholder="Notas (precio, tiempo, marca…)" className="rounded-lg border border-linea px-2 py-2 text-sm" />
               <button className="rounded-lg bg-azul px-3 py-2 text-sm font-semibold text-white">Guardar</button>
             </form>
+            {g.contactos.length > 0 && (
+              <div className={`mt-2 rounded-lg p-2 text-sm ${g.hay_existencia || g.estado === "conseguida" || g.estado === "agregada_catalogo" ? "bg-emerald-50" : "bg-niebla"}`}>
+                <p className="font-semibold">
+                  {g.hay_existencia || g.estado === "conseguida" || g.estado === "agregada_catalogo" ? "Ya lo tenemos: avisa a quien lo pidió" : "Dejaron su celular para que les avisemos"}
+                  <span className="ml-1 font-normal text-secundario">({g.contactos.filter((c) => !c.avisado).length} por avisar)</span>
+                </p>
+                <ul className="mt-1 flex flex-wrap gap-2">
+                  {g.contactos.map((c) => (
+                    <li key={c.id} className="flex items-center gap-2">
+                      <span>{c.nombre && !/^cliente /i.test(c.nombre) ? c.nombre : c.telefono}</span>
+                      {c.avisado ? <span className="text-emerald-700">avisado ✓</span> : <BotonWhatsApp accion={avisarCliente} id={c.id} texto="Avisar" />}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {g.estado !== "agregada_catalogo" && <div className="mt-2"><FormAlta ids={g.ids} descripcion={g.descripcion} /></div>}
           </article>
         ))}
