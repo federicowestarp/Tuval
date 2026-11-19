@@ -8,14 +8,17 @@ import { requerirInterno } from "@/lib/equipo";
 import { leerCotizacion, normalizar } from "@/lib/cotizacion";
 import { leerPdfEmmsa } from "@/lib/emmsa";
 import { guardarArchivo } from "@/lib/archivos";
-import { idEmmsa } from "@/lib/interno";
+import { compararPedido, idEmmsa } from "@/lib/interno";
 import { IVA } from "@/lib/catalogo";
 
 export type Resultado = { error?: string; mensaje?: string };
 
 type Renglon = { codigo: string; descripcion: string; cantidad: number | null; unidad?: string; precio: number; disponible: boolean | null; tiempo: string; dias?: number | null };
 
-/** Carga la cotización de Emmsa (PDF o pegada desde Excel) y la empareja con las partidas del pedido. */
+/**
+ * Carga la cotización de un proveedor y la empareja con las partidas del pedido.
+ * Emmsa: su PDF se lee solo. Otros proveedores: se pegan los renglones (Excel) y su PDF queda guardado como respaldo.
+ */
 export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<Resultado> {
   await requerirInterno("operador");
   const pedidoId = String(fd.get("pedido_id"));
@@ -26,7 +29,27 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
   let archivoId: string | null = null;
   let texto = "";
 
-  if (archivo && typeof archivo !== "string" && archivo.size > 0) {
+  const emmsa = await idEmmsa();
+  // Proveedor elegido, o uno nuevo dado de alta en el momento.
+  let proveedorId = String(fd.get("proveedor_id") ?? "");
+  const nuevo = String(fd.get("proveedor_nuevo") ?? "").trim().slice(0, 80);
+  if (proveedorId === "nuevo") {
+    if (nuevo.length < 2) return { error: "Escribe el nombre del proveedor nuevo." };
+    const [p] = await sql<{ id: string }[]>`
+      insert into proveedores (nombre, whatsapp) values (${nuevo}, ${String(fd.get("proveedor_whatsapp") ?? "").replace(/\D/g, "").slice(-10) || null}) returning id`;
+    proveedorId = p.id;
+  } else if (!/^[0-9a-f-]{36}$/i.test(proveedorId)) proveedorId = emmsa;
+  const pegado = String(fd.get("texto") ?? "").trim();
+
+  if (archivo && typeof archivo !== "string" && archivo.size > 0 && proveedorId !== emmsa) {
+    // Otro proveedor: el PDF se guarda de respaldo y los precios salen de lo pegado.
+    if (!pegado) return { error: "Para este proveedor pega los renglones de su cotización (código, descripción, cantidad, precio). Su PDF se guarda como respaldo." };
+    archivoId = await guardarArchivo(archivo, ["application/pdf", "image/jpeg", "image/png"]);
+    texto = pegado;
+    renglones = leerCotizacion(texto);
+    if (renglones.length === 0) return { error: "No reconocí renglones con precio en lo pegado." };
+    meta.folio = String(fd.get("folio") ?? "").trim() || null;
+  } else if (archivo && typeof archivo !== "string" && archivo.size > 0) {
     if (archivo.type !== "application/pdf") return { error: "Sube el PDF de la cotización de Emmsa." };
     const c = await leerPdfEmmsa(new Uint8Array(await archivo.arrayBuffer()));
     if (c.renglones.length === 0) return { error: "No reconocí partidas en el PDF. ¿Es una cotización de Emmsa?" };
@@ -44,7 +67,6 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
     meta.folio = String(fd.get("folio") ?? "").trim() || null;
   }
 
-  const proveedorId = await idEmmsa();
   const partidas = await sql<{ id: string; producto_id: string; nombre: string; sku: string; sku_proveedor: string | null }[]>`
     select pp.id, pr.id as producto_id, pr.nombre, pr.sku, pv.sku_proveedor
     from pedido_partidas pp join productos pr on pr.id = pp.producto_id
@@ -106,21 +128,22 @@ export async function cargarCotizacion(_prev: Resultado, fd: FormData): Promise<
 export async function agregarRenglonesAlPedido(fd: FormData) {
   await requerirInterno("operador");
   const pedidoId = String(fd.get("pedido_id"));
-  const proveedorId = await idEmmsa();
-  const sueltos = await sql<{ id: string; codigo_proveedor: string | null; descripcion: string; cantidad: number | null; precio_unitario: number; unidad: string | null }[]>`
-    select cp.id, cp.codigo_proveedor, cp.descripcion, cp.cantidad, cp.precio_unitario, cp.unidad
-    from cotizacion_partidas cp
+  const emmsa = await idEmmsa();
+  const sueltos = await sql<{ id: string; codigo_proveedor: string | null; descripcion: string; cantidad: number | null; precio_unitario: number; unidad: string | null; proveedor_id: string }[]>`
+    select cp.id, cp.codigo_proveedor, cp.descripcion, cp.cantidad, cp.precio_unitario, cp.unidad, c.proveedor_id
+    from cotizacion_partidas cp join cotizaciones_proveedor c on c.id = cp.cotizacion_id
     where cp.pedido_partida_id is null
-      and cp.cotizacion_id = (select id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by cargada_en desc limit 1)`;
+      and cp.cotizacion_id in (select distinct on (proveedor_id) id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by proveedor_id, cargada_en desc)`;
   await sql.begin(async (tx) => {
     for (const r of sueltos) {
-      // ¿Ya existe en catálogo con ese código de Emmsa?
+      const proveedorId = r.proveedor_id;
+      // ¿Ya existe en catálogo con ese código del proveedor?
       let [prod] = await tx<{ id: string }[]>`
         select producto_id as id from productos_proveedor where proveedor_id = ${proveedorId} and sku_proveedor = ${r.codigo_proveedor}`;
       if (!prod) {
         [prod] = await tx<{ id: string }[]>`
           insert into productos (sku, nombre, categoria_id, unidad)
-          values (${"EM-" + (r.codigo_proveedor ?? r.id.slice(0, 8)).toUpperCase()}, ${r.descripcion}, 'por_clasificar',
+          values (${(proveedorId === emmsa ? "EM-" : "PV-") + (r.codigo_proveedor ?? r.id.slice(0, 8)).toUpperCase()}, ${r.descripcion}, 'por_clasificar',
                   ${r.unidad === "MTO" ? "metro" : "pieza"})
           on conflict (sku) do update set nombre = productos.nombre
           returning id`;
@@ -130,8 +153,8 @@ export async function agregarRenglonesAlPedido(fd: FormData) {
         values (${prod.id}, ${proveedorId}, ${r.codigo_proveedor}, ${r.precio_unitario}, now())
         on conflict (producto_id, proveedor_id) do update set costo = excluded.costo, actualizado_en = now()`;
       const [partida] = await tx<{ id: string }[]>`
-        insert into pedido_partidas (pedido_id, producto_id, cantidad, costo_unitario)
-        values (${pedidoId}, ${prod.id}, ${r.cantidad ?? 1}, ${r.precio_unitario}) returning id`;
+        insert into pedido_partidas (pedido_id, producto_id, cantidad, costo_unitario, proveedor_id)
+        values (${pedidoId}, ${prod.id}, ${r.cantidad ?? 1}, ${r.precio_unitario}, ${proveedorId}) returning id`;
       await tx`update cotizacion_partidas set pedido_partida_id = ${partida.id} where id = ${r.id}`;
     }
   });
@@ -156,11 +179,13 @@ export async function asignarRenglon(fd: FormData) {
 export async function confirmarPedido(_prev: Resultado, fd: FormData): Promise<Resultado> {
   await requerirInterno("operador");
   const pedidoId = String(fd.get("pedido_id"));
-  const partidas = await sql<{ id: string; producto_id: string; nombre: string; cantidad: number; cot_precio: number | null }[]>`
-    select pp.id, pp.producto_id, pr.nombre, pp.cantidad,
-           (select cp.precio_unitario from cotizacion_partidas cp join cotizaciones_proveedor c on c.id = cp.cotizacion_id
-             where cp.pedido_partida_id = pp.id order by c.cargada_en desc limit 1) as cot_precio
-    from pedido_partidas pp join productos pr on pr.id = pp.producto_id where pp.pedido_id = ${pedidoId}`;
+  // Ofertas por proveedor (la última de cada uno) para respetar a quién se le compra cada partida.
+  const comparacion = await compararPedido(pedidoId);
+  const partidas = comparacion.map((x) => {
+    const elegido = String(fd.get(`proveedor_${x.partida_id}`) ?? "");
+    const oferta = x.ofertas.find((o) => o.proveedor_id === elegido) ?? x.ofertas.find((o) => o.proveedor_id === x.proveedor_id) ?? null;
+    return { id: x.partida_id, producto_id: x.producto_id, nombre: x.nombre, cantidad: x.cantidad, cot_precio: oferta?.precio ?? null, proveedor_id: oferta?.proveedor_id ?? x.proveedor_id };
+  });
 
   const quitar = partidas.filter((p) => fd.get(`quitar_${p.id}`) === "on");
   const quedan = partidas.filter((p) => !quitar.includes(p));
@@ -184,7 +209,8 @@ export async function confirmarPedido(_prev: Resultado, fd: FormData): Promise<R
       await tx`delete from pedido_partidas where id = ${p.id}`;
     }
     for (const p of quedan) {
-      await tx`update pedido_partidas set precio_unitario = ${precios.get(p.id)!}, costo_unitario = coalesce(${p.cot_precio}, costo_unitario) where id = ${p.id}`;
+      await tx`update pedido_partidas set precio_unitario = ${precios.get(p.id)!}, costo_unitario = coalesce(${p.cot_precio}, costo_unitario),
+                 proveedor_id = coalesce(${p.proveedor_id}, proveedor_id) where id = ${p.id}`;
     }
     const subtotal = quedan.reduce((s, p) => s + precios.get(p.id)! * p.cantidad, 0);
     const iva = Math.round(subtotal * IVA * 100) / 100;

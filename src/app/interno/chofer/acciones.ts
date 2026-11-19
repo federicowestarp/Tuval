@@ -205,7 +205,11 @@ export async function subirFactura(_prev: EstadoFactura, fd: FormData): Promise<
   const yo = await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   if (!UUID.test(pedidoId)) return { error: "Pedido no válido." };
-  const [oc] = await sql<{ id: string; folio: string }[]>`select id, folio from ordenes_compra where pedido_id = ${pedidoId} and estado <> 'cancelada' order by creado_en desc limit 1`;
+  // Con varios proveedores, cada factura va contra su orden de compra.
+  const ocId = String(fd.get("oc_id") ?? "");
+  const [oc] = UUID.test(ocId)
+    ? await sql<{ id: string; folio: string }[]>`select id, folio from ordenes_compra where id = ${ocId} and pedido_id = ${pedidoId} and estado <> 'cancelada'`
+    : await sql<{ id: string; folio: string }[]>`select id, folio from ordenes_compra where pedido_id = ${pedidoId} and estado <> 'cancelada' order by creado_en desc limit 1`;
   if (!oc) return { error: "Este pedido no tiene orden de compra." };
   const f = fd.get("factura");
   if (!f || typeof f === "string" || f.size === 0) return { error: "Elige el archivo de la factura." };

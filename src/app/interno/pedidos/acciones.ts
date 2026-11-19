@@ -124,10 +124,13 @@ export async function reconfirmarProveedor(fd: FormData) {
 const ligaWa = (tel: string, texto: string) => `https://wa.me/52${tel.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(texto)}`;
 
 /** Prepara el WhatsApp de solicitud de cotización al proveedor y marca la hora (para medir cuánto tarda en responder). */
-export async function solicitarCotizacionWA(pedidoId: string): Promise<{ url?: string; error?: string }> {
+export async function solicitarCotizacionWA(id: string): Promise<{ url?: string; error?: string }> {
   await requerirInterno("operador");
+  // "pedidoId" o "pedidoId:proveedorId" para pedir a un proveedor en particular.
+  const [pedidoId, proveedorId] = id.split(":");
   if (!UUID.test(pedidoId)) return { error: "Pedido no válido." };
-  const prov = await proveedorDelPedido(pedidoId);
+  const [elegido] = proveedorId && UUID.test(proveedorId) ? await sql<{ id: string; nombre: string; whatsapp: string | null }[]>`select id, nombre, whatsapp from proveedores where id = ${proveedorId}` : [];
+  const prov = elegido ?? await proveedorDelPedido(pedidoId);
   if (!prov?.whatsapp) return { error: `Falta el WhatsApp de ${prov?.nombre ?? "Emmsa"}: captúralo abajo en “WhatsApp del proveedor”.` };
   await sql`update pedidos set cotizacion_solicitada_en = coalesce(cotizacion_solicitada_en, now()) where id = ${pedidoId}`;
   refrescar(`/interno/pedidos/${pedidoId}`);

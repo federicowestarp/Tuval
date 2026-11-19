@@ -39,9 +39,9 @@ async function Contenido() {
     rutaDeHoy(yo.id), paradasPendientes(yo.id),
     sql<{ id: string; nombre: string }[]>`select id, nombre from vehiculos where activo order by nombre`,
     sql<{ id: string; nombre: string }[]>`select id, nombre from almacenes where activo and tipo in ('proveedor', 'sucursal', 'cedis') and nombre not ilike '%prueba%' order by (tipo = 'proveedor') desc, nombre`,
-    sql<{ id: string; folio: string; piezas: number; lugar: string | null; oc: string | null }[]>`
+    sql<{ id: string; folio: string; piezas: number; lugar: string | null; ocs: { id: string; folio: string; proveedor: string }[] }[]>`
       select p.id, p.folio, (select coalesce(sum(cantidad), 0)::float from pedido_partidas where pedido_id = p.id) piezas, p.entidad lugar,
-        (select folio from ordenes_compra o where o.pedido_id = p.id and o.estado <> 'cancelada' order by o.creado_en desc limit 1) oc
+        coalesce((select json_agg(json_build_object('id', o.id, 'folio', o.folio, 'proveedor', pv.nombre) order by o.creado_en) from ordenes_compra o join proveedores pv on pv.id = o.proveedor_id where o.pedido_id = p.id and o.estado <> 'cancelada'), '[]') ocs
       from pedidos p where p.estado = 'comprado_proveedor'
         -- Con ruta planeada, solo lo asignado a este chofer.
         and (not exists (select 1 from rutas r join entregas e on e.ruta_id = r.id where r.chofer_id = ${yo.id} and r.fecha = ${hoyMx()})
@@ -93,10 +93,10 @@ async function Contenido() {
       {(porRecoger.length > 0 || abierta) && (
         <section className="space-y-3 rounded-[20px] bg-white p-4">
           <h2 className="font-semibold">Recoger con proveedor</h2>
-          {abierta && porRecoger.some((p) => p.oc) && (
+          {abierta && porRecoger.some((p) => p.ocs.length > 0) && (
             <div className="space-y-1.5">
               <p className="text-[14px]">Sube la factura de cada pedido (XML de preferencia) para que el sistema la revise contra la orden:</p>
-              {porRecoger.filter((p) => p.oc).map((p) => <FacturaProveedor key={p.id} pedidoId={p.id} folio={`${p.folio} · ${p.oc}`} />)}
+              {porRecoger.flatMap((p) => p.ocs.map((o) => <FacturaProveedor key={o.id} pedidoId={p.id} ocId={o.id} folio={`${p.folio} · ${o.folio} · ${o.proveedor}`} />))}
             </div>
           )}
           {abierta ? (

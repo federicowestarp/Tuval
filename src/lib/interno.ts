@@ -14,7 +14,13 @@ export type RenglonComparacion = {
   cot_tiempo: string | null;
   cot_codigo: string | null;
   cot_dias: number | null;
+  /** Proveedor al que se compra esta partida (elegido, o el de mejor oferta disponible). */
+  proveedor_id: string | null;
+  proveedor: string | null;
+  /** Última oferta de cada proveedor que cotizó esta partida. */
+  ofertas: Oferta[];
 };
+export type Oferta = { proveedor_id: string; proveedor: string; precio: number; disponible: boolean | null; tiempo: string | null; dias: number | null; codigo: string | null };
 
 export async function idEmmsa(): Promise<string> {
   const [p] = await sql<{ id: string }[]>`select id from proveedores where nombre = 'Emmsa' limit 1`;
@@ -22,13 +28,17 @@ export async function idEmmsa(): Promise<string> {
   return p.id;
 }
 
-/** Compara cada partida contra nuestra lista, nuestras existencias y la última cotización cargada. */
+/**
+ * Compara cada partida contra nuestra lista, nuestras existencias y la última cotización de cada proveedor.
+ * El proveedor de la partida es el elegido al confirmar; si no hay, el de la oferta disponible más barata.
+ */
 export async function compararPedido(pedidoId: string): Promise<RenglonComparacion[]> {
-  return sql<RenglonComparacion[]>`
-    with ultima as (
-      select id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by cargada_en desc limit 1
+  const filas = await sql<(Omit<RenglonComparacion, "cot_precio" | "cot_disponible" | "cot_tiempo" | "cot_codigo" | "cot_dias" | "proveedor" | "proveedor_id"> & { elegido: string | null })[]>`
+    with ultimas as (
+      select distinct on (c.proveedor_id) c.id, c.proveedor_id from cotizaciones_proveedor c
+      where c.pedido_id = ${pedidoId} order by c.proveedor_id, c.cargada_en desc
     )
-    select pp.id as partida_id, pr.id as producto_id, pr.nombre, pr.sku, pp.cantidad, pp.precio_unitario,
+    select pp.id as partida_id, pr.id as producto_id, pr.nombre, pr.sku, pp.cantidad, pp.precio_unitario, pp.proveedor_id as elegido,
            -- Lista del cliente si tiene; si no, Público.
            coalesce((select precio from precios where producto_id = pr.id
                        and lista_id = (select c.lista_precio_id from pedidos pe join clientes c on c.id = pe.cliente_id where pe.id = pp.pedido_id)),
@@ -36,13 +46,22 @@ export async function compararPedido(pedidoId: string): Promise<RenglonComparaci
                        and lista_id = (select id from listas_precio where nombre = 'Público'))) as precio_lista,
            coalesce((select sum(e.cantidad) from existencias e join almacenes a on a.id = e.almacen_id
                      where e.producto_id = pr.id and a.tipo in ('cedis', 'sucursal')), 0) as existencia_propia,
-           cp.precio_unitario as cot_precio, cp.disponible as cot_disponible, cp.tiempo_entrega as cot_tiempo,
-           cp.codigo_proveedor as cot_codigo, cp.dias_entrega as cot_dias
+           coalesce((select json_agg(json_build_object('proveedor_id', u.proveedor_id, 'proveedor', pv.nombre, 'precio', cp.precio_unitario::float,
+                        'disponible', cp.disponible, 'tiempo', cp.tiempo_entrega, 'dias', cp.dias_entrega, 'codigo', cp.codigo_proveedor)
+                        order by (cp.disponible is false), cp.precio_unitario)
+                     from ultimas u join cotizacion_partidas cp on cp.cotizacion_id = u.id and cp.pedido_partida_id = pp.id
+                     join proveedores pv on pv.id = u.proveedor_id), '[]') as ofertas
     from pedido_partidas pp
     join productos pr on pr.id = pp.producto_id
-    left join cotizacion_partidas cp on cp.pedido_partida_id = pp.id and cp.cotizacion_id = (select id from ultima)
     where pp.pedido_id = ${pedidoId}
     order by pr.nombre`;
+  return filas.map(({ elegido, ...x }) => {
+    const o = x.ofertas.find((k) => k.proveedor_id === elegido) ?? x.ofertas[0] ?? null;
+    return {
+      ...x, proveedor_id: o?.proveedor_id ?? elegido, proveedor: o?.proveedor ?? null,
+      cot_precio: o?.precio ?? null, cot_disponible: o ? o.disponible : null, cot_tiempo: o?.tiempo ?? null, cot_codigo: o?.codigo ?? null, cot_dias: o?.dias ?? null,
+    };
+  });
 }
 
 export async function renglonesSinAsignar(pedidoId: string) {
@@ -50,7 +69,7 @@ export async function renglonesSinAsignar(pedidoId: string) {
     select cp.id, cp.codigo_proveedor, cp.descripcion, cp.precio_unitario, cp.disponible
     from cotizacion_partidas cp
     where cp.pedido_partida_id is null
-      and cp.cotizacion_id = (select id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by cargada_en desc limit 1)`;
+      and cp.cotizacion_id in (select distinct on (proveedor_id) id from cotizaciones_proveedor where pedido_id = ${pedidoId} order by proveedor_id, cargada_en desc)`;
 }
 
 /** Demanda agrupada: misma descripción (sin acentos ni mayúsculas) y mismo estado = un renglón. */

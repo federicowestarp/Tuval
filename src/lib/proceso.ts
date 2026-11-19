@@ -23,6 +23,16 @@ export async function proveedorDelPedido(pedidoId: string, tx: Tx = sql) {
   return p ?? null;
 }
 
+/** Proveedores con los que se trabaja el pedido: los que cotizaron o tienen orden de compra (Emmsa si no hay ninguno). */
+export async function proveedoresDelPedido(pedidoId: string) {
+  return sql<{ id: string; nombre: string; whatsapp: string | null }[]>`
+    select pr.id, pr.nombre, pr.whatsapp from proveedores pr
+    where pr.id in (select proveedor_id from cotizaciones_proveedor where pedido_id = ${pedidoId}
+                    union select proveedor_id from ordenes_compra where pedido_id = ${pedidoId} and estado <> 'cancelada')
+       or (pr.nombre = 'Emmsa' and not exists (select 1 from cotizaciones_proveedor where pedido_id = ${pedidoId}))
+    order by (pr.nombre = 'Emmsa') desc, pr.nombre`;
+}
+
 export async function mensajeSolicitud(pedidoId: string) {
   const [p] = await sql<{ folio: string }[]>`select folio from pedidos where id = ${pedidoId}`;
   const partidas = await sql<{ cantidad: number; nombre: string; unidad: string; codigo: string | null }[]>`
@@ -48,26 +58,38 @@ export async function mensajeOrdenCompra(ocId: string) {
   return `Hola, de Tuval. Orden de compra ${oc?.folio ?? ""} (pedido ${oc?.pedido ?? ""}):\n${partidas.map((x) => `• ${x.cantidad} ${x.nombre}${x.codigo ? ` (cód. ${x.codigo})` : ""}${x.costo ? ` a $${x.costo.toFixed(2)}` : ""}`).join("\n")}\n${oc?.total ? `Total sin IVA: $${oc.total.toFixed(2)}\n` : ""}\nPasamos por ella. ¿Nos avisan cuando esté lista? Gracias.`;
 }
 
-/** Crea la orden de compra del pedido al proveedor (una sola vez). */
+/**
+ * Crea las órdenes de compra del pedido: una por proveedor (cada partida va al proveedor elegido al confirmar,
+ * o al de su última cotización; si no hay, Emmsa). No duplica las que ya existen. Devuelve la primera.
+ */
 export async function crearOrdenCompra(tx: Tx, pedidoId: string) {
-  const [ya] = await tx<{ id: string }[]>`select id from ordenes_compra where pedido_id = ${pedidoId} and estado <> 'cancelada' limit 1`;
-  if (ya) return ya.id;
-  const prov = await proveedorDelPedido(pedidoId, tx);
-  if (!prov) return null;
-  const partidas = await tx<{ id: string; producto_id: string; cantidad: number; costo: number | null }[]>`
-    select pp.id, pp.producto_id, pp.cantidad::float cantidad,
+  const partidas = await tx<{ id: string; producto_id: string; cantidad: number; costo: number | null; proveedor_id: string | null }[]>`
+    select pp.id, pp.producto_id, pp.cantidad::float cantidad, x.proveedor_id,
            coalesce((select cp.precio_unitario from cotizacion_partidas cp join cotizaciones_proveedor c on c.id = cp.cotizacion_id
-                     where cp.pedido_partida_id = pp.id order by c.cargada_en desc limit 1), pp.costo_unitario)::float costo
-    from pedido_partidas pp where pp.pedido_id = ${pedidoId}`;
+                     where cp.pedido_partida_id = pp.id and c.proveedor_id = x.proveedor_id order by c.cargada_en desc limit 1), pp.costo_unitario)::float costo
+    from pedido_partidas pp
+    cross join lateral (select coalesce(pp.proveedor_id,
+        (select c.proveedor_id from cotizacion_partidas cp join cotizaciones_proveedor c on c.id = cp.cotizacion_id where cp.pedido_partida_id = pp.id order by c.cargada_en desc limit 1),
+        (select id from proveedores where nombre = 'Emmsa' limit 1)) proveedor_id) x
+    where pp.pedido_id = ${pedidoId}`;
   if (!partidas.length) return null;
-  const total = Math.round(partidas.reduce((a, x) => a + (x.costo ?? 0) * x.cantidad, 0) * 100) / 100;
-  const [oc] = await tx<{ id: string }[]>`
-    insert into ordenes_compra (folio, proveedor_id, estado, pedido_id, total)
-    values ('OC-' || lpad(nextval('folio_oc_seq')::text, 6, '0'), ${prov.id}, 'borrador', ${pedidoId}, ${total}) returning id`;
-  for (const x of partidas) {
-    await tx`insert into orden_compra_partidas (orden_id, pedido_partida_id, producto_id, cantidad, costo_unitario) values (${oc.id}, ${x.id}, ${x.producto_id}, ${x.cantidad}, ${x.costo})`;
+  type Fila = (typeof partidas)[number];
+  const porProveedor = new Map<string, Fila[]>();
+  for (const x of partidas) if (x.proveedor_id) porProveedor.set(x.proveedor_id, [...(porProveedor.get(x.proveedor_id) ?? []), x]);
+  let primera: string | null = null;
+  for (const [proveedor, lista] of porProveedor) {
+    const [ya] = await tx<{ id: string }[]>`select id from ordenes_compra where pedido_id = ${pedidoId} and proveedor_id = ${proveedor} and estado <> 'cancelada' limit 1`;
+    if (ya) { primera ??= ya.id; continue; }
+    const total = Math.round(lista.reduce((a, x) => a + (x.costo ?? 0) * x.cantidad, 0) * 100) / 100;
+    const [oc] = await tx<{ id: string }[]>`
+      insert into ordenes_compra (folio, proveedor_id, estado, pedido_id, total)
+      values ('OC-' || lpad(nextval('folio_oc_seq')::text, 6, '0'), ${proveedor}, 'borrador', ${pedidoId}, ${total}) returning id`;
+    for (const x of lista) {
+      await tx`insert into orden_compra_partidas (orden_id, pedido_partida_id, producto_id, cantidad, costo_unitario) values (${oc.id}, ${x.id}, ${x.producto_id}, ${x.cantidad}, ${x.costo})`;
+    }
+    primera ??= oc.id;
   }
-  return oc.id;
+  return primera;
 }
 
 /**

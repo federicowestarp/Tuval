@@ -14,7 +14,8 @@ import { requerirInterno } from "@/lib/equipo";
 import { NavegacionInterna } from "../../Navegacion";
 import { aprobarManual, cambiarEstado, clienteAcepto, enviarOrdenWA, guardarWhatsAppProveedor, reconfirmarProveedor, registrarCobro, solicitarCotizacionWA, surtirDeSucursal } from "../acciones";
 import { BotonWhatsApp } from "./BotonWhatsApp";
-import { proveedorDelPedido, type Diferencia } from "@/lib/proceso";
+import { proveedoresDelPedido, type Diferencia } from "@/lib/proceso";
+import { PedirAOtro } from "./PedirAOtro";
 import { estadoCuenta } from "@/lib/clientes";
 import { puede } from "@/lib/equipo";
 import { PLAZOS, vigencia } from "@/lib/seguimiento";
@@ -59,16 +60,18 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
   if (!pedido) notFound();
   const siguiente = siguientePara(pedido.estado, pedido.tipo_entrega);
   const esAdmin = puede(yo.rol, "admin");
-  const [prov, [oc], [ap]] = await Promise.all([
-    proveedorDelPedido(pedido.id),
-    sql<{ id: string; folio: string; enviada_en: Date | null; conciliada_en: Date | null; factura_folio: string | null; diferencias: Diferencia[] | null }[]>`
-      select id, folio, enviada_en, conciliada_en, factura_folio, diferencias from ordenes_compra where pedido_id = ${pedido.id} and estado <> 'cancelada' order by creado_en desc limit 1`,
+  const [provs, ocs, [ap], todosProv] = await Promise.all([
+    proveedoresDelPedido(pedido.id),
+    sql<{ id: string; folio: string; proveedor: string; enviada_en: Date | null; conciliada_en: Date | null; factura_folio: string | null; diferencias: Diferencia[] | null; total: number | null }[]>`
+      select oc.id, oc.folio, pr.nombre proveedor, oc.enviada_en, oc.conciliada_en, oc.factura_folio, oc.diferencias, oc.total::float total
+      from ordenes_compra oc join proveedores pr on pr.id = oc.proveedor_id where oc.pedido_id = ${pedido.id} and oc.estado <> 'cancelada' order by oc.creado_en`,
     sql<{ aprobado_por: string | null; cliente_id: string | null; pagado: number; en_surtido: boolean }[]>`
       select aprobado_por, cliente_id, surtir_en_sucursal_desde is not null en_surtido, coalesce((select sum(monto) from pagos g where g.pedido_id = p.id and g.estado = 'confirmado'), 0)::float pagado from pedidos p where p.id = ${pedido.id}`,
+    sql<{ id: string; nombre: string; whatsapp: string | null }[]>`select id, nombre, whatsapp from proveedores order by (nombre = 'Emmsa') desc, nombre`,
   ]);
   const credito = ap?.cliente_id ? await estadoCuenta(ap.cliente_id) : null;
   const proceso = {
-    proveedor: prov, oc: oc ?? null, aprobado_por: ap?.aprobado_por ?? null,
+    proveedores: provs, ocs, aprobado_por: ap?.aprobado_por ?? null,
     espera: !pedido.confirmado_en ? "Falta confirmar al cliente" : !pedido.aceptado_en ? "Esperando que acepte"
       : credito?.activo ? `Esperando pago o crédito (disponible ${formatoMoneda(credito.disponible ?? 0)}${credito.vencido ? `, vencido ${formatoMoneda(credito.vencido)}` : ""})`
       : `Esperando pago (${formatoMoneda(Math.max(0, pedido.total - (ap?.pagado ?? 0)))} por cobrar)`,
@@ -127,20 +130,24 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
 
       {abierto && (
         <section className={`${caja} space-y-3 text-sm`}>
-          <h2 className="font-semibold">Proceso con {proceso.proveedor?.nombre ?? "el proveedor"}</h2>
-          {proceso.proveedor && !proceso.proveedor.whatsapp && (
-            <form action={guardarWhatsAppProveedor} className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 p-2">
-              <input type="hidden" name="proveedor" value={proceso.proveedor.id} />
-              <span>WhatsApp de {proceso.proveedor.nombre}:</span>
+          <h2 className="font-semibold">Proceso con {proceso.proveedores.map((x) => x.nombre).join(", ") || "el proveedor"}</h2>
+          {proceso.proveedores.filter((x) => !x.whatsapp).map((x) => (
+            <form key={x.id} action={guardarWhatsAppProveedor} className="flex flex-wrap items-center gap-2 rounded-lg bg-amber-50 p-2">
+              <input type="hidden" name="proveedor" value={x.id} />
+              <span>WhatsApp de {x.nombre}:</span>
               <input name="whatsapp" inputMode="tel" placeholder="10 dígitos" className="h-8 w-36 rounded border border-linea px-2" />
               <button className="text-azul">Guardar</button>
             </form>
-          )}
+          ))}
           <ol className="space-y-2">
-            <li className="flex flex-wrap items-center justify-between gap-2"><span>1 · Pedir cotización</span>
-              <BotonWhatsApp accion={solicitarCotizacionWA} id={pedido.id} texto="Pedir cotización por WhatsApp" hecho={hora(pedido.cotizacion_solicitada_en)} /></li>
-            <li className="flex flex-wrap items-center justify-between gap-2"><span>2 · Cotización del proveedor</span>
-              <span className={cotizacionId ? "text-emerald-700" : "text-secundario"}>{cotizacionId ? "Cargada y comparada ✓" : "Sube el PDF abajo"}</span></li>
+            <li className="space-y-1.5"><span>1 · Pedir cotización</span>
+              <div className="flex flex-wrap gap-2">
+                {proceso.proveedores.map((x) => <BotonWhatsApp key={x.id} accion={solicitarCotizacionWA} id={`${pedido.id}:${x.id}`} texto={`Pedir a ${x.nombre}`} hecho={x.nombre === "Emmsa" ? hora(pedido.cotizacion_solicitada_en) : null} />)}
+              </div>
+              <PedirAOtro pedidoId={pedido.id} proveedores={todosProv.filter((x) => !proceso.proveedores.some((y) => y.id === x.id))} />
+            </li>
+            <li className="flex flex-wrap items-center justify-between gap-2"><span>2 · Cotizaciones</span>
+              <span className={cotizacionId ? "text-emerald-700" : "text-secundario"}>{cotizacionId ? `Cargadas y comparadas ✓ (${proceso.proveedores.length} proveedor${proceso.proveedores.length === 1 ? "" : "es"})` : "Súbelas abajo"}</span></li>
             <li className="flex flex-wrap items-center justify-between gap-2"><span>3 · Confirmado al cliente</span>
               <span className={pedido.confirmado_en ? "text-emerald-700" : "text-secundario"}>{pedido.confirmado_en ? `✓ ${hora(pedido.confirmado_en)}` : "Pendiente"}</span></li>
             <li className="flex flex-wrap items-center justify-between gap-2"><span>4 · Cliente acepta</span>
@@ -152,15 +159,28 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
                 <span className="flex flex-wrap items-center gap-2 text-secundario">{proceso.espera}
                   {esAdmin && pedido.confirmado_en && <form action={aprobarManual}><input type="hidden" name="id" value={pedido.id} /><button className="text-[12px] text-azul underline">Aprobar sin pago (admin)</button></form>}</span>
               )}</li>
-            <li className="flex flex-wrap items-center justify-between gap-2"><span>6 · Orden de compra {proceso.oc?.folio ?? ""}</span>
-              {proceso.oc ? <BotonWhatsApp accion={enviarOrdenWA} id={proceso.oc.id} texto="Enviar orden por WhatsApp" hecho={hora(proceso.oc.enviada_en)} /> : <span className="text-secundario">Se crea sola al aprobarse</span>}</li>
-            <li className="flex flex-wrap items-center justify-between gap-2"><span>7 · Factura del proveedor</span>
-              <span className={proceso.oc?.conciliada_en ? "text-emerald-700" : proceso.oc?.diferencias?.length ? "font-semibold text-red-700" : "text-secundario"}>
-                {proceso.oc?.conciliada_en ? `Conciliada ✓ ${proceso.oc.factura_folio ?? ""}` : proceso.oc?.diferencias?.length ? `${proceso.oc.diferencias.length} diferencia(s) con la orden` : "La sube el chofer al recoger"}</span></li>
+            <li className="space-y-1.5"><span>6 · Órdenes de compra {proceso.ocs.length > 1 ? `(una por proveedor)` : ""}</span>
+              {proceso.ocs.length === 0 ? <p className="text-secundario">Se crean solas al aprobarse, una por proveedor.</p> : (
+                <ul className="space-y-1.5">
+                  {proceso.ocs.map((o) => (
+                    <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-niebla px-2 py-1.5">
+                      <span><strong>{o.folio}</strong> · {o.proveedor}{o.total ? ` · ${formatoMoneda(o.total)} + IVA` : ""}</span>
+                      <BotonWhatsApp accion={enviarOrdenWA} id={o.id} texto="Enviar por WhatsApp" hecho={hora(o.enviada_en)} />
+                    </li>
+                  ))}
+                </ul>
+              )}</li>
+            <li className="space-y-1.5"><span>7 · Facturas de proveedores</span>
+              {proceso.ocs.length === 0 ? <p className="text-secundario">Las sube el chofer al recoger.</p> : proceso.ocs.map((o) => (
+                <div key={o.id}>
+                  <p className={o.conciliada_en ? "text-emerald-700" : o.diferencias?.length ? "font-semibold text-red-700" : "text-secundario"}>
+                    {o.proveedor}: {o.conciliada_en ? `conciliada ✓ ${o.factura_folio ?? ""}` : o.diferencias?.length ? `${o.diferencias.length} diferencia(s) con ${o.folio}` : "la sube el chofer al recoger"}</p>
+                  {o.diferencias?.length ? (
+                    <ul className="rounded-lg bg-red-50 p-2 text-[13px]">{o.diferencias.map((d, i) => <li key={i}>{d.producto}: pedido {d.esperado}, facturado {d.facturado}{d.costoFactura != null && d.costoOc != null && d.costoFactura !== d.costoOc ? ` · precio ${d.costoOc} → ${d.costoFactura}` : ""}</li>)}</ul>
+                  ) : null}
+                </div>
+              ))}</li>
           </ol>
-          {proceso.oc?.diferencias?.length ? (
-            <ul className="rounded-lg bg-red-50 p-2 text-[13px]">{proceso.oc.diferencias.map((d, i) => <li key={i}>{d.producto}: pedido {d.esperado}, facturado {d.facturado}{d.costoFactura != null && d.costoOc != null && d.costoFactura !== d.costoOc ? ` · precio ${d.costoOc} → ${d.costoFactura}` : ""}</li>)}</ul>
-          ) : null}
           {pedido.estado === "recibido" && ap?.en_surtido && (
             <Link href={`/interno/surtido/${pedido.id}`} className="inline-block rounded-full bg-azul px-3 py-1 font-semibold text-white">Surtiéndose en sucursal · ver lista de surtido</Link>
           )}
@@ -231,8 +251,8 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
       )}
 
       <section className={caja}>
-        <h2 className="font-semibold">1 · Cotización de Emmsa</h2>
-        <FormCotizacion pedidoId={pedido.id} />
+        <h2 className="font-semibold">1 · Cotizaciones de proveedores</h2>
+        <FormCotizacion pedidoId={pedido.id} proveedores={todosProv.map((x) => ({ id: x.id, nombre: x.nombre }))} />
         {sueltos.length > 0 && (
           <div className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
