@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { AvisoRecorridoServidor } from "../recorrido/estado";
 import { AvisoFaltantes } from "@/components/interno/AvisoFaltantes";
 import { connection } from "next/server";
 import { sql } from "@/lib/db";
@@ -16,6 +17,7 @@ export default function Vender() {
       <NavegacionInterna actual="vender" />
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 px-4 py-6">
         <h1 className="text-[28px] font-semibold tracking-tight">Venta asistida</h1>
+        <Suspense fallback={null}><AvisoRecorridoServidor /></Suspense>
         <Suspense fallback={null}><AvisoFaltantes /></Suspense>
         <VentaAsistida />
         <Suspense fallback={<Esqueleto />}><PorVendedor /></Suspense>

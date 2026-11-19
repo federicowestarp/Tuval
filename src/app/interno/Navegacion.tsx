@@ -4,7 +4,7 @@ import { BarraProvisional } from "@/components/marco/BarraProvisional";
 import { puede, usuarioInterno, type Minimo } from "@/lib/equipo";
 import { salir } from "./sesion-acciones";
 
-type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes" | "supervision" | "rutas" | "clientes" | "precios" | "conteo" | "etiquetas" | "chequeo" | "surtido" | "plano" | "vender";
+type Seccion = "tablero" | "pedidos" | "demanda" | "contactos" | "catalogo" | "equipo" | "chofer" | "gastos" | "flotilla" | "mostrador" | "inventario" | "cortes" | "supervision" | "rutas" | "clientes" | "precios" | "conteo" | "etiquetas" | "chequeo" | "surtido" | "plano" | "vender" | "recorrido";
 const AREAS = ["Dirección", "Pedidos en línea", "Sucursal", "Reparto"] as const;
 const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS)[number]; minimo?: Minimo }[] = [
   { id: "tablero", texto: "Tablero", href: "/interno/tablero", area: "Dirección", minimo: "admin" },
@@ -24,6 +24,7 @@ const SECCIONES: { id: Seccion; texto: string; href: string; area: (typeof AREAS
   { id: "etiquetas", texto: "Etiquetas de anaquel", href: "/interno/etiquetas", area: "Sucursal", minimo: "mostrador" },
   { id: "surtido", texto: "Por surtir", href: "/interno/surtido", area: "Sucursal", minimo: "mostrador" },
   { id: "plano", texto: "Plano y ubicaciones", href: "/interno/plano", area: "Sucursal", minimo: "mostrador" },
+  { id: "recorrido", texto: "Recorrido de tienda", href: "/interno/recorrido", area: "Sucursal", minimo: "mostrador" },
   { id: "chequeo", texto: "Chequeo de anaquel", href: "/interno/chequeo", area: "Sucursal", minimo: "mostrador" },
   { id: "conteo", texto: "Inventario físico", href: "/interno/inventario-fisico", area: "Sucursal", minimo: "mostrador" },
   { id: "rutas", texto: "Planear rutas", href: "/interno/rutas", area: "Reparto", minimo: "operador" },

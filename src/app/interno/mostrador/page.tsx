@@ -1,4 +1,5 @@
 import { Esqueleto } from "@/components/interno/Esqueleto";
+import { AvisoRecorridoServidor } from "../recorrido/estado";
 import { AvisoFaltantes } from "@/components/interno/AvisoFaltantes";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -19,6 +20,7 @@ export default function Mostrador() {
     <div className="flex flex-1 flex-col bg-niebla">
       <NavegacionInterna actual="mostrador" />
       <main className="mx-auto w-full max-w-6xl flex-1 space-y-4 px-4 py-6">
+        <Suspense fallback={null}><AvisoRecorridoServidor /></Suspense>
         <Suspense fallback={null}><AvisoFaltantes /></Suspense>
         <Suspense fallback={null}><AvisoEtiquetas /></Suspense>
         <Suspense fallback={<Esqueleto />}><Contenido /></Suspense>
