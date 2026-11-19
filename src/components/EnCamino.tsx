@@ -8,6 +8,16 @@ export async function EnCamino({ pedidoId, estado }: { pedidoId: string; estado:
   if (estado === "en_ruta") {
     const p = await ultimaPosicion(pedidoId);
     if (!p) return null;
+    // La ubicación se comparte solo cuando el chofer ya viene hacia este cliente.
+    if ("antes" in p) return (
+      <div className="flex items-center gap-4 rounded-[20px] bg-niebla p-5">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-azul"><IconoCamion className="h-5 w-5" /></span>
+        <span>
+          <span className="block font-semibold">El chofer va en ruta</span>
+          <span className="block text-[13px] text-secundario">{p.antes === 1 ? "Tiene 1 entrega antes de la tuya." : `Tiene ${p.antes} entregas antes de la tuya.`} Cuando seas la siguiente verás aquí por dónde va.</span>
+        </span>
+      </div>
+    );
     const min = Math.max(0, p.minutos);
     return (
       <a href={ligaMapa(p.lat, p.lng)} target="_blank" className="flex items-center gap-4 rounded-[20px] bg-niebla p-5">

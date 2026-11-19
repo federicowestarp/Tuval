@@ -121,7 +121,7 @@ async function Contenido({ params }: Pick<PageProps<"/interno/pedidos/[id]">, "p
       {pedido.estado === "recibido" && (vig.reconfirmar || vig.vencida) && (
         <section className="rounded-xl bg-amber-50 p-4 text-sm ring-1 ring-amber-200">
           {vig.vencida && <p><strong>Cotización al cliente vencida:</strong> lleva {vig.diasCliente} días sin aceptar (vence a los {PLAZOS.venceDias}). Reconfirma con el proveedor y vuelve a mandarle el total, o ciérrala como “Cliente no respondió”.</p>}
-          {vig.reconfirmar && <p><strong>Reconfirma existencias y precio con el proveedor:</strong> su cotización tiene {vig.horasProveedor} h (máximo {PLAZOS.reconfirmarHoras} h para comprar).</p>}
+          {vig.reconfirmar && <p><strong>Reconfirma existencias y precio con el proveedor:</strong> {vig.existenciaBaja ? "reporta existencia baja de algún producto de este pedido." : `su cotización tiene ${vig.horasProveedor} h (máximo ${PLAZOS.reconfirmarHoras} h para comprar).`}</p>}
         </section>
       )}
 

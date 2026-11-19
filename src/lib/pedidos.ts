@@ -1,5 +1,5 @@
 import { sql } from "@/lib/db";
-import { PLAZOS, archivado, frescuraProveedor } from "@/lib/seguimiento";
+import { PLAZOS, archivado, existenciaBaja, frescuraProveedor } from "@/lib/seguimiento";
 import type { EstadoPedido } from "@/lib/estados";
 import type { Ventana, Zona } from "@/lib/corte";
 
@@ -138,7 +138,7 @@ export async function listarPedidos(vista: VistaPedidos = "proceso"): Promise<Pe
               ('Entregado', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado in ('entregado', 'entregado_con_faltantes'))),
               ('Cancelado', (select min(e.creado_en) from pedido_eventos e where e.pedido_id = p.id and e.estado = 'cancelado'))
             ) h(paso, en)) as hitos,
-           coalesce(p.estado = 'recibido' and ${frescuraProveedor} < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}), false) as reconfirmar
+           coalesce(p.estado = 'recibido' and (${frescuraProveedor} < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}) or ${existenciaBaja}), false) as reconfirmar
     from pedidos p
     where p.canal <> 'mostrador' and ${filtro}
     order by p.creado_en desc

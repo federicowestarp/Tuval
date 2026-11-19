@@ -7,7 +7,7 @@ import { sql } from "@/lib/db";
 import { ESTADOS_INTERNOS, SIGUIENTE, type EstadoPedido } from "@/lib/estados";
 import { requerirInterno } from "@/lib/equipo";
 import { MOTIVOS_CANCELACION } from "@/lib/motivos";
-import { PLAZOS } from "@/lib/seguimiento";
+import { existenciaBaja, PLAZOS } from "@/lib/seguimiento";
 import { crearOrdenCompra, intentarAprobar, mensajeOrdenCompra, mensajeSolicitud, proveedorDelPedido } from "@/lib/proceso";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -34,6 +34,8 @@ export async function cambiarEstado(fd: FormData) {
         select coalesce(greatest((select max(cargada_en) from cotizaciones_proveedor where pedido_id = ${id}),
           (select reconfirmado_en from pedidos where id = ${id})) < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}), false) viejo`;
       if (f?.viejo) throw new Error(`La cotización del proveedor tiene más de ${PLAZOS.reconfirmarHoras} h: reconfirma existencias y precio antes de comprar.`);
+      const [b] = await tx<{ baja: boolean }[]>`select ${existenciaBaja} baja from pedidos p where p.id = ${id}`;
+      if (b?.baja) throw new Error("El proveedor reporta existencia baja de algún producto: reconfírmalo antes de comprar.");
       await tx`update pedidos set aceptado_en = coalesce(aceptado_en, now()) where id = ${id}`;
     }
     await tx`update pedidos set estado = ${estado}, motivo_cancelacion = coalesce(${motivoCompleto}, motivo_cancelacion) where id = ${id}`;

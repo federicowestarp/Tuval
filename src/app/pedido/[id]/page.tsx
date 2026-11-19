@@ -14,6 +14,7 @@ import { formatoMoneda } from "@/lib/catalogo";
 import { urlBase } from "@/lib/url";
 import { PLAZOS, vigencia } from "@/lib/seguimiento";
 import { Aceptar } from "./Aceptar";
+import { CompartirRecoger } from "./CompartirRecoger";
 import QRCode from "qrcode";
 import { urlPanel } from "@/lib/etiqueta";
 
@@ -85,6 +86,7 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
           <div className="h-56 w-56 rounded-2xl bg-white p-2 [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qrRecoger }} />
           <p className="font-mono text-[15px] font-semibold text-azul">{pedido.folio}</p>
           <p className="text-[14px] text-secundario">Tu material ya está en la sucursal. Revisas las piezas con nosotros, firmas y listo.</p>
+          <CompartirRecoger pedidoId={pedido.id} folio={pedido.folio} inicial={pedido.recibe_nombre && pedido.recibe_nombre !== pedido.contacto_nombre ? pedido.recibe_nombre : ""} />
         </div>
       )}
 

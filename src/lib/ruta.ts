@@ -56,18 +56,27 @@ export async function rutaDeHoy(choferId: string) {
 
 /** Última posición del chofer que lleva el pedido (para el seguimiento del cliente). */
 /** Última ubicación del pedido en ruta: la más reciente entre el teléfono del chofer y el GPS (o app) del vehículo. */
-export async function ultimaPosicion(pedidoId: string) {
+/**
+ * Dónde va el chofer, solo cuando ya viene hacia este cliente: su entrega es la siguiente de la ruta
+ * (no quedan otras pendientes antes) y la ubicación es reciente. Si no, cuántas entregas faltan antes.
+ */
+export async function ultimaPosicion(pedidoId: string): Promise<{ lat: number; lng: number; minutos: number } | { antes: number } | null> {
+  const [e] = await sql<{ ruta_id: string; vehiculo_id: string | null; antes: number }[]>`
+    select e.ruta_id, ru.vehiculo_id,
+           (select count(*)::int from entregas o where o.ruta_id = e.ruta_id and o.id <> e.id and o.estado = 'en_ruta'
+              and coalesce(o.orden_en_ruta, 999) < coalesce(e.orden_en_ruta, 999)) antes
+    from entregas e join rutas ru on ru.id = e.ruta_id
+    where e.pedido_id = ${pedidoId} and e.estado = 'en_ruta' limit 1`;
+  if (!e) return null;
+  if (e.antes > 0) return { antes: e.antes };
   const [p] = await sql<{ lat: number; lng: number; minutos: number }[]>`
-    with r as (
-      select ru.id, ru.vehiculo_id from entregas e join rutas ru on ru.id = e.ruta_id
-      where e.pedido_id = ${pedidoId} and e.estado = 'en_ruta' limit 1
-    ), pos as (
-      (select pr.lat, pr.lng, pr.registrada_en from posiciones_ruta pr join r on pr.ruta_id = r.id order by pr.registrada_en desc limit 1)
+    with pos as (
+      (select pr.lat, pr.lng, pr.registrada_en from posiciones_ruta pr where pr.ruta_id = ${e.ruta_id} order by pr.registrada_en desc limit 1)
       union all
-      (select pv.lat, pv.lng, pv.registrada_en from posiciones_vehiculo pv join r on pv.vehiculo_id = r.vehiculo_id
-       where pv.registrada_en > now() - interval '12 hours' order by pv.registrada_en desc limit 1)
+      (select pv.lat, pv.lng, pv.registrada_en from posiciones_vehiculo pv where pv.vehiculo_id = ${e.vehiculo_id} order by pv.registrada_en desc limit 1)
     )
-    select lat, lng, floor(extract(epoch from now() - registrada_en) / 60)::int as minutos from pos order by registrada_en desc limit 1`;
+    select lat, lng, floor(extract(epoch from now() - registrada_en) / 60)::int as minutos from pos
+    where registrada_en > now() - interval '30 minutes' order by registrada_en desc limit 1`;
   return p ?? null;
 }
 

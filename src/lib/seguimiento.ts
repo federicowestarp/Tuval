@@ -11,7 +11,9 @@ export const PLAZOS = {
   recordatorioHoras: 24,
   segundoRecordatorioHoras: 72,
   venceDias: 7,
-  reconfirmarHoras: 48,
+  reconfirmarHoras: 36,
+  /** Existencia baja del proveedor: reporta menos de este múltiplo de lo que pedimos (supuesto). */
+  existenciaBajaFactor: 2,
   archivarCotizacionDias: 30,
   archivarCerradoDias: 30,
 } as const;
@@ -19,6 +21,15 @@ export const PLAZOS = {
 /** Momento desde el que cuenta la frescura de existencias/precio del proveedor. */
 export const frescuraProveedor = sql`greatest(
   (select max(c.cargada_en) from cotizaciones_proveedor c where c.pedido_id = p.id), p.reconfirmado_en)`;
+
+/**
+ * Condición SQL: algún producto del pedido tiene existencia baja con el proveedor (reporta menos del doble de lo pedido)
+ * y no se ha reconfirmado después de cargar la cotización.
+ */
+export const existenciaBaja = sql`(exists (
+  select 1 from pedido_partidas pp join productos_proveedor x on x.producto_id = pp.producto_id
+  where pp.pedido_id = p.id and x.existencia_reportada is not null and x.existencia_reportada < pp.cantidad * ${PLAZOS.existenciaBajaFactor})
+  and (p.reconfirmado_en is null or p.reconfirmado_en < (select max(c.cargada_en) from cotizaciones_proveedor c where c.pedido_id = p.id)))`;
 
 /** Condición SQL: el pedido está archivado (por antigüedad). */
 export const archivado = sql`(
@@ -54,7 +65,7 @@ export async function pendientesSeguimiento() {
              round((extract(epoch from now() - ${frescuraProveedor}) / 3600)::numeric)::float horas
       from pedidos p
       where p.canal <> 'mostrador' and p.estado = 'recibido' and (p.aceptado_en is not null or p.confirmado_en is null)
-        and ${frescuraProveedor} < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras})
+        and (${frescuraProveedor} < now() - make_interval(hours => ${PLAZOS.reconfirmarHoras}) or ${existenciaBaja})
         and not ${archivado}
       order by 7 desc`,
   ]);
@@ -63,14 +74,15 @@ export async function pendientesSeguimiento() {
 
 /** Estado de vigencia de un pedido (para el detalle y el bloqueo de compra). */
 export async function vigencia(pedidoId: string) {
-  const [v] = await sql<{ horas_proveedor: number | null; dias_cliente: number | null }[]>`
-    select round((extract(epoch from now() - ${frescuraProveedor}) / 3600)::numeric, 1)::float horas_proveedor,
+  const [v] = await sql<{ horas_proveedor: number | null; dias_cliente: number | null; baja: boolean }[]>`
+    select ${existenciaBaja} baja, round((extract(epoch from now() - ${frescuraProveedor}) / 3600)::numeric, 1)::float horas_proveedor,
            case when p.confirmado_en is not null and p.aceptado_en is null
                 then round((extract(epoch from now() - p.confirmado_en) / 86400)::numeric, 1)::float end dias_cliente
     from pedidos p where p.id = ${pedidoId}`;
   return {
     horasProveedor: v?.horas_proveedor ?? null,
-    reconfirmar: v?.horas_proveedor != null && v.horas_proveedor > PLAZOS.reconfirmarHoras,
+    reconfirmar: (v?.horas_proveedor != null && v.horas_proveedor > PLAZOS.reconfirmarHoras) || !!v?.baja,
+    existenciaBaja: !!v?.baja,
     diasCliente: v?.dias_cliente ?? null,
     vencida: v?.dias_cliente != null && v.dias_cliente >= PLAZOS.venceDias,
   };

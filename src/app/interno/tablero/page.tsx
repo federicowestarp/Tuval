@@ -1,4 +1,5 @@
 import { Esqueleto } from "@/components/interno/Esqueleto";
+import { AvisoFaltantes } from "@/components/interno/AvisoFaltantes";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -60,6 +61,7 @@ async function Contenido({ searchParams }: { searchParams: PageProps<"/interno/t
       </div>
 
       <DatosPrueba hay={t.hayPrueba} />
+      <Suspense fallback={null}><AvisoFaltantes /></Suspense>
 
       <Suspense fallback={<div className="h-32 animate-pulse rounded-[20px] bg-white" />}><VentaDelDia /></Suspense>
 

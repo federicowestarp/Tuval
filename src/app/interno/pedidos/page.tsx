@@ -128,7 +128,7 @@ async function Lista({ searchParams }: { searchParams: PageProps<"/interno/pedid
               {siguiente === "comprado_proveedor" && p.reconfirmar ? (
                 <form action={reconfirmarProveedor}>
                   <input type="hidden" name="id" value={p.id} />
-                  <button title={`La cotización del proveedor tiene más de ${PLAZOS.reconfirmarHoras} h`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white">Ya reconfirmé con proveedor</button>
+                  <button title={`Cotización de más de ${PLAZOS.reconfirmarHoras} h o existencia baja con el proveedor`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white">Ya reconfirmé con proveedor</button>
                 </form>
               ) : siguiente && (
                 <form action={cambiarEstado}>
