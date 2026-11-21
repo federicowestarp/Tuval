@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloCargando } from "@/components/Progreso";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -89,7 +90,7 @@ export function Buscador({ inicial = "", grande = false, autoFocus = false, tran
           aria-label="Subir foto o PDF de tu lista"
           className={`flex shrink-0 items-center justify-center rounded-full bg-white text-azul shadow-sm hover:bg-piedra ${grande ? "h-12 w-12" : "h-9 w-9"}`}
         >
-          {subiendo ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-azul border-t-transparent" /> : <IconoCamara className="h-5 w-5" />}
+          {subiendo ? <AnilloCargando className="h-5 w-5" /> : <IconoCamara className="h-5 w-5" />}
         </button>
         <input ref={archivo} type="file" accept="image/*,application/pdf" onChange={alElegirArchivo} className="sr-only" />
       </form>

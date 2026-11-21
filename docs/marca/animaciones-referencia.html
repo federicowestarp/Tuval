@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tuval · Animaciones y aplicaciones</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--azul:#0B2E5C;--cian:#2BB3D9;--onCian:#071E3D;--tinta:#1D1D1F;--gris:#6E6E73;--piedra:#F4F2EE;--niebla:#F5F5F7;--borde:#E3E1DC;--ease:cubic-bezier(.2,.8,.2,1)}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--tinta);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:32px 20px 80px}
+.tag{font:600 12px Inter,sans-serif;color:var(--gris);text-transform:uppercase;letter-spacing:.08em}
+h1{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:clamp(32px,7vw,52px);letter-spacing:-.04em;line-height:1.02;margin:12px 0 10px}
+h1 span{color:var(--gris)}
+h2{font-family:'Inter Tight',sans-serif;font-weight:600;font-size:24px;letter-spacing:-.02em;margin:0}
+.lead{color:var(--gris);font-size:17px;line-height:1.55;margin:0}
+.sec{margin-top:44px}
+.desc{color:var(--gris);font-size:15px;line-height:1.5;margin:8px 0 6px}
+.spec{font:500 12px ui-monospace,Menlo,monospace;color:var(--gris);background:var(--niebla);border-radius:8px;padding:6px 10px;display:inline-block;margin:0 0 14px}
+.stage{background:var(--piedra);border-radius:24px;min-height:220px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.replay{font:600 14px Inter,sans-serif;color:var(--azul);background:#fff;border:1px solid var(--borde);border-radius:999px;padding:8px 14px;cursor:pointer;flex:none}
+.word{font-family:'Inter Tight',sans-serif;font-weight:600;letter-spacing:-.025em;line-height:1}
+.lk{display:inline-flex;align-items:center}
+.fade span{display:inline-block;opacity:0;animation:up .5s var(--ease) forwards}
+@keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.spin{animation:spin 1.1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.steps{display:flex;justify-content:space-between;font:600 13px Inter,sans-serif;color:var(--gris);margin-top:16px;width:100%}
+.steps span.on{color:var(--azul)}
+.card{background:#fff;border-radius:22px;padding:20px;display:flex;gap:16px;align-items:center;width:min(440px,90%)}
+.chip{font:600 12px Inter,sans-serif;padding:5px 11px;border-radius:999px;background:var(--cian);color:var(--onCian)}
+.btn{position:relative;height:58px;min-width:250px;border-radius:29px;background:var(--azul);color:#fff;border:0;font:500 17px Inter,sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:0 28px}
+.btn svg{flex:none}
+.icon{width:120px;height:120px;border-radius:28px;background:var(--azul);display:flex;align-items:center;justify-content:center}
+.pulse{animation:pulse 1.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.app{background:var(--niebla);border-radius:22px;padding:18px;min-height:200px;display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.app p{margin:0;font:600 14px Inter,sans-serif}
+.app small{color:var(--gris);font-size:13px;line-height:1.4}
+.full{grid-column:1/-1}
+@media (max-width:540px){.grid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tag">Tuval · Animación y aplicaciones</div>
+  <h1>El símbolo <span>también es interfaz.</span></h1>
+  <p class="lead">El anillo de Tuval es el corte de un tubo que se cierra hasta un punto cian: el pedido completo y a tiempo. En movimiento, ese mismo anillo carga, avanza y confirma dentro de la app.</p>
+
+  <div class="sec">
+    <div class="row"><h2>1 · Aparición del logo</h2><button class="replay" id="re1">Repetir</button></div>
+    <p class="desc">El anillo se traza, el punto cian aparece al final y entra el nombre. Arranque de la app, videos y redes.</p>
+    <span class="spec">trazo 700 ms · punto 300 ms · nombre 400 ms escalonado · ease (.2,.8,.2,1)</span>
+    <div class="stage" id="s1"></div>
+  </div>
+
+  <div class="sec">
+    <h2>2 · Cargando</h2>
+    <p class="desc">El anillo gira con el punto al frente. Sustituye al indicador de carga genérico en app y web.</p>
+    <span class="spec">giro continuo 1.1 s lineal</span>
+    <div class="stage"><svg class="spin" width="72" height="72" viewBox="0 0 64 64" role="img" aria-label="Cargando"><circle cx="32" cy="32" r="21" fill="none" stroke="#0B2E5C" stroke-width="11" stroke-linecap="round" stroke-dasharray="104.46 200"/><circle cx="37.44" cy="11.72" r="6.5" fill="#2BB3D9"/></svg></div>
+  </div>
+
+  <div class="sec">
+    <div class="row"><h2>3 · Estatus del pedido</h2><button class="replay" id="re3">Repetir</button></div>
+    <p class="desc">El anillo se va cerrando con cada paso. Al entregarse, el anillo queda igual al logo, con su punto cian, y aparece la palomita al centro. App, WhatsApp y pantalla de la sucursal.</p>
+    <span class="spec">cada paso 600 ms · palomita 300 ms</span>
+    <div class="stage" style="flex-direction:column;padding:28px">
+      <div class="card"><svg id="st" width="72" height="72" viewBox="0 0 64 64" role="img" aria-label="Avance del pedido"><circle cx="32" cy="32" r="21" fill="none" stroke="#E3E1DC" stroke-width="11"/><circle id="stArc" cx="32" cy="32" r="21" fill="none" stroke="#0B2E5C" stroke-width="11" stroke-linecap="round" stroke-dasharray="0 200"/><g id="stDot"><circle cx="53" cy="32" r="6.5" fill="#2BB3D9"/></g><path id="stChk" d="M24 33 L30 39 L41 26" fill="none" stroke="#0B2E5C" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg><div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--gris)">Pedido #[FOLIO] · Obra Lomas</span><span id="stTxt" style="font:600 19px 'Inter Tight',sans-serif;letter-spacing:-.02em">Recibido</span><span class="chip" id="stChip" style="align-self:flex-start">Sale hoy</span></div></div>
+      <div class="steps" style="width:min(440px,90%)" id="steps"><span>Recibido</span><span>Surtido</span><span>En ruta</span><span>Entregado</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>4 · Botón «Pedir»</h2>
+    <p class="desc">Al tocarlo, un anillo pequeño se traza dentro del botón y termina en palomita. Toca para probar.</p>
+    <span class="spec">trazo 600 ms · palomita 250 ms · vuelve en 2 s</span>
+    <div class="stage"><button class="btn" id="btn"><svg width="26" height="26" viewBox="0 0 64 64" aria-hidden="true"><circle id="bArc" cx="32" cy="32" r="21" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 200"/><path id="bChk" d="M22 33 L29 40 L43 24" fill="none" stroke="#2BB3D9" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg><span id="bTxt">Pedir ahora</span></button></div>
+  </div>
+
+  <div class="sec">
+    <h2>5 · Ícono y aviso «llegó»</h2>
+    <p class="desc">El punto cian late en el arranque de la app y en la notificación de pedido entregado.</p>
+    <span class="spec">latido 1.8 s · escala 1 → 1.3</span>
+    <div class="stage"><div class="icon"><svg width="80" height="80" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-dasharray="104.46 200"/><circle class="pulse" cx="37.44" cy="11.72" r="6.5" fill="#2BB3D9"/></svg></div></div>
+  </div>
+
+  <div class="sec">
+    <h2>6 · Actualizar (jalar hacia abajo)</h2>
+    <p class="desc">Al jalar la lista hacia abajo, el anillo se va dibujando según lo que jales; al soltar, gira mientras carga y la lista regresa. En pedidos, catálogo y existencias.</p>
+    <span class="spec">trazo = proporcional al jalón · giro 1.1 s · regreso 300 ms</span>
+    <div class="stage" style="min-height:330px"><div style="width:250px;height:290px;border-radius:30px;background:#fff;border:1px solid var(--borde);overflow:hidden;position:relative">
+      <div style="position:absolute;top:18px;left:0;right:0;display:flex;justify-content:center"><svg id="pr" width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><g id="prG"><circle id="prA" cx="32" cy="32" r="21" fill="none" stroke="#0B2E5C" stroke-width="11" stroke-linecap="round" stroke-dasharray="0 200"/><g id="prDot"><circle cx="53" cy="32" r="6.5" fill="#2BB3D9"/></g></g></svg></div>
+      <div id="prList" style="position:absolute;left:0;right:0;top:0;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fff">
+        <div style="font:600 18px 'Inter Tight',sans-serif;letter-spacing:-.02em;padding:4px 2px 6px">Mis pedidos</div>
+        <div style="background:var(--niebla);border-radius:14px;height:52px"></div>
+        <div style="background:var(--niebla);border-radius:14px;height:52px"></div>
+        <div style="background:var(--niebla);border-radius:14px;height:52px"></div>
+        <div style="background:var(--niebla);border-radius:14px;height:52px"></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="sec">
+    <h2>Aplicaciones</h2>
+    <p class="desc">El mismo anillo en todo lo que toca al cliente.</p>
+    <div class="grid">
+      <div class="app full" style="background:#fff;border:1px solid var(--borde);padding:0;overflow:hidden">
+        <div style="padding:22px 24px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap" id="fascia"></div>
+        <div style="height:110px;background:linear-gradient(180deg,#E6E8EC,#D5D9E0);display:grid;grid-template-columns:repeat(5,1fr);gap:5px;padding:5px"><i style="background:rgba(255,255,255,.65);border-radius:8px"></i><i style="background:rgba(255,255,255,.65);border-radius:8px"></i><i style="background:rgba(255,255,255,.65);border-radius:8px"></i><i style="background:rgba(255,255,255,.65);border-radius:8px"></i><i style="background:rgba(255,255,255,.65);border-radius:8px"></i></div>
+        <div style="padding:14px 24px"><p>Fachada</p><small>Letrero blanco retroiluminado, logo azul y vitrina amplia.</small></div>
+      </div>
+      <div class="app full" style="background:var(--azul);color:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:center"><span id="tv"></span><span style="font:500 13px Inter;color:#C9D6E6">Sucursal Centro</span></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="tvgrid"></div>
+        <div><p>Pantalla de pedidos en sucursal</p><small style="color:#C9D6E6">El mismo anillo de la app avisa en tienda qué pedido está listo.</small></div>
+      </div>
+      <div class="app"><div id="card" style="background:var(--azul);border-radius:12px;height:110px;display:flex;align-items:center;justify-content:center"></div><div><p>Tarjeta de presentación</p><small>Frente azul con logo blanco; reverso blanco.</small></div></div>
+      <div class="app"><div style="display:flex;align-items:center;justify-content:center;flex:1"><div style="width:110px;height:150px;background:#fff;border:1px solid var(--borde);border-radius:8px 8px 14px 14px;display:flex;align-items:center;justify-content:center;position:relative"><div style="position:absolute;top:-22px;width:46px;height:34px;border:6px solid var(--azul);border-bottom:none;border-radius:23px 23px 0 0"></div><span id="bag"></span></div></div><div><p>Bolsa de mostrador</p><small>Blanca con el anillo: limpia y reconocible.</small></div></div>
+      <div class="app"><div style="background:#fff;border:1px solid var(--borde);border-radius:14px;overflow:hidden"><div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--borde)"><span id="lab"></span><span style="font:600 11px Inter;color:var(--gris)">P2‑A3‑04</span></div><div style="padding:12px"><div style="font:600 15px 'Inter Tight'">Válvula de esfera 3/4"</div><div style="font-size:12px;color:var(--gris)">SKU [SKU]</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><b style="font:600 20px 'Inter Tight'">$ [PRECIO]</b><span class="chip" style="font-size:11px">Disponible hoy</span></div></div></div><div><p>Etiqueta de anaquel</p><small>Precio grande y un solo estado.</small></div></div>
+      <div class="app"><div style="display:flex;justify-content:center;gap:14px;align-items:center;flex:1"><div class="icon" style="width:72px;height:72px;border-radius:17px"><svg width="48" height="48" viewBox="0 0 64 64"><circle cx="32" cy="32" r="21" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-dasharray="104.46 200"/><circle cx="37.44" cy="11.72" r="6.5" fill="#2BB3D9"/></svg></div><div style="width:44px;height:44px;border-radius:50%;background:var(--piedra);display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 64 64"><circle cx="32" cy="32" r="21" fill="none" stroke="#0B2E5C" stroke-width="11" stroke-linecap="round" stroke-dasharray="104.46 200"/><circle cx="37.44" cy="11.72" r="6.5" fill="#2BB3D9"/></svg></div></div><div><p>Ícono de app y avatar</p><small>App, WhatsApp, redes y favicon.</small></div></div>
+      <div class="app full" style="padding:22px"><div style="position:relative;height:150px;max-width:520px;margin:0 auto;width:100%"><div style="position:absolute;left:0;top:0;width:72%;height:120px;background:#fff;border-radius:12px;border:1px solid var(--borde);display:flex;align-items:center;padding-left:22px" id="truck"></div><div style="position:absolute;left:72%;top:38px;width:24%;height:82px;background:#fff;border:1px solid var(--borde);border-radius:0 34px 8px 0"></div><div style="position:absolute;left:0;top:104px;width:96%;height:16px;background:var(--azul)"></div><div style="position:absolute;left:12%;top:110px;width:40px;height:40px;border-radius:50%;background:var(--tinta)"></div><div style="position:absolute;left:76%;top:110px;width:40px;height:40px;border-radius:50%;background:var(--tinta)"></div></div><div><p>Camioneta de reparto</p><small>Caja blanca, franja azul y el logo grande.</small></div></div>
+    </div>
+  </div>
+  <p class="desc" style="margin-top:40px">Dirección de diseño. Las especificaciones para programar estas animaciones están en ANIMACIONES.md del kit de marca. Los datos entre corchetes están por completar.</p>
+</div>
+<script>
+var L=104.46, A=285;
+function ring(size,rc,dc,extra){return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 64 64" aria-hidden="true" '+(extra||'')+'><circle cx="32" cy="32" r="21" fill="none" stroke="'+rc+'" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+L+' 200"/><circle cx="37.44" cy="11.72" r="6.5" fill="'+dc+'"/></svg>';}
+function logo(size,wc,rc){return '<span class="lk" style="gap:'+Math.round(size*0.24)+'px">'+ring(Math.round(size*0.92),rc,'#2BB3D9')+'<span class="word" style="font-size:'+Math.round(size*1.0)+'px;color:'+wc+'">Tuval</span></span>';}
+function tween(ms,fn,done){var t0=null;function f(t){if(!t0)t0=t;var p=Math.min(1,(t-t0)/ms);var e=1-Math.pow(1-p,3);fn(e);if(p<1)requestAnimationFrame(f);else if(done)done();}requestAnimationFrame(f);}
+function reveal(){
+  var s=document.getElementById('s1');
+  s.innerHTML='<span class="lk" style="gap:16px"><svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle id="rA" cx="32" cy="32" r="21" fill="none" stroke="#0B2E5C" stroke-width="11" stroke-linecap="round" stroke-dasharray="0 200"/><circle id="rD" cx="37.44" cy="11.72" r="0" fill="#2BB3D9"/></svg><span class="word fade" style="font-size:66px;color:#1D1D1F">'+'Tuval'.split('').map(function(c,i){return '<span style="animation-delay:'+(0.85+i*0.06)+'s">'+c+'</span>';}).join('')+'</span></span>';
+  var a=document.getElementById('rA'),d=document.getElementById('rD');
+  tween(700,function(e){a.setAttribute('stroke-dasharray',(L*e)+' 200');},function(){tween(300,function(e){d.setAttribute('r',6.5*e);});});
+}
+reveal();document.getElementById('re1').onclick=reveal;
+var names=['Recibido','Surtido','En ruta','Entregado'];
+function status(){
+  var arc=document.getElementById('stArc'),dot=document.getElementById('stDot'),chk=document.getElementById('stChk'),txt=document.getElementById('stTxt'),chip=document.getElementById('stChip'),st=document.querySelectorAll('#steps span');
+  chk.setAttribute('opacity',0);dot.style.opacity=1;chip.textContent='Sale hoy';
+  var i=0,cur=0;
+  function step(){
+    st.forEach(function(s,k){s.className=k<=i?'on':'';});txt.textContent=names[i];
+    var target=(i+1)/4, from=cur;
+    tween(600,function(e){var p=from+(target-from)*e;arc.setAttribute('stroke-dasharray',(L*p)+' 200');dot.setAttribute('transform','rotate('+(A*p)+' 32 32)');},function(){
+      cur=target;
+      if(i<3){i++;setTimeout(step,700);} else {chip.textContent='Entregado';tween(300,function(e){chk.setAttribute('opacity',e);});}
+    });
+  }
+  step();
+}
+status();document.getElementById('re3').onclick=status;
+var btn=document.getElementById('btn'),busy=false;
+btn.onclick=function(){
+  if(busy)return;busy=true;var a=document.getElementById('bArc'),c=document.getElementById('bChk'),t=document.getElementById('bTxt');
+  t.textContent='Enviando…';
+  tween(600,function(e){a.setAttribute('stroke-dasharray',(132*e)+' 200');},function(){tween(250,function(e){c.setAttribute('opacity',e);});t.textContent='¡Pedido!';
+    setTimeout(function(){a.setAttribute('stroke-dasharray','0 200');c.setAttribute('opacity',0);t.textContent='Pedir ahora';busy=false;},2000);});
+};
+(function(){
+  var list=document.getElementById('prList'),A2=document.getElementById('prA'),D2=document.getElementById('prDot'),G2=document.getElementById('prG');
+  function cyc(){
+    G2.setAttribute('transform','');
+    tween(900,function(e){list.style.transform='translateY('+(64*e)+'px)';A2.setAttribute('stroke-dasharray',(L*e)+' 200');D2.setAttribute('transform','rotate('+(A*e)+' 32 32)');},function(){
+      var t0=performance.now(),run=true;
+      (function sp(t){if(!run)return;G2.setAttribute('transform','rotate('+(((t-t0)/1100*360)%360)+' 32 32)');requestAnimationFrame(sp);})(t0);
+      setTimeout(function(){run=false;tween(300,function(e){list.style.transform='translateY('+(64*(1-e))+'px)';});setTimeout(function(){A2.setAttribute('stroke-dasharray','0 200');D2.setAttribute('transform','');},320);setTimeout(cyc,1800);},1400);
+    });
+  }
+  cyc();
+})();
+document.getElementById('fascia').innerHTML=logo(64,'#1D1D1F','#0B2E5C')+'<span style="font:600 16px \'Inter Tight\';letter-spacing:-.02em;text-align:right">Tubería, equipos y eléctrico.<br><span style="color:#6E6E73">Todo, a tiempo.</span></span>';
+document.getElementById('tv').innerHTML=logo(30,'#fff','#fff');
+var g='';[['#[FOLIO]','Listo',1],['#[FOLIO]','Surtiendo',.5],['#[FOLIO]','Recibido',.25]].forEach(function(r){g+='<div style="background:rgba(255,255,255,.08);border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:8px"><svg width="44" height="44" viewBox="0 0 64 64"><circle cx="32" cy="32" r="21" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="11"/><circle cx="32" cy="32" r="21" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-dasharray="'+(L*r[2])+' 200"/><g transform="rotate('+(A*r[2])+' 32 32)"><circle cx="53" cy="32" r="6.5" fill="#2BB3D9"/></g></svg><span style="font:600 14px Inter">'+r[0]+'</span><span style="font:500 12px Inter;color:#C9D6E6">'+r[1]+'</span></div>';});
+document.getElementById('tvgrid').innerHTML=g;
+document.getElementById('card').innerHTML=logo(40,'#fff','#fff');
+document.getElementById('bag').innerHTML=ring(58,'#0B2E5C','#2BB3D9');
+document.getElementById('lab').innerHTML=logo(18,'#1D1D1F','#0B2E5C');
+document.getElementById('truck').innerHTML=logo(56,'#1D1D1F','#0B2E5C');
+</script>
+</body>
+</html>

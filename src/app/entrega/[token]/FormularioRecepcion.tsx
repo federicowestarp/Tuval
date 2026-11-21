@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloBoton } from "@/components/Progreso";
 import { useActionState, useState } from "react";
 import type { PartidaPedido } from "@/lib/pedidos";
 import { IconoMas, IconoMenos } from "@/components/Iconos";
@@ -45,7 +46,7 @@ export function FormularioRecepcion({ token, partidas }: { token: string; partid
       <textarea name="comentario" rows={2} placeholder="Comentario (opcional)" className={areaTexto} />
       {estado.error && <p role="alert" className="font-semibold text-red-700">{estado.error}</p>}
       <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>
-        {enviando ? "Enviando…" : faltan ? `Confirmar con ${faltan} faltante${faltan === 1 ? "" : "s"}` : "Llegó todo completo"}
+        {enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : faltan ? `Confirmar con ${faltan} faltante${faltan === 1 ? "" : "s"}` : "Llegó todo completo"}
       </button>
     </form>
   );

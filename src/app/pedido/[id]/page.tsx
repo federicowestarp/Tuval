@@ -78,7 +78,7 @@ async function Contenido({ params, searchParams }: Pick<PageProps<"/pedido/[id]"
         </div>
       )}
 
-      {actual >= 0 && <Progreso actual={listoRecoger ? 2 : actual} recoger={recoger} />}
+      {actual >= 0 && <Progreso actual={listoRecoger ? 2 : actual} recoger={recoger} recuerdo={String(pedido.id)} />}
 
       {listoRecoger && qrRecoger && (
         <div className="flex flex-col items-center gap-3 rounded-[24px] bg-[#E8F1FB] p-6 text-center">

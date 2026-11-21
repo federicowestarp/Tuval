@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { JalarParaActualizar } from "@/components/JalarParaActualizar";
 import Link from "next/link";
 import { Marco } from "@/components/marco/Marco";
 import { BotonLiga, Titulo } from "@/components/ui";
@@ -7,15 +8,18 @@ import { cuentaActual } from "@/lib/sesion";
 import { sql } from "@/lib/db";
 import { ETAPAS_CLIENTE, etapaCliente, type EstadoPedido } from "@/lib/estados";
 import { formatoMoneda } from "@/lib/catalogo";
+import { AnilloAvance } from "@/components/Progreso";
 
 export default function MisPedidos() {
   return (
     <Marco pie={false}>
       <main className="mx-auto max-w-xl px-4 py-10 sm:px-6 sm:py-14">
+        <JalarParaActualizar>
         <Titulo>Pedidos.</Titulo>
         <Suspense fallback={<div className="h-40 animate-pulse rounded-[20px] bg-niebla" />}>
           <Lista />
         </Suspense>
+        </JalarParaActualizar>
       </main>
     </Marco>
   );
@@ -46,7 +50,8 @@ async function Lista() {
         return (
           <li key={p.id}>
             <Link href={`/pedido/${p.id}`} className="flex items-center gap-4 py-4">
-              <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${e === 3 ? "bg-secundario/40" : e === -1 ? "bg-red-400" : "bg-cian"}`} />
+              {e === -1 ? <span className="flex h-6 w-6 shrink-0 items-center justify-center"><span className="h-2.5 w-2.5 rounded-full bg-red-400" /></span>
+                : <AnilloAvance actual={e} recuerdo={p.id} etiqueta={`${ETAPAS_CLIENTE[e]}, ${(e + 1) * 25} %`} className="h-6 w-6 shrink-0" />}
               <span className="flex-1">
                 <span className="block font-semibold">{e === -1 ? "Cancelado" : p.estado === "entregado_con_faltantes" ? "Entregado con faltantes" : ETAPAS_CLIENTE[e]}</span>
                 <span className="block text-[14px] text-secundario">

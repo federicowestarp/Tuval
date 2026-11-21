@@ -1,6 +1,6 @@
 # Tuval: kit de marca para desarrollar la app (versión 2)
 
-> **Para Claude Code / desarrolladores:** este archivo, `APP.md`, `tokens.json`, `tokens.css` y la carpeta `logos/` son la fuente de verdad de Tuval. Úsalos tal cual: no inventes colores, fuentes ni logos. El PDF `Manual_de_marca_Tuval.pdf` es la referencia visual completa. Los datos entre corchetes (`[PRECIO]`, `[HORA]`, etc.) no existen todavía: déjalos como campos configurables y no inventes valores.
+> **Para Claude Code / desarrolladores:** este archivo, `APP.md`, `ANIMACIONES.md`, `tokens.json`, `tokens.css` y la carpeta `logos/` son la fuente de verdad de Tuval. Úsalos tal cual: no inventes colores, fuentes ni logos. El PDF `Manual_de_marca_Tuval.pdf` es la referencia visual completa. Los datos entre corchetes (`[PRECIO]`, `[HORA]`, etc.) no existen todavía: déjalos como campos configurables y no inventes valores.
 
 ## 0. Principio rector
 
@@ -85,7 +85,7 @@ Archivos en `logos/` (texto convertido a trazos, no requieren fuente):
 
 **Reglas:** no deformar, rotar ni recolorear; área de respeto igual al alto del símbolo; mínimo 24 px de alto (debajo, solo el símbolo). Los primeros meses, el símbolo siempre acompañado del nombre.
 
-**El símbolo también es interfaz:** el mismo anillo se usa como indicador de avance del pedido (ver `APP.md`).
+**El símbolo también es interfaz:** el mismo anillo es el lenguaje de movimiento de la app (carga, avance del pedido, confirmación). Especificaciones en `ANIMACIONES.md`; referencia visual en `animaciones-referencia.html`.
 
 ## 7. Forma, espacio e iconos
 

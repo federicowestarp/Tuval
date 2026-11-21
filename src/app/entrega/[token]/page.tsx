@@ -42,7 +42,7 @@ async function Contenido({ params }: Pick<PageProps<"/entrega/[token]">, "params
         <p className="mt-2 text-[15px] text-secundario">Pedido {pedido.folio} · {pedido.direccion_entrega}</p>
       </div>
 
-      {actual >= 0 && <Progreso actual={actual} />}
+      {actual >= 0 && <Progreso actual={actual} recuerdo={`e-${token}`} />}
 
       <EnCamino pedidoId={pedido.id} estado={pedido.estado} />
 

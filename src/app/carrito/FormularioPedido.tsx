@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloBoton } from "@/components/Progreso";
 import { PagarEnCaja } from "./PagarEnCaja";
 
 import { useActionState, useState } from "react";
@@ -192,7 +193,7 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono, r
       <div className="fixed inset-x-0 bottom-14 z-30 border-t border-linea/70 bg-white/90 p-3 backdrop-blur-xl md:static md:border-0 md:bg-transparent md:p-0">
         <div className="mx-auto max-w-2xl">
           <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>
-            {enviando ? "Enviando…" : `Enviar pedido · ${piezas} ${piezas === 1 ? "artículo" : "artículos"}`}
+            {enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : `Enviar pedido · ${piezas} ${piezas === 1 ? "artículo" : "artículos"}`}
           </button>
           <p className="mt-2 hidden text-center text-[13px] text-secundario md:block">Te confirmamos total y forma de pago por WhatsApp antes de surtir.</p>
         </div>

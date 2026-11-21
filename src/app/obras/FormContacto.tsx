@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloBoton } from "@/components/Progreso";
 import { useActionState } from "react";
 import { areaTexto, campo, clasesBoton, etiqueta } from "@/components/ui";
 import { IconoCheck } from "@/components/Iconos";
@@ -29,7 +30,7 @@ export function FormContacto() {
       </div>
       <div><label className={etiqueta} htmlFor="mensaje">Cuéntanos de tu obra</label><textarea id="mensaje" name="mensaje" defaultValue={v.mensaje} rows={3} className={areaTexto} placeholder="Ubicación, tipo de obra, qué material necesitas y desde cuándo" /></div>
       {e.error && <p role="alert" className="font-semibold text-red-700">{e.error}</p>}
-      <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>{enviando ? "Enviando…" : "Quiero que me contacten"}</button>
+      <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>{enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : "Quiero que me contacten"}</button>
     </form>
   );
 }

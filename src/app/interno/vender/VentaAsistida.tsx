@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloBoton } from "@/components/Progreso";
 import { useState, useTransition } from "react";
 import QRCode from "qrcode";
 import type { ProductoMostrador } from "@/lib/inventario";
@@ -83,7 +84,7 @@ export function VentaAsistida() {
         <p className="text-[12px] text-secundario">Precio público; si el cliente tiene lista especial, caja la aplica al cobrar.{sinPrecio ? " Hay piezas sin precio: caja lo captura." : ""}</p>
         <ClienteVenta cliente={cliente} onCambio={setCliente} />
         <button type="button" disabled={enviando || lineas.length === 0} onClick={enviar} className="w-full rounded-full bg-azul py-3 font-semibold text-white disabled:opacity-40">
-          {enviando ? "Enviando…" : "Mandar a caja"}
+          {enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : "Mandar a caja"}
         </button>
       </aside>
     </div>

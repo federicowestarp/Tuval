@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { JalarParaActualizar } from "@/components/JalarParaActualizar";
 import Link from "next/link";
 import { Marco } from "@/components/marco/Marco";
 import { Buscador } from "@/components/tienda/Buscador";
@@ -22,10 +23,12 @@ export default function Tienda(props: PageProps<"/tienda">) {
       }
     >
       <main className="mx-auto max-w-6xl px-4 pt-4 sm:px-6 sm:pt-6">
+        <JalarParaActualizar>
         <h1 className="mb-4 font-display text-[34px] font-semibold sm:text-5xl">Tienda</h1>
         <Suspense fallback={<Esqueleto />}>
           <Resultados searchParams={props.searchParams} />
         </Suspense>
+        </JalarParaActualizar>
       </main>
     </Marco>
   );

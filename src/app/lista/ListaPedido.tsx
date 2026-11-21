@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloCargando } from "@/components/Progreso";
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useCarrito } from "@/components/carrito/CarritoProvider";
@@ -76,7 +77,7 @@ export function ListaPedido() {
         className="flex w-full items-center gap-4 rounded-[20px] bg-niebla p-5 text-left transition hover:bg-piedra"
       >
         <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white text-azul">
-          {subiendo ? <span className="h-5 w-5 animate-spin rounded-full border-2 border-azul border-t-transparent" /> : <IconoCamara className="h-7 w-7" />}
+          {subiendo ? <AnilloCargando className="h-6 w-6" /> : <IconoCamara className="h-7 w-7" />}
         </span>
         <span>
           <span className="block text-[17px] font-semibold">Foto o PDF de tu lista</span>

@@ -36,3 +36,23 @@ export function Logo({ tono = "color", className = "h-7 w-auto" }: { tono?: "col
     </svg>
   );
 }
+
+/**
+ * Aparición del logo (arranque): el anillo se traza en 700 ms, aparece el punto cian (300 ms) y entran las letras
+ * una por una (400 ms, 60 ms de diferencia). Después el punto late mientras termina de cargar. Solo CSS.
+ */
+export function LogoAnimado({ className = "h-16 w-auto" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 353 100" className={className} role="img" aria-label="Tuval">
+      <g transform="translate(0.0 4.0) scale(1.4375)">
+        <circle className="logo-trazo" cx="32" cy="32" r="21" fill="none" stroke={AZUL} strokeWidth="11" strokeLinecap="round" strokeDasharray="104.46 200" />
+        <circle className="logo-punto" cx="37.44" cy="11.72" r="6.5" fill={CIAN} />
+      </g>
+      {LETRAS.map(([t, d], i) => (
+        <g key={t} className="logo-letra" style={{ animationDelay: `${850 + i * 60}ms` }}>
+          <path transform={t} d={d} fill={TINTA} />
+        </g>
+      ))}
+    </svg>
+  );
+}

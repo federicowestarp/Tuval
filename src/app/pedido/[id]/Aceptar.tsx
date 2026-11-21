@@ -1,5 +1,6 @@
 "use client";
 
+import { AnilloBoton } from "@/components/Progreso";
 import { useState, useTransition } from "react";
 import { clasesBoton } from "@/components/ui";
 import { aceptarCotizacion } from "./aceptar-acciones";
@@ -10,7 +11,7 @@ export function Aceptar({ pedidoId }: { pedidoId: string }) {
   if (msg) return <p className="rounded-[20px] bg-niebla p-5 text-[15px] font-semibold">{msg}</p>;
   return (
     <button type="button" disabled={enviando} onClick={() => iniciar(async () => setMsg((await aceptarCotizacion(pedidoId)).mensaje))} className={clasesBoton("principal", "grande", true)}>
-      {enviando ? "Enviando…" : "Acepto la cotización"}
+      {enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : "Acepto la cotización"}
     </button>
   );
 }
