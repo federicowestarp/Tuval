@@ -6,7 +6,8 @@ import { AnilloCargando } from "@/components/Progreso";
 
 /**
  * Pantalla de arranque (docs/marca/ANIMACIONES.md §1): el anillo se traza, aparece el punto, entra «Tuval» y el punto late.
- * La aparición completa (~1.3 s) se ve la primera vez en la sesión; después solo hasta que la app responde.
+ * Se ve completa (~1.5 s) solo la primera vez en la sesión; después no aparece (un script en layout la oculta antes de pintar),
+ * para que nunca se corte a la mitad.
  * Tocar la pantalla la salta. Un respaldo CSS la oculta a los 4 s pase lo que pase.
  */
 export function Arranque() {
@@ -18,7 +19,7 @@ export function Arranque() {
       sessionStorage.setItem("tuval.arranque", "1");
     } catch { /* sin almacenamiento: se trata como primera vez */ }
     const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const t = setTimeout(() => setVisible(false), vista || reducido ? 150 : 1500);
+    const t = setTimeout(() => setVisible(false), vista ? 0 : reducido ? 150 : 1600);
     return () => clearTimeout(t);
   }, []);
   return (

@@ -97,6 +97,7 @@ html.sin-jalon-nativo, html.sin-jalon-nativo body { overscroll-behavior-y: conta
 /* Pantalla de arranque: respaldo CSS que la oculta a los 4 s pase lo que pase. */
 @keyframes ocultar-arranque { to { opacity: 0; visibility: hidden; } }
 .arranque { animation: ocultar-arranque 0.3s ease 4s forwards; }
+html.arranque-visto .arranque { display: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .anillo-gira, .anillo-gira-ya, .anillo-boton, .anillo-boton-trazo, .anillo-boton-palomita, .logo-trazo, .logo-punto, .logo-letra, .logo-anillo, .punto-late { animation: none; }

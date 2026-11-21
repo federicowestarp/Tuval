@@ -24,8 +24,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="es-MX"
       className={`${inter.variable} ${interTight.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
+        {/* Si ya se vio la animación de arranque en esta sesión, no se vuelve a mostrar (antes de pintar, para que no aparezca a medias). */}
+        <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('tuval.arranque')==='1')document.documentElement.classList.add('arranque-visto')}catch(e){}" }} />
         <Arranque />
         <CarritoProvider>{children}</CarritoProvider>
       </body>
