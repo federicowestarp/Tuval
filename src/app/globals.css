@@ -85,6 +85,9 @@ body {
 .logo-trazo { animation: anillo-trazar 700ms var(--mov-ease) both; }
 .logo-punto { transform-box: fill-box; transform-origin: center; animation: punto-aparece 300ms var(--mov-ease) 700ms both, punto-late 1.8s ease-in-out 1.2s infinite; }
 .logo-letra { animation: letra-sube 400ms var(--mov-ease) both; }
+/* El anillo solo queda al centro de la pantalla; al entrar el nombre se recorre a su lugar (130.5 = centro del logo − centro del anillo). */
+@keyframes anillo-a-su-lugar { from { transform: translateX(130.5px); } to { transform: none; } }
+.logo-anillo { animation: anillo-a-su-lugar 450ms var(--mov-ease) 800ms both; }
 .punto-late { transform-box: fill-box; transform-origin: center; animation: punto-late 1.8s ease-in-out infinite; }
 
 /* 6 · Actualizar al jalar: la lista regresa en 300 ms. Se apaga el jalón nativo del navegador para que no recargue toda la página. */
@@ -96,7 +99,7 @@ html.sin-jalon-nativo, html.sin-jalon-nativo body { overscroll-behavior-y: conta
 .arranque { animation: ocultar-arranque 0.3s ease 4s forwards; }
 
 @media (prefers-reduced-motion: reduce) {
-  .anillo-gira, .anillo-gira-ya, .anillo-boton, .anillo-boton-trazo, .anillo-boton-palomita, .logo-trazo, .logo-punto, .logo-letra, .punto-late { animation: none; }
+  .anillo-gira, .anillo-gira-ya, .anillo-boton, .anillo-boton-trazo, .anillo-boton-palomita, .logo-trazo, .logo-punto, .logo-letra, .logo-anillo, .punto-late { animation: none; }
   .anillo-mueve .anillo-arco, .anillo-mueve .anillo-giro, .anillo-palomita, .jalon-regresa { transition: none; }
 }
 
