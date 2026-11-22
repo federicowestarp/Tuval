@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { EscanerQR, skuDeQr } from "@/components/interno/EscanerQR";
-import { registrarChequeo } from "./acciones";
+import type { EstadoChequeo } from "./acciones";
+import { enviarOGuardar } from "@/lib/cola";
 
 /**
  * Un chequeo: primero escanea la etiqueta del anaquel (confirma que la etiqueta corresponde al producto),
@@ -23,8 +24,10 @@ export function Chequear({ id, sku, nombre, ubicacion }: { id: string; sku: stri
     setPaso("contar");
   };
   const guardar = () => iniciar(async () => {
-    const r = await registrarChequeo(id, Number(cantidad.replace(",", ".")), etiquetaOk);
-    if (r.error) { setAviso(r.error); return; }
+    const env = await enviarOGuardar("registrarChequeo", [id, Number(cantidad.replace(",", ".")), etiquetaOk], `Chequeo de anaquel · ${nombre}`);
+    if (env.estado === "error") { setAviso(env.error); return; }
+    if (env.estado === "guardado") { setResultado("Guardado sin señal ✓ Se envía solo al volver la conexión."); setPaso("hecho"); return; }
+    const r = env.respuesta.resultado as EstadoChequeo;
     setResultado(r.diferencia ? "Guardado. No cuadra con el sistema: supervisión lo va a revisar." : "Guardado ✓ Cuadra con el sistema.");
     setPaso("hecho");
   });

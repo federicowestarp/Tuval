@@ -7,13 +7,14 @@ import { guardarArchivo, TIPOS_IMAGEN } from "@/lib/archivos";
 import { hoyMx, rutaDeHoy } from "@/lib/ruta";
 import { conciliarFactura } from "@/lib/proceso";
 import { leerCfdi } from "@/lib/cfdi";
+import { momento } from "@/lib/momento";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-async function asegurarRuta(choferId: string, vehiculoId: string | null = null) {
+async function asegurarRuta(choferId: string, vehiculoId: string | null = null, t: Date = new Date()) {
   const [r] = await sql<{ id: string }[]>`
-    insert into rutas (chofer_id, fecha, iniciada_en, vehiculo_id) values (${choferId}, ${hoyMx()}, now(), ${vehiculoId})
-    on conflict (chofer_id, fecha) do update set iniciada_en = coalesce(rutas.iniciada_en, now()), terminada_en = null,
+    insert into rutas (chofer_id, fecha, iniciada_en, vehiculo_id) values (${choferId}, ${hoyMx()}, ${t}, ${vehiculoId})
+    on conflict (chofer_id, fecha) do update set iniciada_en = coalesce(rutas.iniciada_en, ${t}), terminada_en = null,
       vehiculo_id = coalesce(excluded.vehiculo_id, rutas.vehiculo_id)
     returning id`;
   return r.id;
@@ -22,7 +23,7 @@ async function asegurarRuta(choferId: string, vehiculoId: string | null = null) 
 export async function iniciarRuta(fd: FormData) {
   const yo = await requerirInterno();
   const v = String(fd.get("vehiculo_id") ?? "");
-  const id = await asegurarRuta(yo.id, UUID.test(v) ? v : null);
+  const id = await asegurarRuta(yo.id, UUID.test(v) ? v : null, momento(fd));
   const odo = Math.round(Number(fd.get("odometro")));
   let foto: string | null = null;
   try { foto = await guardarArchivo(fd.get("foto_odometro"), TIPOS_IMAGEN); } catch { foto = null; }
@@ -36,7 +37,7 @@ export async function terminarRuta(fd: FormData) {
   let foto: string | null = null;
   try { foto = await guardarArchivo(fd.get("foto_odometro"), TIPOS_IMAGEN); } catch { foto = null; }
   await sql`
-    update rutas set terminada_en = now(),
+    update rutas set terminada_en = ${momento(fd)},
       odometro_fin = case when ${odo > 0} and ${odo} >= coalesce(odometro_inicio, 0) then ${odo > 0 ? odo : null}::int else odometro_fin end,
       foto_odometro_fin = coalesce(${foto}, foto_odometro_fin)
     where chofer_id = ${yo.id} and fecha = ${hoyMx()}`;
@@ -48,7 +49,8 @@ export async function salirAEntregar(fd: FormData) {
   const yo = await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   if (!UUID.test(pedidoId)) return;
-  const rutaId = await asegurarRuta(yo.id);
+  const t = momento(fd);
+  const rutaId = await asegurarRuta(yo.id, null, t);
   await sql.begin(async (tx) => {
     const [p] = await tx<{ estado: string }[]>`select estado from pedidos where id = ${pedidoId} for update`;
     if (!p || (p.estado !== "surtido" && p.estado !== "en_ruta")) return;
@@ -56,7 +58,7 @@ export async function salirAEntregar(fd: FormData) {
     const [e] = await tx`select 1 from entregas where pedido_id = ${pedidoId} and estado in ('programada', 'en_ruta')`;
     if (e) await tx`update entregas set ruta_id = ${rutaId}, estado = 'en_ruta' where pedido_id = ${pedidoId} and estado in ('programada', 'en_ruta')`;
     else await tx`insert into entregas (pedido_id, ruta_id, estado) values (${pedidoId}, ${rutaId}, 'en_ruta')`;
-    if (p.estado !== "en_ruta") await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${pedidoId}, 'en_ruta', 'Salió a entregar', ${yo.id})`;
+    if (p.estado !== "en_ruta") await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id, creado_en) values (${pedidoId}, 'en_ruta', 'Salió a entregar', ${yo.id}, ${t})`;
   });
   refrescar("/interno/chofer");
 }
@@ -109,12 +111,13 @@ export async function entregar(_prev: EstadoEntrega, fd: FormData): Promise<Esta
   }
   if (!sinRecepcion && !firma) return { error: "Falta la firma de quien recibe." };
 
-  const rutaId = await asegurarRuta(yo.id);
+  const t = momento(fd);
+  const rutaId = await asegurarRuta(yo.id, null, t);
   await sql.begin(async (tx) => {
     let [e] = await tx<{ id: string }[]>`select id from entregas where pedido_id = ${pedidoId} and estado in ('programada', 'en_ruta') limit 1`;
     if (!e) [e] = await tx<{ id: string }[]>`insert into entregas (pedido_id, ruta_id, estado) values (${pedidoId}, ${rutaId}, 'en_ruta') returning id`;
     await tx`
-      update entregas set estado = 'entregada', entregada_en = now(), sin_recepcion = ${sinRecepcion},
+      update entregas set estado = 'entregada', entregada_en = ${t}, sin_recepcion = ${sinRecepcion},
         recibio_nombre = ${sinRecepcion ? null : recibio}, recibio_telefono = ${String(fd.get("recibio_telefono") ?? "").replace(/\D/g, "") || null},
         notas = ${String(fd.get("notas") ?? "").trim() || null}, lat = ${lat}, lng = ${lng},
         firma_archivo_id = ${firma}, checklist = ${tx.json(recibido as never)}
@@ -122,11 +125,11 @@ export async function entregar(_prev: EstadoEntrega, fd: FormData): Promise<Esta
     for (const x of recibido) await tx`update pedido_partidas set cantidad_recibida = ${x.recibida} where id = ${x.id}`;
     for (const a of ids) await tx`insert into entrega_fotos (entrega_id, url, lat, lng) values (${e.id}, ${"/archivos/" + a}, ${lat}, ${lng})`;
     await tx`update pedidos set estado = ${conFaltantes ? "entregado_con_faltantes" : "entregado"} where id = ${pedidoId} and estado in ('en_ruta', 'surtido')`;
-    await tx`update paradas_ruta set salida_en = now() where pedido_id = ${pedidoId} and tipo = 'entrega' and salida_en is null`;
+    await tx`update paradas_ruta set salida_en = ${t} where pedido_id = ${pedidoId} and tipo = 'entrega' and salida_en is null`;
     await tx`
-      insert into pedido_eventos (pedido_id, estado, nota, usuario_id)
+      insert into pedido_eventos (pedido_id, estado, nota, usuario_id, creado_en)
       values (${pedidoId}, ${conFaltantes ? "entregado_con_faltantes" : "entregado"},
-              ${(sinRecepcion ? "Entregado sin recepción (con foto)" : `Recibió y firmó ${recibio}`) + (conFaltantes ? ` · faltó: ${recibido.filter((x) => x.recibida < x.cantidad).length} partida(s)` : "")}, ${yo.id})`;
+              ${(sinRecepcion ? "Entregado sin recepción (con foto)" : `Recibió y firmó ${recibio}`) + (conFaltantes ? ` · faltó: ${recibido.filter((x) => x.recibida < x.cantidad).length} partida(s)` : "")}, ${yo.id}, ${t})`;
   });
   refrescar("/interno/chofer");
   return { ok: true };
@@ -137,21 +140,30 @@ export async function llegarARecoger(fd: FormData) {
   const yo = await requerirInterno();
   const almacen = String(fd.get("almacen_id"));
   if (!UUID.test(almacen)) return;
-  const rutaId = await asegurarRuta(yo.id);
+  const t = momento(fd);
+  const rutaId = await asegurarRuta(yo.id, null, t);
   const [abierta] = await sql`select 1 from paradas_ruta where ruta_id = ${rutaId} and tipo = 'recoleccion' and salida_en is null`;
-  if (!abierta) await sql`insert into paradas_ruta (ruta_id, tipo, almacen_id, lat, lng) values (${rutaId}, 'recoleccion', ${almacen}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null})`;
+  if (!abierta) await sql`insert into paradas_ruta (ruta_id, tipo, almacen_id, lat, lng, llegada_en) values (${rutaId}, 'recoleccion', ${almacen}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null}, ${t})`;
   refrescar("/interno/chofer");
 }
 
 /** Recogió: los pedidos marcados pasan a "surtido" y la parada se cierra (tiempo de espera en bodega). */
 export async function salirDeRecoger(fd: FormData) {
   const yo = await requerirInterno();
-  const parada = String(fd.get("parada_id"));
   const pedidos = fd.getAll("pedido_id").map(String).filter((x) => UUID.test(x));
-  if (!UUID.test(parada)) return;
+  const t = momento(fd);
+  // Sin señal el teléfono no conoce el id de la parada: se usa la recolección abierta de este chofer.
+  let parada = String(fd.get("parada_id") ?? "");
+  if (!UUID.test(parada)) {
+    const [a] = await sql<{ id: string }[]>`
+      select pr.id from paradas_ruta pr join rutas r on r.id = pr.ruta_id
+      where r.chofer_id = ${yo.id} and pr.tipo = 'recoleccion' and pr.salida_en is null order by pr.llegada_en desc limit 1`;
+    if (!a) return;
+    parada = a.id;
+  }
   await sql.begin(async (tx) => {
     const [p] = await tx<{ almacen: string }[]>`
-      update paradas_ruta pr set salida_en = now() from rutas r, almacenes a
+      update paradas_ruta pr set salida_en = ${t} from rutas r, almacenes a
       where pr.id = ${parada} and r.id = pr.ruta_id and r.chofer_id = ${yo.id} and a.id = pr.almacen_id and pr.salida_en is null
       returning a.nombre almacen`;
     if (!p) return;
@@ -159,7 +171,7 @@ export async function salirDeRecoger(fd: FormData) {
       const [u] = await tx`update pedidos set estado = 'surtido' where id = ${id} and estado = 'comprado_proveedor' returning id`;
       if (!u) continue;
       await tx`insert into parada_pedidos (parada_id, pedido_id) values (${parada}, ${id}) on conflict do nothing`;
-      await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id) values (${id}, 'surtido', ${"Recolectado en " + p.almacen}, ${yo.id})`;
+      await tx`insert into pedido_eventos (pedido_id, estado, nota, usuario_id, creado_en) values (${id}, 'surtido', ${"Recolectado en " + p.almacen}, ${yo.id}, ${t})`;
     }
   });
   refrescar("/interno/chofer");
@@ -170,9 +182,10 @@ export async function llegueConCliente(fd: FormData) {
   const yo = await requerirInterno();
   const pedidoId = String(fd.get("pedido_id"));
   if (!UUID.test(pedidoId)) return;
-  const rutaId = await asegurarRuta(yo.id);
+  const t = momento(fd);
+  const rutaId = await asegurarRuta(yo.id, null, t);
   const [ya] = await sql`select 1 from paradas_ruta where pedido_id = ${pedidoId} and tipo = 'entrega' and salida_en is null`;
-  if (!ya) await sql`insert into paradas_ruta (ruta_id, tipo, pedido_id, lat, lng) values (${rutaId}, 'entrega', ${pedidoId}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null})`;
+  if (!ya) await sql`insert into paradas_ruta (ruta_id, tipo, pedido_id, lat, lng, llegada_en) values (${rutaId}, 'entrega', ${pedidoId}, ${Number(fd.get("lat")) || null}, ${Number(fd.get("lng")) || null}, ${t})`;
   refrescar("/interno/chofer");
 }
 

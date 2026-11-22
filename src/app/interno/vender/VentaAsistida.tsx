@@ -1,5 +1,6 @@
 "use client";
 
+import { useEnLinea } from "@/components/ModoSinConexion";
 import { AnilloBoton } from "@/components/Progreso";
 import { useState, useTransition } from "react";
 import QRCode from "qrcode";
@@ -16,6 +17,7 @@ const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currenc
 
 /** Tablet del vendedor: arma el pedido con el cliente (busca o escanea etiquetas) y lo manda a caja con un código. */
 export function VentaAsistida() {
+  const enLinea = useEnLinea();
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [cliente, setCliente] = useState<InfoCliente | null>(null);
   const [escaneando, setEscaneando] = useState(false);
@@ -83,8 +85,8 @@ export function VentaAsistida() {
         <p className="flex items-baseline justify-between"><span className="text-secundario">Total aprox. con IVA</span><span className="text-[26px] font-semibold tabular-nums">{mx(total)}</span></p>
         <p className="text-[12px] text-secundario">Precio público; si el cliente tiene lista especial, caja la aplica al cobrar.{sinPrecio ? " Hay piezas sin precio: caja lo captura." : ""}</p>
         <ClienteVenta cliente={cliente} onCambio={setCliente} />
-        <button type="button" disabled={enviando || lineas.length === 0} onClick={enviar} className="w-full rounded-full bg-azul py-3 font-semibold text-white disabled:opacity-40">
-          {enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : "Mandar a caja"}
+        <button type="button" disabled={enviando || lineas.length === 0 || !enLinea} onClick={enviar} className="w-full rounded-full bg-azul py-3 font-semibold text-white disabled:opacity-40">
+          {!enLinea ? "Sin conexión: espera la señal" : enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : "Mandar a caja"}
         </button>
       </aside>
     </div>

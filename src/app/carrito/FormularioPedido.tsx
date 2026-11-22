@@ -1,5 +1,6 @@
 "use client";
 
+import { useEnLinea } from "@/components/ModoSinConexion";
 import { AnilloBoton } from "@/components/Progreso";
 import { PagarEnCaja } from "./PagarEnCaja";
 
@@ -43,6 +44,7 @@ function Seccion({ titulo, children }: { titulo: string; children: React.ReactNo
 export function FormularioPedido({ direcciones, haySucursal, nombre, telefono, recomendados = false }: Props) {
   const { lineas, adjuntos, piezas, cambiar, quitarAdjunto } = useCarrito();
   const [estado, accion, enviando] = useActionState<EstadoFormulario, FormData>(crearPedido, {});
+  const enLinea = useEnLinea();
   const v = estado.campos ?? {};
   const [comprobante, setComprobante] = useState(v.comprobante ?? "nota");
   const [modo, setModo] = useState(v.modo ?? "envio");
@@ -192,8 +194,9 @@ export function FormularioPedido({ direcciones, haySucursal, nombre, telefono, r
       {/* Barra de acción fija */}
       <div className="fixed inset-x-0 bottom-14 z-30 border-t border-linea/70 bg-white/90 p-3 backdrop-blur-xl md:static md:border-0 md:bg-transparent md:p-0">
         <div className="mx-auto max-w-2xl">
-          <button disabled={enviando} className={clasesBoton("principal", "grande", true)}>
-            {enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : `Enviar pedido · ${piezas} ${piezas === 1 ? "artículo" : "artículos"}`}
+          {!enLinea && <p className="mb-2 text-center text-[14px] font-semibold">Sin conexión. Tu carrito queda guardado; envíalo cuando vuelva la señal.</p>}
+          <button disabled={enviando || !enLinea} className={clasesBoton("principal", "grande", true)}>
+            {!enLinea ? "Esperando conexión…" : enviando ? <span className="inline-flex items-center justify-center gap-3"><AnilloBoton /> Enviando…</span> : `Enviar pedido · ${piezas} ${piezas === 1 ? "artículo" : "artículos"}`}
           </button>
           <p className="mt-2 hidden text-center text-[13px] text-secundario md:block">Te confirmamos total y forma de pago por WhatsApp antes de surtir.</p>
         </div>

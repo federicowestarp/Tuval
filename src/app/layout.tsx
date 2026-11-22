@@ -1,9 +1,11 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Inter, Inter_Tight } from "next/font/google";
 import "./globals.css";
 import { URL_SITIO } from "@/lib/sitio";
 import { CarritoProvider } from "@/components/carrito/CarritoProvider";
 import { Arranque } from "@/components/Arranque";
+import { ModoSinConexion } from "@/components/ModoSinConexion";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"], weight: ["500", "600"] });
@@ -31,6 +33,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: "try{if(sessionStorage.getItem('tuval.arranque')==='1')document.documentElement.classList.add('arranque-visto')}catch(e){}" }} />
         <Arranque />
         <CarritoProvider>{children}</CarritoProvider>
+        <Suspense fallback={null}><ModoSinConexion /></Suspense>
       </body>
     </html>
   );

@@ -50,7 +50,7 @@ async function Contenido({ params }: { params: PageProps<"/interno/inventario-fi
         {t.estado !== "abierto" ? <p className="rounded-xl bg-niebla p-3">Este inventario ya se cerró.</p>
           : turno == null ? <p className="rounded-xl bg-emerald-50 p-3 font-semibold text-emerald-800">Tarjeta terminada ✓</p>
           : yaConte ? <p className="rounded-xl bg-amber-50 p-3">Ya contaste esta tarjeta. El {turno}º conteo lo hace otra persona.</p>
-          : <FormConteo key={id} tarjetaId={id} turno={turno} />}
+          : <FormConteo key={id} tarjetaId={id} turno={turno} folio={String(t.folio).padStart(4, "0")} inventarioId={t.inventario_id} />}
       </section>
     </>
   );

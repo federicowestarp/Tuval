@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { PUNTOS_RECORRIDO, type PuntoRegistrado } from "@/lib/recorrido";
-import { guardarRecorrido } from "./acciones";
+import { enviarOGuardar } from "@/lib/cola";
 
 const mmss = (ms: number) => { const s = Math.max(0, Math.floor(Math.abs(ms) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
 
@@ -61,8 +61,8 @@ export function Recorrido({ ultimo, cadaMin }: { ultimo: string | null; cadaMin:
       </ul>
       {error && <p className="font-semibold text-red-700">{error}</p>}
       <button type="button" disabled={enviando || revisados < PUNTOS_RECORRIDO.length} onClick={() => iniciar(async () => {
-        const r = await guardarRecorrido({ iniciado: inicio, puntos: Object.values(puntos) });
-        if (r.error) { setError(r.error); return; }
+        const r = await enviarOGuardar("guardarRecorrido", { iniciado: inicio, puntos: Object.values(puntos) }, "Recorrido de tienda");
+        if (r.estado === "error") { setError(r.error); return; }
         setInicio(null); setListo(true); router.refresh();
       })} className="h-14 w-full rounded-full bg-azul text-[17px] font-semibold text-white disabled:opacity-40">
         {enviando ? "Guardando…" : revisados < PUNTOS_RECORRIDO.length ? `Faltan ${PUNTOS_RECORRIDO.length - revisados} puntos` : "Terminar recorrido"}

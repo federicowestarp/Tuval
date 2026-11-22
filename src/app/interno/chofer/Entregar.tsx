@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { enviarOGuardar } from "@/lib/cola";
 import { campo, clasesBoton, etiqueta } from "@/components/ui";
 import { IconoCamara } from "@/components/Iconos";
-import { entregar, type EstadoEntrega } from "./acciones";
 import { Firma } from "./Firma";
 
 /** Reduce la foto en el teléfono (máx. 1600 px). */
@@ -22,11 +23,13 @@ async function reducir(f: File): Promise<File> {
   }
 }
 
-export function Entregar({ pedidoId, permiteSinRecepcion, recibeNombre, partidas = [] }: { pedidoId: string; permiteSinRecepcion: boolean; recibeNombre: string | null; partidas?: { id: string; nombre: string; cantidad: number }[] }) {
+export function Entregar({ pedidoId, folio = "", permiteSinRecepcion, recibeNombre, partidas = [] }: { pedidoId: string; folio?: string; permiteSinRecepcion: boolean; recibeNombre: string | null; partidas?: { id: string; nombre: string; cantidad: number }[] }) {
   const [revisado, setRevisado] = useState<Record<string, { ok: boolean; recibida: string }>>(() => Object.fromEntries(partidas.map((x) => [x.id, { ok: false, recibida: String(x.cantidad) }])));
   const [firma, setFirma] = useState<File | null>(null);
   const pendientesRevisar = partidas.filter((x) => !revisado[x.id]?.ok).length;
-  const [e, accion, enviando] = useActionState<EstadoEntrega, FormData>(entregar, {});
+  const router = useRouter();
+  const [e, setE] = useState<{ error?: string; ok?: boolean; sinSenal?: boolean }>({});
+  const [enviando, iniciar] = useTransition();
   const [abierto, setAbierto] = useState(false);
   const [fotos, setFotos] = useState<{ f: File; url: string }[]>([]);
   const [sinRecepcion, setSinRecepcion] = useState(false);
@@ -40,7 +43,11 @@ export function Entregar({ pedidoId, permiteSinRecepcion, recibeNombre, partidas
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60_000 },
     );
 
-  if (e.ok) return <p className="rounded-[20px] bg-piedra p-4 font-semibold">Entregado ✓</p>;
+  if (e.ok) return (
+    <p className="rounded-[20px] bg-piedra p-4 font-semibold">
+      Entregado ✓{e.sinSenal && <span className="block text-[14px] font-normal text-secundario">Guardado sin señal con fotos y firma. Se envía solo al volver la conexión.</span>}
+    </p>
+  );
   if (!abierto) return <button onClick={() => { setAbierto(true); pedirUbicacion(); }} className={clasesBoton("principal", "grande", true)}>Entregar</button>;
 
   const enviar = (fd: FormData) => {
@@ -49,11 +56,22 @@ export function Entregar({ pedidoId, permiteSinRecepcion, recibeNombre, partidas
     if (pos) { fd.set("lat", String(pos.lat)); fd.set("lng", String(pos.lng)); }
     fd.set("checklist", JSON.stringify(partidas.map((x) => ({ id: x.id, recibida: Number(revisado[x.id]?.recibida ?? x.cantidad) }))));
     if (firma) fd.set("firma", firma);
-    accion(fd);
+    // Se revisa aquí lo mismo que en el servidor, porque sin señal la respuesta llegaría hasta después.
+    const sinRec = fd.get("sin_recepcion") === "on";
+    if (fotos.length === 0) return setE({ error: "Toma al menos una foto del material entregado." });
+    if (!sinRec && String(fd.get("recibio") ?? "").trim().length < 3) return setE({ error: "Escribe quién recibió." });
+    if (!sinRec && !firma) return setE({ error: "Falta la firma de quien recibe." });
+    iniciar(async () => {
+      const r = await enviarOGuardar("entregar", fd, `Entrega ${folio}`.trim());
+      if (r.estado === "error") return setE({ error: r.error });
+      setE({ ok: true, sinSenal: r.estado === "guardado" });
+      if (r.estado === "enviado") router.refresh();
+    });
   };
 
   return (
-    <form action={enviar} className="aparecer space-y-4 rounded-[20px] bg-niebla p-4">
+    <form onSubmit={(ev) => { ev.preventDefault(); enviar(new FormData(ev.currentTarget)); }} className="aparecer space-y-4 rounded-[20px] bg-niebla p-4">
+      {/* onSubmit (no action): si falta algo, no se borra lo que ya se capturó. */}
       <input type="hidden" name="pedido_id" value={pedidoId} />
       {partidas.length > 0 && (
         <div>

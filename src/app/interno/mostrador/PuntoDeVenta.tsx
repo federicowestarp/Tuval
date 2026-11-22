@@ -1,5 +1,6 @@
 "use client";
 
+import { useEnLinea } from "@/components/ModoSinConexion";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,6 +23,7 @@ const IVA = 0.16;
 const mx = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
 
 export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inventario: ProductoInventario[]; categorias: { id: string; nombre: string }[]; terminales?: { id: string; nombre: string }[] }) {
+  const enLinea = useEnLinea();
   const [terminal, setTerminal] = useState(terminales.length === 1 ? terminales[0].id : "");
   const [lineas, setLineas] = useState<Linea[]>([]);
   const [forma, setForma] = useState<"efectivo" | "tarjeta" | "transferencia" | "credito">("efectivo");
@@ -250,8 +252,9 @@ export function PuntoDeVenta({ inventario, categorias, terminales = [] }: { inve
           )}
         </div>
         {error && <p role="alert" className="font-semibold text-red-700">{error}</p>}
-        <button type="button" disabled={enviando || lineas.length === 0} onClick={cobrar} className={clasesBoton("principal", "grande", true)}>
-          {enviando ? "Registrando…" : forma === "credito" ? `Cargar a crédito ${mx(porCobrar)}` : `Cobrar ${mx(porCobrar)}`}
+        {!enLinea && <p className="text-[14px] font-semibold">Sin conexión. Puedes armar la venta y consultar precios guardados; para cobrar se necesita señal (dinero e inventario se registran en línea).</p>}
+        <button type="button" disabled={enviando || lineas.length === 0 || !enLinea} onClick={cobrar} className={clasesBoton("principal", "grande", true)}>
+          {!enLinea ? "Esperando conexión para cobrar" : enviando ? "Registrando…" : forma === "credito" ? `Cargar a crédito ${mx(porCobrar)}` : `Cobrar ${mx(porCobrar)}`}
         </button>
       </aside>
     </div>
